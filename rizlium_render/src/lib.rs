@@ -29,6 +29,10 @@ impl GameChart {
             .map(|(i, l)| std::iter::repeat(i).zip(0..l.points.points.len() - 1))
             .flatten()
     }
+    pub fn map_time(&self, real_time: f32) -> f32 {
+        //todo
+        real_time
+    }
 }
 impl Deref for GameChart {
     type Target = RizChart;
@@ -53,6 +57,7 @@ pub fn start() {
             LogDiagnosticsPlugin::default(),
         ))
         .add_systems(Startup, before_render)
+        .add_systems(PreUpdate, game_time)
         .run();
 }
 pub struct TypeRegisterPlugin;
@@ -64,6 +69,12 @@ impl Plugin for TypeRegisterPlugin {
 }
 
 mod line_rendering;
+
+fn game_time(chart: Res<GameChart>, time: Res<Time>, mut game_time: ResMut<GameTime>) {
+    // todo: start
+    let since_start = time.raw_elapsed_wrapped();
+    game_time.0 = chart.map_time(since_start.as_secs_f32()-1.0 /* 1.0 dummy */);
+}
 
 fn before_render(mut commands: Commands, mut window: Query<&mut Window>) {
     commands
