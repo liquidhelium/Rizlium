@@ -29,9 +29,12 @@ impl Line {
             line_color,
         }
     }
-    pub fn pos_for(&self, point_idx: usize, game_time: f32) -> Option<[f32;2]> {
+    pub fn pos_for(&self, point_idx: usize, game_time: f32) -> Option<[f32; 2]> {
         let key_point = self.points.points.get(point_idx)?;
-        Some([key_point.related_value(game_time),self.vertical_move.value_at(key_point.time)])
+        Some([
+            key_point.related_value(game_time),
+            self.vertical_move.value_at(key_point.time),
+        ])
     }
     pub fn pos_at_time(&self, time: f32, game_time: f32) -> [f32; 2] {
         [

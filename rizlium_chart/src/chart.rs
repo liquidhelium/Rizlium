@@ -23,8 +23,8 @@ impl RizChart {
     pub fn lines_count(&self) -> usize {
         self.lines.len()
     }
-    pub fn segment_count(&self) ->usize {
-        self.lines.iter().map(|l|l.points.points.len()-1).sum()
+    pub fn segment_count(&self) -> usize {
+        self.lines.iter().map(|l| l.points.points.len() - 1).sum()
     }
     pub fn lines(&self) -> &Vec<Line> {
         &self.lines

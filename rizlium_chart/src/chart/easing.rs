@@ -62,7 +62,8 @@ impl<T: Tween + Add<Output = T>> KeyPoint<T> {
             .unwrap_or(self.value.clone())
     }
     fn get_offset(&self, time: f32, relevant_ease_time: f32) -> Option<T> {
-        self.get_relevant().map(|l| l.value_at_related(time, relevant_ease_time))
+        self.get_relevant()
+            .map(|l| l.value_at_related(time, relevant_ease_time))
     }
     pub fn get_relevant(&self) -> Option<Refc<Spline<T>>> {
         self.relevant_ease.as_ref().map(|l| l.upgrade()).flatten()
@@ -142,33 +143,33 @@ impl<T: Tween + std::ops::Add<Output = T>> Spline<T> {
                 }
                 if former.get_relevant() == latter.get_relevant() {
                     Some(T::ease(
-                                            former.may_offset(&offset1),
-                                            latter.may_offset(&offset1),
-                                            Clamped::new(t),
-                                            former.ease,
-                                        ))
+                        former.may_offset(&offset1),
+                        latter.may_offset(&offset1),
+                        Clamped::new(t),
+                        former.ease,
+                    ))
                 } else {
                     let offset2 = latter.get_offset(time, relevant_ease_time);
                     Some(T::ease(
-                                            former.may_offset(&offset1),
-                                            latter.may_offset(&offset2),
-                                            Clamped::new(t),
-                                            former.ease,
-                                        ))
+                        former.may_offset(&offset1),
+                        latter.may_offset(&offset2),
+                        Clamped::new(t),
+                        former.ease,
+                    ))
                 }
             }
             None => None,
         }
     }
-    pub fn value_at_related(&self, time: f32, relevant_ease_time: f32) -> T{
-        self.try_value_at_related(time, relevant_ease_time).unwrap_or_else(|| {
-            if time < self.points.first().map_or(0.0, |p|p.time) {
-                self.points[0].value.clone()
-            }
-            else {
-                self.points.last().expect("empty spline").value.clone()
-            }
-        })
+    pub fn value_at_related(&self, time: f32, relevant_ease_time: f32) -> T {
+        self.try_value_at_related(time, relevant_ease_time)
+            .unwrap_or_else(|| {
+                if time < self.points.first().map_or(0.0, |p| p.time) {
+                    self.points[0].value.clone()
+                } else {
+                    self.points.last().expect("empty spline").value.clone()
+                }
+            })
     }
 }
 

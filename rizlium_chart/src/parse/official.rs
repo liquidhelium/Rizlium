@@ -1,4 +1,4 @@
-use crate::{Refc, Weak, VIEW_RECT};
+use crate::{Refc, VIEW_RECT};
 
 use crate::chart::{self, Spline};
 use serde_derive::{Deserialize, Serialize};
@@ -158,10 +158,13 @@ impl Line {
             .into_iter()
             .map(|p| p.convert(Refc::clone(&line_color), canvas))
             .unzip();
-        let points = points.into_iter().map(|mut x| {
-            x.value = scale_x(x.value);
-            x
-        }).collect();
+        let points = points
+            .into_iter()
+            .map(|mut x| {
+                x.value = scale_x(x.value);
+                x
+            })
+            .collect();
         let points = chart::Spline::new(index as u32, points);
         let color = chart::Spline::new(u32::MAX - index as u32, colors);
         // todo: color mix
@@ -188,10 +191,10 @@ impl Line {
 }
 
 fn scale_x(x: f32) -> f32 {
-    (x+0.5)*(VIEW_RECT[1][0] - VIEW_RECT[0][0])
+    (x + 0.5) * (VIEW_RECT[1][0] - VIEW_RECT[0][0])
 }
 fn scale_y(y: f32) -> f32 {
-    y*(VIEW_RECT[1][1] - VIEW_RECT[0][1])*0.5
+    y * (VIEW_RECT[1][1] - VIEW_RECT[0][1]) * 0.5
 }
 
 #[derive(Serialize, Deserialize)]
@@ -212,15 +215,21 @@ impl Into<(chart::Spline<f32>, chart::Spline<f32>)> for CanvasMove {
                 self.x_position_key_points
                     .into_iter()
                     .map(|p| p.into())
-                    .map(|mut p: chart::KeyPoint<f32>| {p.value = scale_x(p.value);p})
-                .collect(),
+                    .map(|mut p: chart::KeyPoint<f32>| {
+                        p.value = scale_x(p.value);
+                        p
+                    })
+                    .collect(),
             ),
             Spline::new(
                 self.index as u32,
                 self.speed_key_points
-                .into_iter()
-                .map(|p| chart::KeyPoint::new(p.time, p.floor_position, 0, None))
-                .map(|mut p| {p.value = scale_y(p.value);p})
+                    .into_iter()
+                    .map(|p| chart::KeyPoint::new(p.time, p.floor_position, 0, None))
+                    .map(|mut p| {
+                        p.value = scale_y(p.value);
+                        p
+                    })
                     .collect(),
             ),
         )
