@@ -225,7 +225,7 @@ impl Into<(chart::Spline<f32>, chart::Spline<f32>)> for CanvasMove {
                 self.index as u32,
                 self.speed_key_points
                     .into_iter()
-                    .map(|p| chart::KeyPoint::new(p.time, p.floor_position, 0, None))
+                    .map(|p| chart::KeyPoint::new(p.time, p.floor_position -0.5, 0, None))
                     .map(|mut p| {
                         p.value = scale_y(p.value);
                         p

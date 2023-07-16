@@ -33,19 +33,19 @@ impl Line {
         let key_point = self.points.points.get(point_idx)?;
         Some([
             key_point.related_value(game_time),
-            self.vertical_move.value_at(key_point.time),
+            self.vertical_move.value_at(key_point.time)- self.vertical_move.value_at(game_time),
         ])
     }
     pub fn pos_at_time(&self, time: f32, game_time: f32) -> [f32; 2] {
         [
             self.points.value_at_related(time, game_time),
-            self.vertical_move.value_at(time),
+            self.vertical_move.value_at(time) - self.vertical_move.value_at(game_time),
         ]
     }
     pub fn try_pos_at_time(&self, time: f32, game_time: f32) -> Option<[f32; 2]> {
         Some([
             self.points.try_value_at_related(time, game_time)?,
-            self.vertical_move.value_at(time),
+            self.vertical_move.value_at(time)-self.vertical_move.value_at(game_time),
         ])
     }
 }
