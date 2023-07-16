@@ -1,5 +1,3 @@
-use super::Spline;
-
 #[derive(Debug, Clone)]
 pub enum NoteKind {
     Tap,
