@@ -141,15 +141,16 @@ impl<T: Tween + std::ops::Add<Output = T>> Spline<T> {
                 if t.is_nan() {
                     t = 0.;
                 }
-                if former.get_relevant() == latter.get_relevant() {
-                    Some(T::ease(
-                        former.may_offset(&offset1),
-                        latter.may_offset(&offset1),
-                        Clamped::new(t),
-                        former.ease,
-                    ))
-                } else {
-                    let offset2 = latter.get_offset(time, relevant_ease_time);
+                // if former.get_relevant() == latter.get_relevant() {
+                //     Some(T::ease(
+                //         former.may_offset(&offset1),
+                //         latter.may_offset(&offset1),
+                //         Clamped::new(t),
+                //         former.ease,
+                //     ))
+                // } else 
+                {
+                    let offset2 = latter.get_offset(relevant_ease_time, 0.);
                     Some(T::ease(
                         former.may_offset(&offset1),
                         latter.may_offset(&offset2),
