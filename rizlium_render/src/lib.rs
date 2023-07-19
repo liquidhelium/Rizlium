@@ -1,20 +1,27 @@
-use bevy::{prelude::*, DefaultPlugins, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}};
+use bevy::{
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    prelude::*,
+    DefaultPlugins,
+};
 
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_prototype_lyon::prelude::*;
-use mouse_tracking::{
-    prelude::InitWorldTracking,
-    MainCamera,
-};
-use rizlium_chart::{
-    __test_chart,
-    chart::RizChart,
-};
+use mouse_tracking::{prelude::InitWorldTracking, MainCamera};
+use rizlium_chart::{__test_chart, chart::RizChart};
 use std::ops::Deref;
+
+macro_rules! return_nothing_change {
+    ($($val:ident),+) => {
+        if !($(($val.is_changed() || $val.is_added()))&&+) {
+            // trace!(concat!(stringify!($($val),+)," is(are) not changed, skipping."));
+            return;
+        }
+    };
+}
 
 #[derive(Resource)]
 struct GameChart(RizChart);
-#[derive(Resource,Reflect, Default)]
+#[derive(Resource, Reflect, Default)]
 #[reflect(Resource)]
 struct GameTime(f32);
 
@@ -31,7 +38,7 @@ impl GameChart {
     }
     pub fn map_time(&self, real_time: f32) -> f32 {
         //todo
-        real_time
+        self.beats.value_at(real_time)
     }
 }
 impl Deref for GameChart {
@@ -40,8 +47,6 @@ impl Deref for GameChart {
         self.get_chart()
     }
 }
-
-
 
 pub fn start() {
     App::new()
@@ -73,7 +78,7 @@ mod line_rendering;
 fn game_time(chart: Res<GameChart>, time: Res<Time>, mut game_time: ResMut<GameTime>) {
     // todo: start
     let since_start = time.raw_elapsed_wrapped();
-    game_time.0 = chart.map_time(since_start.as_secs_f32()-1.0 /* 1.0 dummy */);
+    *game_time = GameTime(chart.map_time(since_start.as_secs_f32() - 1.0 /* 1.0 dummy */));
 }
 
 fn before_render(mut commands: Commands, mut window: Query<&mut Window>) {
