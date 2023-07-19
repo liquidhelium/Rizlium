@@ -17,39 +17,25 @@ pub struct ChartLine;
 #[derive(Component, Reflect, Debug, Default)]
 struct ChartLineId {
     line_idx: usize,
-    keypoint_idx: usize,
+    keypoint_idx: usize
 }
 
-#[derive(Bundle)]
+#[derive(Default, Bundle)]
 pub struct ChartLineBundle {
     layer: RenderLayers,
     line: ChartLine,
     shape: ShapeBundle,
     stoke: Stroke,
 }
-impl Default for ChartLineBundle {
-    fn default() -> Self {
-        Self {
-            layer: default(),
-            line: default(),
-            shape: default(),
-            stoke: {
-                let mut s = Stroke::default();
-                s.brush = Brush::Gradient(Gradient::Linear(LinearGradient::default()));
-                s
-            },
-        }
-    }
-}
+
 pub struct ChartLinePlugin;
 
 impl Plugin for ChartLinePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(MousePosPlugin)
-            .add_systems(First, (add_lines,))
+            .add_systems(First, (add_lines, ))
             .add_systems(PreUpdate, assocate_segment)
-            .add_systems(Update, (change_bounding, update_shape, update_color_pos))
-            .add_systems(PostUpdate, update_color);
+            .add_systems(Update, (change_bounding,update_shape, update_color));
     }
 }
 
@@ -66,7 +52,8 @@ fn change_bounding(
     mut lines: Query<(&mut Aabb, &Stroke, &ChartLineId)>,
 ) {
     // return_nothing_change!(chart, time); // this one doesn't work
-    for (mut vis, stroke, id) in lines.iter_mut() {
+    for (mut vis, stroke, id) in lines.iter_mut() 
+    {
         let line_idx = id.line_idx;
         let keypoint_idx = id.keypoint_idx;
         let line = &chart.lines[line_idx];
@@ -83,16 +70,13 @@ fn change_bounding(
     }
 }
 
-fn assocate_segment(
-    mut commands: Commands,
-    chart: Res<GameChart>,
-    mut lines: Query<Entity, With<ChartLine>>,
-) {
+fn assocate_segment(mut commands:Commands,chart: Res<GameChart>, mut lines: Query<Entity, With<ChartLine>>) {
     for (entity, (line_idx, keypoint_idx)) in lines.iter().zip(chart.iter_segment()) {
-        commands.entity(entity).insert(ChartLineId {
-            line_idx,
-            keypoint_idx,
-        });
+        commands.entity(entity)
+                .insert(ChartLineId {
+                    line_idx,
+                    keypoint_idx,
+                });
     }
 }
 
@@ -133,59 +117,45 @@ fn update_shape(
     }
 }
 
-fn update_color_pos(
+fn update_color(
     chart: Res<GameChart>,
     time: Res<GameTime>,
     mut lines: Query<(&mut Stroke, &ComputedVisibility, &ChartLineId)>,
 ) {
     // return_nothing_change!(chart, time);
-    for (mut stroke, vis, id) in lines.iter_mut() {
+    for (mut stroke, vis, id) in
+        lines.iter_mut()
+    {
         if !vis.is_visible() {
             continue;
         }
+        let line_index = id.line_idx;
+        let keypoint_index = id.keypoint_idx;
+        let line = &chart.lines[line_index];
+        let pos1 = line.pos_for(keypoint_index, time.0).unwrap();
+        let pos2 = line.pos_for(keypoint_index + 1, time.0).unwrap();
         match stroke.brush {
             Brush::Gradient(Gradient::Linear(ref mut gradient)) => {
-                let line_index = id.line_idx;
-                let keypoint_index = id.keypoint_idx;
-                let line = &chart.lines[line_index];
-                let pos1 = line.pos_for(keypoint_index, time.0).unwrap();
-                let pos2 = line.pos_for(keypoint_index + 1, time.0).unwrap();
-
                 gradient.start = pos1.into();
                 gradient.end = pos2.into();
-                continue;
             }
             _ => (),
         }
+
+        let color1 = line.point_color.points[keypoint_index].value;
+        let color2 = line.point_color.points[keypoint_index + 1].value;
+        let gradient = LinearGradient {
+            start: pos1.into(),
+            end: pos2.into(),
+            stops: vec![
+                GradientStop::new(0., colorrgba_to_color(color1)),
+                GradientStop::new(1., colorrgba_to_color(color2)),
+            ],
+        };
+        stroke.brush = Brush::Gradient(gradient.into());
     }
 }
 
-fn update_color(
-    chart: Res<GameChart>,
-    time: Res<GameTime>,
-    mut lines: Query<(&mut Stroke, &ChartLineId)>,
-) {
-    lines
-        .par_iter_mut()
-        .for_each_mut(|(mut stroke, id)| match stroke.brush {
-            Brush::Gradient(Gradient::Linear(ref mut gradient)) => {
-                if gradient.has_lut() {
-                    return;
-                }
-                let line_index = id.line_idx;
-                let keypoint_index = id.keypoint_idx;
-                let line = &chart.lines[line_index];
-                let color1 = line.point_color.points[keypoint_index].value;
-                let color2 = line.point_color.points[keypoint_index + 1].value;
-                let mut new_gradient = LinearGradient::default();
-                new_gradient.add_stop(0., colorrgba_to_color(color1));
-                new_gradient.add_stop(1., colorrgba_to_color(color2));
-                // new_gradient.gen_lut_if_empty();
-                *gradient = new_gradient;
-            }
-            _ => (),
-        })
-}
 // fn update_layer(
 //     chart: Res<GameChart>,
 //     mut lines: Query<(&mut RenderLayers, &ChartLineId)>,
