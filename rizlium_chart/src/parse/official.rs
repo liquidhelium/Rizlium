@@ -302,14 +302,17 @@ impl Into<chart::RizChart> for RizlineChart {
                 line.convert(&canvas, index, Refc::clone(&vmove[canvas_index]))
             })
             .collect();
-        chart::RizChart::new(lines, canvas, convert_bpm(self.bpm, self.bpm_shifts))
+        chart::RizChart::new(lines, canvas, convert_bpm_to_timemap(self.bpm, self.bpm_shifts))
     }
 }
 
-fn convert_bpm(bpm: f32, bpm_shifts: Vec<KeyPoint>) -> Spline<f32> {
-    let bpms = bpm_shifts
+fn convert_bpm_to_timemap(_bpm: f32, bpm_shifts: Vec<KeyPoint>) -> Spline<f32> {
+    // the time of bpm `KeyPoint`s is Rizline time
+    // so we need to reverse.
+    // and actually `bpm` is useless XD
+    let beats = bpm_shifts
         .into_iter()
-        .map(|s| chart::KeyPoint::new(s.time, s.value * bpm, 0, None))
+        .map(|s| chart::KeyPoint::new(s.floor_position, s.time, 0, None))
         .collect();
-    Spline::new(114514, bpms)
+    Spline::new(114514, beats)
 }
