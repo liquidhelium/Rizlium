@@ -70,7 +70,8 @@ fn change_bounding(
     }
 }
 
-fn assocate_segment(mut commands:Commands,chart: Res<GameChart>, mut lines: Query<Entity, With<ChartLine>>) {
+fn assocate_segment(mut commands:Commands,chart: Res<GameChart>,lines: Query<Entity, With<ChartLine>>) {
+    return_nothing_change!(chart);
     for (entity, (line_idx, keypoint_idx)) in lines.iter().zip(chart.iter_segment()) {
         commands.entity(entity)
                 .insert(ChartLineId {
@@ -86,9 +87,9 @@ fn update_shape(
     mut lines: Query<(&mut Path, &ComputedVisibility, &ChartLineId)>,
 ) {
     // return_nothing_change!(chart, time);
-    for (mut path, vis, id) in lines.iter_mut() {
+    lines.par_iter_mut().for_each_mut( |(mut path, vis, id)|{
         if !vis.is_visible() {
-            continue;
+            return;
         }
         let line_idx = id.line_idx;
         let keypoint_idx = id.keypoint_idx;
@@ -114,7 +115,7 @@ fn update_shape(
             builder.line_to(pos.into());
         }
         *path = builder.build();
-    }
+    });
 }
 
 fn update_color(
@@ -123,11 +124,10 @@ fn update_color(
     mut lines: Query<(&mut Stroke, &ComputedVisibility, &ChartLineId)>,
 ) {
     // return_nothing_change!(chart, time);
-    for (mut stroke, vis, id) in
-        lines.iter_mut()
+    lines.par_iter_mut().for_each_mut(|(mut stroke, vis, id)|
     {
         if !vis.is_visible() {
-            continue;
+            return;
         }
         let line_index = id.line_idx;
         let keypoint_index = id.keypoint_idx;
@@ -153,7 +153,7 @@ fn update_color(
             ],
         };
         stroke.brush = Brush::Gradient(gradient.into());
-    }
+    });
 }
 
 // fn update_layer(
