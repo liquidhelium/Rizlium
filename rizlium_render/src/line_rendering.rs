@@ -1,5 +1,5 @@
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
-use rizlium_chart::chart::ColorRGBA;
+use rizlium_chart::chart::{Clamped, ColorRGBA, Tween};
 
 use bevy_prototype_lyon::prelude::*;
 
@@ -111,18 +111,22 @@ fn update_shape(
         let pos1 = line.pos_for(keypoint_idx, time.0).unwrap();
         let pos2 = line.pos_for(keypoint_idx + 1, time.0).unwrap();
         builder.move_to(pos1.into());
-        // straight line
+        // skip straight line
         if !(keypoint.ease == 0 || pos1[0].approx_eq(&pos2[0]) || pos1[1].approx_eq(&pos2[1])) {
-            let range = line.points.points[keypoint_idx].time + 0.01
-                ..line.points.points[keypoint_idx + 1].time;
-            let iter = std::iter::successors(Some(range.start), move |a| {
-                range.contains(a).then_some(a + 0.01)
-            })
-            .map(|this_time| line.try_pos_at_time(this_time, /*game_time*/ time.0))
-            .flatten();
-            iter.for_each(|point| {
-                builder.line_to(point.into());
-            });
+            let point_count = ((pos2[1] - pos1[1]) / 1.).floor();
+            // 0...>1...>2...>3..0'
+            (1..point_count as usize)
+                .into_iter()
+                .map(|i| i as f32 / point_count)
+                .map(|t| {
+                    [
+                        f32::ease(pos1[0], pos2[0], t.into(), keypoint.ease),
+                        f32::tween(pos1[1], pos2[1], t.into()),
+                    ]
+                })
+                .for_each(|p| {
+                    builder.line_to(p.into());
+                });
         }
         builder.line_to(pos2.into());
         // connect next segment

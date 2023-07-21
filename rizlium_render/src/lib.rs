@@ -102,7 +102,7 @@ mod line_rendering;
 fn game_time(chart: Res<GameChart>, time: Res<Time>, mut game_time: ResMut<GameTime>) {
     // todo: start
     let since_start = time.raw_elapsed_wrapped();
-    *game_time = GameTime(chart.map_time(since_start.as_secs_f32() - 1.0 /* 1.0 dummy */) + 400.0 );
+    *game_time = GameTime(chart.map_time(since_start.as_secs_f32() - 1.0 /* 1.0 dummy */));
 }
 
 fn before_render(mut commands: Commands, mut window: Query<&mut Window>) {
