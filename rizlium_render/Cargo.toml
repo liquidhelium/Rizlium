@@ -32,5 +32,5 @@ bevy_egui = "*"
 bevy-inspector-egui = "*"
 # bevy_prototype_lyon = {git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium"}
 bevy_prototype_lyon = {path = "../../bevy_prototype_lyon_rizlium"}
-rizlium_chart = {path="../rizlium_chart",features = ["atomic"]}
+rizlium_chart = {path="../rizlium_chart",features = ["atomic", "runtime"]}
 mouse_tracking = {package = "bevy_mouse_tracking_plugin", version = "0.6.0"}

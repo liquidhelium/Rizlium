@@ -1,4 +1,5 @@
 use super::Tween;
+use std::ops::Add;
 
 macro_rules! tween {
     (($($var:ident),*),$x1:ident,$x2:ident, $t:ident) => {
@@ -21,4 +22,12 @@ impl Tween for ColorRGBA {
         tween!((r, g, b, a), x1, x2, t)
     }
 }
-// todo: impl Add for ColorRGBA {..}
+impl Add for ColorRGBA {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        // blend: (ONE_MINUS_SRC_ALPHA, SRC_ALPHA)
+        let mut blend = Self::tween(rhs, self, (rhs.a/255.).into());
+        blend.a = self.a;
+        blend
+    }
+}
