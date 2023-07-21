@@ -1,3 +1,4 @@
+use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
 use rizlium_chart::chart::ColorRGBA;
 
 use bevy_prototype_lyon::prelude::*;
@@ -17,15 +18,25 @@ pub struct ChartLine;
 #[derive(Component, Reflect, Debug, Default)]
 struct ChartLineId {
     line_idx: usize,
-    keypoint_idx: usize
+    keypoint_idx: usize,
 }
 
-#[derive(Default, Bundle)]
+#[derive(Bundle)]
 pub struct ChartLineBundle {
     layer: RenderLayers,
     line: ChartLine,
     shape: ShapeBundle,
     stoke: Stroke,
+}
+impl Default for ChartLineBundle {
+    fn default() -> Self {
+        Self {
+            layer: default(),
+            line: default(),
+            shape: default(),
+            stoke: Stroke::new(Color::NONE, 10.),
+        }
+    }
 }
 
 pub struct ChartLinePlugin;
@@ -33,9 +44,9 @@ pub struct ChartLinePlugin;
 impl Plugin for ChartLinePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(MousePosPlugin)
-            .add_systems(First, (add_lines, ))
+            .add_systems(First, (add_lines,))
             .add_systems(PreUpdate, assocate_segment)
-            .add_systems(Update, (change_bounding,update_shape, update_color));
+            .add_systems(Update, (change_bounding, update_shape, update_color));
     }
 }
 
@@ -51,9 +62,7 @@ fn change_bounding(
     time: Res<GameTime>,
     mut lines: Query<(&mut Aabb, &Stroke, &ChartLineId)>,
 ) {
-    // return_nothing_change!(chart, time); // this one doesn't work
-    for (mut vis, stroke, id) in lines.iter_mut() 
-    {
+    lines.par_iter_mut().for_each_mut(|(mut vis, stroke, id)| {
         let line_idx = id.line_idx;
         let keypoint_idx = id.keypoint_idx;
         let line = &chart.lines[line_idx];
@@ -67,17 +76,20 @@ fn change_bounding(
             center: rect.center().extend(0.).into(),
             half_extents: rect.half_size().extend(0.).into(),
         };
-    }
+    });
 }
 
-fn assocate_segment(mut commands:Commands,chart: Res<GameChart>,lines: Query<Entity, With<ChartLine>>) {
-    return_nothing_change!(chart);
+fn assocate_segment(
+    mut commands: Commands,
+    chart: Res<GameChart>,
+    lines: Query<Entity, With<ChartLine>>,
+) {
+    // return_nothing_change!(chart);
     for (entity, (line_idx, keypoint_idx)) in lines.iter().zip(chart.iter_segment()) {
-        commands.entity(entity)
-                .insert(ChartLineId {
-                    line_idx,
-                    keypoint_idx,
-                });
+        commands.entity(entity).insert(ChartLineId {
+            line_idx,
+            keypoint_idx,
+        });
     }
 }
 
@@ -86,28 +98,33 @@ fn update_shape(
     time: Res<GameTime>,
     mut lines: Query<(&mut Path, &ComputedVisibility, &ChartLineId)>,
 ) {
-    // return_nothing_change!(chart, time);
-    lines.par_iter_mut().for_each_mut( |(mut path, vis, id)|{
+    lines.par_iter_mut().for_each_mut(|(mut path, vis, id)| {
         if !vis.is_visible() {
             return;
         }
         let line_idx = id.line_idx;
         let keypoint_idx = id.keypoint_idx;
         let line = &chart.lines[line_idx];
-        let range =
-            line.points.points[keypoint_idx].time + 0.01..line.points.points[keypoint_idx + 1].time;
-        let iter = std::iter::successors(Some(range.start), move |a| {
-            range.contains(a).then_some(a + 0.01)
-        })
-        .map(|this_time| line.try_pos_at_time(this_time, /*game_time*/ time.0))
-        .flatten();
+        let keypoint = &line.points.points[keypoint_idx];
 
         let mut builder = PathBuilder::new();
-        builder.move_to(line.pos_for(keypoint_idx, time.0).unwrap().into());
-        iter.for_each(|point| {
-            builder.line_to(point.into());
-        });
-        builder.line_to(line.pos_for(keypoint_idx + 1, time.0).unwrap().into());
+        let pos1 = line.pos_for(keypoint_idx, time.0).unwrap();
+        let pos2 = line.pos_for(keypoint_idx + 1, time.0).unwrap();
+        builder.move_to(pos1.into());
+        // straight line
+        if !(keypoint.ease == 0 || pos1[0].approx_eq(&pos2[0]) || pos1[1].approx_eq(&pos2[1])) {
+            let range = line.points.points[keypoint_idx].time + 0.01
+                ..line.points.points[keypoint_idx + 1].time;
+            let iter = std::iter::successors(Some(range.start), move |a| {
+                range.contains(a).then_some(a + 0.01)
+            })
+            .map(|this_time| line.try_pos_at_time(this_time, /*game_time*/ time.0))
+            .flatten();
+            iter.for_each(|point| {
+                builder.line_to(point.into());
+            });
+        }
+        builder.line_to(pos2.into());
         // connect next segment
         if let Some(pos) =
             line.try_pos_at_time(line.points.points[keypoint_idx + 1].time + 0.1, time.0)
@@ -123,9 +140,7 @@ fn update_color(
     time: Res<GameTime>,
     mut lines: Query<(&mut Stroke, &ComputedVisibility, &ChartLineId)>,
 ) {
-    // return_nothing_change!(chart, time);
-    lines.par_iter_mut().for_each_mut(|(mut stroke, vis, id)|
-    {
+    lines.par_iter_mut().for_each_mut(|(mut stroke, vis, id)| {
         if !vis.is_visible() {
             return;
         }

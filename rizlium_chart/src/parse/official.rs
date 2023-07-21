@@ -1,6 +1,6 @@
 use crate::{Refc, VIEW_RECT};
 
-use crate::chart::{self, Spline};
+use crate::chart::{self, Spline, SplineId, SplineIdInner};
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -147,7 +147,7 @@ impl Line {
         let line_color: Vec<chart::ColorRGBA> =
             self.line_color.into_iter().map(|k| k.into()).collect();
         let line_color = Refc::new(Spline::new(
-            index.try_into().unwrap(),
+            Some(SplineId::LineColor( index.try_into().expect("overflow during convert"))),
             line_color
                 .into_iter()
                 .map(|c| chart::KeyPoint::new(0.0, c, 0, None))
@@ -165,8 +165,8 @@ impl Line {
                 x
             })
             .collect();
-        let points = chart::Spline::new(index as u32, points);
-        let color = chart::Spline::new(u32::MAX - index as u32, colors);
+        let points = chart::Spline::new(Some(SplineId::LinePoints(index as SplineIdInner)), points);
+        let color = chart::Spline::new(Some(SplineId::PointColor(index as SplineIdInner)), colors);
         // todo: color mix
         let notes: Vec<chart::Note> = self
             .notes
@@ -178,7 +178,7 @@ impl Line {
             color,
             notes,
             Spline::new(
-                index.try_into().unwrap(),
+                Some(SplineId::RingColor(index.try_into().expect("overflow during convert"))),
                 self.judge_ring_color
                     .into_iter()
                     .map(|c| c.into())
@@ -211,7 +211,7 @@ impl Into<(chart::Spline<f32>, chart::Spline<f32>)> for CanvasMove {
     fn into(self) -> (chart::Spline<f32>, chart::Spline<f32>) {
         (
             Spline::new(
-                self.index as u32,
+                Some(SplineId::Canvas(self.index as SplineIdInner)),
                 self.x_position_key_points
                     .into_iter()
                     .map(|p| p.into())
@@ -222,7 +222,7 @@ impl Into<(chart::Spline<f32>, chart::Spline<f32>)> for CanvasMove {
                     .collect(),
             ),
             Spline::new(
-                self.index as u32,
+                Some(SplineId::LineMove(self.index as SplineIdInner)),
                 self.speed_key_points
                     .into_iter()
                     .map(|p| chart::KeyPoint::new(p.time, p.floor_position -0.5, 0, None))
@@ -302,7 +302,18 @@ impl Into<chart::RizChart> for RizlineChart {
                 line.convert(&canvas, index, Refc::clone(&vmove[canvas_index]))
             })
             .collect();
-        chart::RizChart::new(lines, canvas, convert_bpm_to_timemap(self.bpm, self.bpm_shifts))
+        let cam_scale = Spline::new(Some(SplineId::CamScale), self.camera_move.scale_key_points.into_iter().map(|k|k.into()).collect());
+        let cam_move = Spline::new(Some(SplineId::CamMove), self.camera_move.x_position_key_points.into_iter().map(|mut k| {
+            k.value = scale_x(k.value);
+            k.into()
+        }).collect());
+        chart::RizChart {
+            lines,
+            canvas,
+            beats: convert_bpm_to_timemap(self.bpm, self.bpm_shifts),
+            cam_move,
+            cam_scale
+        }
     }
 }
 
@@ -314,5 +325,5 @@ fn convert_bpm_to_timemap(_bpm: f32, bpm_shifts: Vec<KeyPoint>) -> Spline<f32> {
         .into_iter()
         .map(|s| chart::KeyPoint::new(s.floor_position, s.time, 0, None))
         .collect();
-    Spline::new(114514, beats)
+    Spline::new(Some(SplineId::Beat), beats)
 }

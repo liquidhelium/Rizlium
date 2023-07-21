@@ -76,16 +76,35 @@ impl<T: Tween + Add<Output = T>> KeyPoint<T> {
 
 #[derive(Debug, Clone)]
 pub struct Spline<T: Tween> {
-    id: u32,
+    id: Option<SplineId>,
     pub points: Vec<KeyPoint<T>>,
 }
+
+pub type SplineIdInner = u16;
+
+#[repr(u16)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum SplineId {
+    LinePoints(SplineIdInner),
+    LineMove(SplineIdInner),
+    PointColor(SplineIdInner),
+    LineColor(SplineIdInner),
+    RingColor(SplineIdInner),
+    Canvas(SplineIdInner),
+    CamMove,
+    CamScale,
+    Beat,
+}
+
 impl<T: Tween> PartialEq for Spline<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.id.as_ref().map_or(false, |id1| {
+            other.id.as_ref().map_or(false, |id2| id1 == id2)
+        })
     }
 }
 impl<T: Tween> Spline<T> {
-    pub fn new(id: u32, points: Vec<KeyPoint<T>>) -> Self {
+    pub fn new(id: Option<SplineId>, points: Vec<KeyPoint<T>>) -> Self {
         Self { id, points }
     }
 
@@ -107,11 +126,10 @@ impl<T: Tween> Spline<T> {
 
     pub fn value_at(&self, time: f32) -> T {
         let index = self.find_by_time(time);
-        let former = self.points.get(index).unwrap_or(
-            self.points
-                .last()
-                .expect(&format!("Spline {} appear to be empty", self.id)),
-        );
+        let former = self
+            .points
+            .get(index)
+            .unwrap_or(self.points.last().expect("empty_spline"));
         match self.points.get(index + 1) {
             Some(latter) => {
                 let t = (time - former.time) / (latter.time - former.time);
@@ -148,7 +166,7 @@ impl<T: Tween + std::ops::Add<Output = T>> Spline<T> {
                 //         Clamped::new(t),
                 //         former.ease,
                 //     ))
-                // } else 
+                // } else
                 {
                     let offset2 = latter.get_offset(relevant_ease_time, 0.);
                     Some(T::ease(
