@@ -14,12 +14,11 @@ pub struct RizChart {
     pub lines: Vec<Line>,
     pub canvas: Vec<Refc<Spline<f32>>>,
     pub beats: Spline<f32>,
+    pub cam_scale: Spline<f32>,
+    pub cam_move: Spline<f32>
 }
 
 impl RizChart {
-    pub fn new(lines: Vec<Line>, canvas: Vec<Refc<Spline<f32>>>, bpm: Spline<f32>) -> Self {
-        Self { lines, canvas, beats: bpm }
-    }
     pub fn lines_count(&self) -> usize {
         self.lines.len()
     }

@@ -21,4 +21,4 @@ impl Tween for ColorRGBA {
         tween!((r, g, b, a), x1, x2, t)
     }
 }
-// todo: impl Add for ColorRBGA {..}
+// todo: impl Add for ColorRGBA {..}

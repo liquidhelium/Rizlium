@@ -13,3 +13,7 @@ opt-level = 1
 # 像下面这样对依赖的库启用更高级别的优化（包括 Bevy ），但不会包括我们自己的代码：
 [profile.dev.package."*"]
 opt-level = 3
+
+
+[profile.release]
+debug = true
