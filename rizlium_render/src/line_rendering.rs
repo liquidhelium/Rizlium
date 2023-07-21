@@ -1,5 +1,5 @@
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
-use rizlium_chart::chart::{Clamped, ColorRGBA, Tween};
+use rizlium_chart::chart::{ColorRGBA, Tween};
 
 use bevy_prototype_lyon::prelude::*;
 
@@ -139,6 +139,8 @@ fn update_shape(
     });
 }
 
+const DEBUG_INVISIBLE: Color = Color::rgba_linear(1., 0., 1., 0.2);
+
 fn update_color(
     chart: Res<GameChart>,
     time: Res<GameTime>,
@@ -161,14 +163,18 @@ fn update_color(
             _ => (),
         }
 
-        let color1 = line.point_color.points[keypoint_index].value;
-        let color2 = line.point_color.points[keypoint_index + 1].value;
+        let mut color1 = colorrgba_to_color(line.point_color.points[keypoint_index].try_related_value(time.0));
+        let mut color2 = colorrgba_to_color(line.point_color.points[keypoint_index + 1].try_related_value(time.0));
+        if color1.a().approx_eq(&0.) && color2.a().approx_eq(&0.) {
+            color1 = DEBUG_INVISIBLE;
+            color2 = DEBUG_INVISIBLE;
+        }
         let gradient = LinearGradient {
             start: pos1.into(),
             end: pos2.into(),
             stops: vec![
-                GradientStop::new(0., colorrgba_to_color(color1)),
-                GradientStop::new(1., colorrgba_to_color(color2)),
+                GradientStop::new(0., color1),
+                GradientStop::new(1., color2),
             ],
         };
         stroke.brush = Brush::Gradient(gradient.into());

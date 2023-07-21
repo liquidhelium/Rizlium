@@ -79,7 +79,7 @@ pub struct GameCamera;
 
 impl Plugin for CameraControlPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, update_camera);
+        // app.add_systems(PreUpdate, update_camera);
     }
 }
 
@@ -117,7 +117,7 @@ fn before_render(mut commands: Commands, mut window: Query<&mut Window>) {
                 ..default()
             },
             transform: Transform {
-                translation: [900.,800.0,999.0].into(),
+                translation: [900.,700.0,999.0].into(),
                 ..default()
             },
             ..default()

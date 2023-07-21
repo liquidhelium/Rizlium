@@ -61,6 +61,10 @@ impl<T: Tween + Add<Output = T>> KeyPoint<T> {
             .map(|o| o.clone() + self.value.clone())
             .unwrap_or(self.value.clone())
     }
+    fn try_get_offset(&self, time: f32, relevant_ease_time: f32) -> Option<T> {
+        self.get_relevant()
+            .map(|l| l.try_value_at_related(time, relevant_ease_time)).flatten()
+    }
     fn get_offset(&self, time: f32, relevant_ease_time: f32) -> Option<T> {
         self.get_relevant()
             .map(|l| l.value_at_related(time, relevant_ease_time))
@@ -71,6 +75,10 @@ impl<T: Tween + Add<Output = T>> KeyPoint<T> {
     pub fn related_value(&self, game_time: f32) -> T {
         // 以后有多重的再改
         self.may_offset(&self.get_offset(game_time, 0.0))
+    }
+    pub fn try_related_value(&self, game_time: f32) -> T {
+        // 以后有多重的再改
+        self.may_offset(&self.try_get_offset(game_time, 0.0))
     }
 }
 
@@ -144,9 +152,13 @@ impl<T: Tween> Spline<T> {
         }
     }
 }
+// todo: refactor
 
 impl<T: Tween + std::ops::Add<Output = T>> Spline<T> {
     pub fn try_value_at_related(&self, time: f32, relevant_ease_time: f32) -> Option<T> {
+        if self.points.is_empty() {
+            return None;
+        }
         let index = self.find_by_time(time);
         let former = self
             .points
@@ -183,10 +195,11 @@ impl<T: Tween + std::ops::Add<Output = T>> Spline<T> {
     pub fn value_at_related(&self, time: f32, relevant_ease_time: f32) -> T {
         self.try_value_at_related(time, relevant_ease_time)
             .unwrap_or_else(|| {
-                if time < self.points.first().map_or(0.0, |p| p.time) {
-                    self.points[0].value.clone()
+                let first = self.points.first().expect("empty spline");
+                if time < first.time {
+                    first.value.clone()
                 } else {
-                    self.points.last().expect("empty spline").value.clone()
+                    self.points.last().unwrap().value.clone()
                 }
             })
     }

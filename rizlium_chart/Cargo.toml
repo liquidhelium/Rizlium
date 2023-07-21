@@ -15,4 +15,6 @@ serde_derive = "*"
 cfg-if = "1.0.0"
 
 [features]
+default = ["runtime"]
 atomic = []
+runtime = []

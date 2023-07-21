@@ -14,7 +14,9 @@ cfg_if! {
 }
 pub mod chart;
 pub mod parse;
-pub const VIEW_RECT: [[f32; 2]; 2] = [[0., 0.], [900., 1600.]];
+#[cfg(feature="runtime")]
+pub mod runtime;
+pub const VIEW_RECT: [[f32; 2]; 2] = [[-450., 0.], [450., 1600.]];
 
 pub fn __test_chart() -> chart::RizChart {
     serde_json::from_str::<parse::official::RizlineChart>(include_str!("../test_assets/take.json"))
