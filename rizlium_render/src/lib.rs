@@ -6,7 +6,7 @@ use bevy::{
 
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_prototype_lyon::prelude::*;
-use rizlium_chart::{__test_chart, chart::RizChart, VIEW_RECT};
+use rizlium_chart::{__test_chart, chart::{Chart, ChartCache}, VIEW_RECT};
 use std::ops::Deref;
 
 macro_rules! return_nothing_change {
@@ -18,13 +18,15 @@ macro_rules! return_nothing_change {
 }
 
 #[derive(Resource)]
-struct GameChart(RizChart);
+struct GameChart(Chart);
+#[derive(Resource)]
+struct GameChartCache(ChartCache);
 #[derive(Resource, Reflect, Default)]
 #[reflect(Resource)]
 struct GameTime(f32);
 
 impl GameChart {
-    pub fn get_chart(&self) -> &RizChart {
+    pub fn get_chart(&self) -> &Chart {
         &self.0
     }
     pub fn iter_segment(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
@@ -40,7 +42,7 @@ impl GameChart {
     }
 }
 impl Deref for GameChart {
-    type Target = RizChart;
+    type Target = Chart;
     fn deref(&self) -> &Self::Target {
         self.get_chart()
     }

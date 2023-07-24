@@ -1,6 +1,6 @@
-use crate::{Refc, VIEW_RECT};
+use crate::VIEW_RECT;
 
-use crate::chart::{self, Spline, SplineId, SplineIdInner};
+use crate::chart::{self, SplineNext};
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -23,7 +23,7 @@ pub struct ChallengeTime {
 #[derive(Serialize, Deserialize)]
 pub struct Note {
     #[serde(rename = "type")]
-    pub note_type: i32,
+    pub note_type: u8,
     #[serde(rename = "time")]
     pub time: f32,
     #[serde(rename = "floorPosition")]
@@ -54,22 +54,22 @@ impl TryInto<chart::Note> for Note {
 #[derive(Serialize, Deserialize)]
 pub struct ColorRGBA {
     #[serde(rename = "r")]
-    pub r: i32,
+    pub r: u8,
     #[serde(rename = "g")]
-    pub g: i32,
+    pub g: u8,
     #[serde(rename = "b")]
-    pub b: i32,
+    pub b: u8,
     #[serde(rename = "a")]
-    pub a: i32,
+    pub a: u8,
 }
 
 impl Into<chart::ColorRGBA> for ColorRGBA {
     fn into(self) -> chart::ColorRGBA {
         chart::ColorRGBA {
-            r: self.r as f32,
-            g: self.g as f32,
-            b: self.b as f32,
-            a: self.a as f32,
+            r: self.r as f32 / 255.0,
+            g: self.g as f32 / 255.0,
+            b: self.b as f32 / 255.0,
+            a: self.a as f32 / 255.0,
         }
     }
 }
@@ -93,26 +93,28 @@ pub struct LinePoint {
 impl LinePoint {
     fn convert(
         self,
-        line_color: Refc<chart::Spline<chart::ColorRGBA>>,
-        canvas: &Vec<Refc<chart::Spline<f32>>>,
-    ) -> (chart::KeyPoint<f32>, chart::KeyPoint<chart::ColorRGBA>) {
-        let point = chart::KeyPoint::new(
-            self.time,
-            self.x_position,
-            self.ease_type,
-            canvas.get(self.canvas_index).map(|rc| Refc::downgrade(rc)),
-        );
-        let color = chart::KeyPoint::new(
-            self.time,
-            self.color.into(),
-            0,
-            Some(Refc::downgrade(&line_color)),
-        );
+        line_index: usize,
+    ) -> (
+        chart::KeyPointNext<f32>,
+        chart::KeyPointNext<chart::ColorRGBA>,
+    ) {
+        let point = chart::KeyPointNext {
+            time: self.time,
+            value: self.x_position,
+            ease_type: self.ease_type,
+            relevant_ease: Some(self.canvas_index),
+        };
+        let color = chart::KeyPointNext {
+            time: self.time,
+            value: self.color.into(),
+            ease_type: self.ease_type,
+            relevant_ease: Some(line_index),
+        };
         (point, color)
     }
 }
 #[derive(Serialize, Deserialize)]
-pub struct JudgeRingColor {
+pub struct ColorKeyPoint {
     #[serde(rename = "startColor")]
     pub start_color: ColorRGBA,
     #[serde(rename = "endColor")]
@@ -120,9 +122,14 @@ pub struct JudgeRingColor {
     #[serde(rename = "time")]
     pub time: f32,
 }
-impl Into<chart::KeyPoint<chart::ColorRGBA>> for JudgeRingColor {
-    fn into(self) -> chart::KeyPoint<chart::ColorRGBA> {
-        chart::KeyPoint::new(self.time, self.start_color.into(), 0, None)
+impl Into<chart::KeyPointNext<chart::ColorRGBA>> for ColorKeyPoint {
+    fn into(self) -> chart::KeyPointNext<chart::ColorRGBA> {
+        chart::KeyPointNext {
+            time: self.time,
+            value: self.start_color.into(),
+            ease_type: 0,
+            relevant_ease: None,
+        }
     }
 }
 
@@ -133,60 +140,42 @@ pub struct Line {
     #[serde(rename = "notes")]
     pub notes: Vec<Note>,
     #[serde(rename = "judgeRingColor")]
-    pub judge_ring_color: Vec<JudgeRingColor>,
+    pub judge_ring_color: Vec<ColorKeyPoint>,
     #[serde(rename = "lineColor")]
-    pub line_color: Vec<ColorRGBA>,
+    pub line_color: Vec<ColorKeyPoint>,
 }
 impl Line {
-    fn convert(
-        self,
-        canvas: &Vec<Refc<chart::Spline<f32>>>,
-        index: usize,
-        vmove: Refc<Spline<f32>>,
-    ) -> chart::Line {
-        let line_color: Vec<chart::ColorRGBA> =
-            self.line_color.into_iter().map(|k| k.into()).collect();
-        let line_color = Refc::new(Spline::new(
-            Some(SplineId::LineColor( index.try_into().expect("overflow during convert"))),
-            line_color
-                .into_iter()
-                .map(|c| chart::KeyPoint::new(0.0, c, 0, None))
-                .collect(),
-        ));
+    fn convert(self, line_index: usize) -> chart::LineNext {
+        let line_color: SplineNext<_> = self.line_color.into_iter().map(|k| k.into()).collect();
         let (points, colors): (Vec<_>, Vec<_>) = self
             .line_points
             .into_iter()
-            .map(|p| p.convert(Refc::clone(&line_color), canvas))
+            .map(|p| p.convert(line_index))
             .unzip();
-        let points = points
+        let points: SplineNext<_> = points
             .into_iter()
             .map(|mut x| {
                 x.value = scale_x(x.value);
                 x
             })
             .collect();
-        let points = chart::Spline::new(Some(SplineId::LinePoints(index as SplineIdInner)), points);
-        let color = chart::Spline::new(Some(SplineId::PointColor(index as SplineIdInner)), colors);
-        // todo: color mix
+        let colors = colors.into(); // todo: color mix
         let notes: Vec<chart::Note> = self
             .notes
             .into_iter()
             .map(|n| n.try_into().unwrap())
             .collect();
-        chart::Line::new(
+        chart::LineNext {
             points,
-            color,
+            point_color: colors,
             notes,
-            Spline::new(
-                Some(SplineId::RingColor(index.try_into().expect("overflow during convert"))),
-                self.judge_ring_color
-                    .into_iter()
-                    .map(|c| c.into())
-                    .collect(),
-            ),
-            vmove,
+            ring_color: self
+                .judge_ring_color
+                .into_iter()
+                .map(|k| k.into())
+                .collect(),
             line_color,
-        )
+        }
     }
 }
 
@@ -207,32 +196,29 @@ pub struct CanvasMove {
     pub speed_key_points: Vec<KeyPoint>,
 }
 
-impl Into<(chart::Spline<f32>, chart::Spline<f32>)> for CanvasMove {
-    fn into(self) -> (chart::Spline<f32>, chart::Spline<f32>) {
-        (
-            Spline::new(
-                Some(SplineId::Canvas(self.index as SplineIdInner)),
-                self.x_position_key_points
-                    .into_iter()
-                    .map(|p| p.into())
-                    .map(|mut p: chart::KeyPoint<f32>| {
-                        p.value = scale_x(p.value);
-                        p
-                    })
-                    .collect(),
-            ),
-            Spline::new(
-                Some(SplineId::LineMove(self.index as SplineIdInner)),
-                self.speed_key_points
-                    .into_iter()
-                    .map(|p| chart::KeyPoint::new(p.time, p.floor_position -0.5, 0, None))
-                    .map(|mut p| {
-                        p.value = scale_y(p.value);
-                        p
-                    })
-                    .collect(),
-            ),
-        )
+impl Into<chart::Canvas> for CanvasMove {
+    fn into(self) -> chart::Canvas {
+        chart::Canvas {
+            x_pos: self
+                .x_position_key_points
+                .into_iter()
+                .map(|p| p.into())
+                .map(|mut p: chart::KeyPointNext<f32>| {
+                    p.value = scale_x(p.value);
+                    p
+                })
+                .collect(),
+
+            speed: self
+                .speed_key_points
+                .into_iter()
+                .map(|p| p.into())
+                .map(|mut p: chart::KeyPointNext<f32>| {
+                    p.value = scale_y(p.value);
+                    p
+                })
+                .collect(),
+        }
     }
 }
 
@@ -248,9 +234,14 @@ pub struct KeyPoint {
     pub floor_position: f32,
 }
 
-impl Into<chart::KeyPoint<f32>> for KeyPoint {
-    fn into(self) -> chart::KeyPoint<f32> {
-        chart::KeyPoint::new(self.time, self.value, self.ease_type, None)
+impl Into<chart::KeyPointNext<f32>> for KeyPoint {
+    fn into(self) -> chart::KeyPointNext<f32> {
+        chart::KeyPointNext {
+            time: self.time,
+            value: self.value,
+            ease_type: self.ease_type,
+            relevant_ease: None,
+        }
     }
 }
 
@@ -287,43 +278,49 @@ pub struct RizlineChart {
     pub camera_move: CameraMove,
 }
 
-impl Into<chart::Chart> for RizlineChart {
-    fn into(self) -> chart::Chart {
-        let (canvas, vmove): (Vec<_>, Vec<_>) =
-            self.canvas_moves.into_iter().map(|c| c.into()).unzip();
-        let canvas = canvas.into_iter().map(|l| Refc::new(l)).collect();
-        let vmove: Vec<_> = vmove.into_iter().map(|v| Refc::new(v)).collect();
+impl Into<chart::RizChartNext> for RizlineChart {
+    fn into(self) -> chart::RizChartNext {
+        let canvas = self.canvas_moves.into_iter().map(|c| c.into()).collect();
         let lines = self
             .lines
             .into_iter()
             .enumerate()
-            .map(|(index, line)| {
-                let canvas_index = line.line_points[0].canvas_index;
-                line.convert(&canvas, index, Refc::clone(&vmove[canvas_index]))
+            .map(|(index, line)| line.convert(index))
+            .collect();
+        let cam_scale = self
+            .camera_move
+            .scale_key_points
+            .into_iter()
+            .map(|k| k.into())
+            .collect();
+        let cam_move = self
+            .camera_move
+            .x_position_key_points
+            .into_iter()
+            .map(|mut k| {
+                k.value = scale_x(k.value);
+                k.into()
             })
             .collect();
-        let cam_scale = Spline::new(Some(SplineId::CamScale), self.camera_move.scale_key_points.into_iter().map(|k|k.into()).collect());
-        let cam_move = Spline::new(Some(SplineId::CamMove), self.camera_move.x_position_key_points.into_iter().map(|mut k| {
-            k.value = scale_x(k.value);
-            k.into()
-        }).collect());
-        chart::Chart {
+        chart::RizChartNext {
             lines,
-            canvas,
-            beats: convert_bpm_to_timemap(self.bpm, self.bpm_shifts),
+            canvases: canvas,
             cam_move,
-            cam_scale
+            cam_scale,
+            bpm: convert_bpm_to_timemap(self.bpm, self.bpm_shifts),
         }
     }
 }
 
-fn convert_bpm_to_timemap(_bpm: f32, bpm_shifts: Vec<KeyPoint>) -> Spline<f32> {
-    // the time of bpm `KeyPoint`s is Rizline time
-    // so we need to reverse.
-    // and actually `bpm` is useless XD
-    let beats = bpm_shifts
+fn convert_bpm_to_timemap(bpm: f32, bpm_shifts: Vec<KeyPoint>) -> SplineNext<f32> {
+    bpm_shifts
         .into_iter()
-        .map(|s| chart::KeyPoint::new(s.floor_position, s.time, 0, None))
-        .collect();
-    Spline::new(Some(SplineId::Beat), beats)
+        .map(|s| chart::KeyPointNext {
+            time: s.time,
+            value: bpm * s.value,
+            ease_type: 0,
+            relevant_ease: None,
+        })
+        .collect()
 }
+

@@ -21,6 +21,13 @@ pub struct KeyPoint<T: Tween> {
     pub ease: EasingId,
     pub relevant_ease: Option<Weak<Spline<T>>>,
 }
+#[derive(Clone, Debug)]
+pub struct KeyPointNext<T: Tween> {
+    pub time: f32,
+    pub value: T,
+    pub ease_type: EasingId,
+    pub relevant_ease: Option<usize>,
+}
 
 impl<T: Tween + Debug> Debug for KeyPoint<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -63,7 +70,8 @@ impl<T: Tween + Add<Output = T>> KeyPoint<T> {
     }
     fn try_get_offset(&self, time: f32, relevant_ease_time: f32) -> Option<T> {
         self.get_relevant()
-            .map(|l| l.try_value_at_related(time, relevant_ease_time)).flatten()
+            .map(|l| l.try_value_at_related(time, relevant_ease_time))
+            .flatten()
     }
     fn get_offset(&self, time: f32, relevant_ease_time: f32) -> Option<T> {
         self.get_relevant()
@@ -84,8 +92,70 @@ impl<T: Tween + Add<Output = T>> KeyPoint<T> {
 
 #[derive(Debug, Clone)]
 pub struct Spline<T: Tween> {
-    id: Option<SplineId>,
+    pub id: Option<SplineId>,
     pub points: Vec<KeyPoint<T>>,
+}
+#[derive(Debug, Clone)]
+pub struct SplineNext<T: Tween> {
+    points: Vec<KeyPointNext<T>>,
+}
+impl<T: Tween> Default for SplineNext<T> {
+    fn default() -> Self {
+        Self { points: vec![] }
+    }
+}
+
+impl<T: Tween> SplineNext<T> {
+    pub fn points(&self) -> &Vec<KeyPointNext<T>> {
+        &self.points
+    }
+    pub fn push(&mut self, keypoint: KeyPointNext<T>) {
+        self.points.push(keypoint);
+        self.sort_unstable();
+    }
+
+    pub fn remove(&mut self, index: usize) -> Option<KeyPointNext<T>> {
+        if index < self.points.len() {
+
+            Some(self.points.remove(index))
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn sort_unstable(&mut self) {
+        self.points.sort_unstable_by(|a, b| {
+            a.time
+                .partial_cmp(&b.time)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+    }
+    pub fn push_many(&mut self, keypoints: impl IntoIterator<Item = KeyPointNext<T>>) {
+        let iter = keypoints.into_iter();
+        for keypoint in iter {
+            self.points.push(keypoint);
+        }
+        self.sort_unstable();
+    }
+    pub fn iter(&self) -> impl Iterator<Item = &KeyPointNext<T>> {
+        self.points.iter()
+    }
+}
+impl<T: Tween> From<Vec<KeyPointNext<T>>> for SplineNext<T> {
+    fn from(value: Vec<KeyPointNext<T>>) -> Self {
+        let mut ret = Self { points: value };
+        ret.sort_unstable();
+        ret
+    }
+}
+
+impl<T: Tween> FromIterator<KeyPointNext<T>> for SplineNext<T> {
+    fn from_iter<I: IntoIterator<Item = KeyPointNext<T>>>(iter: I) -> Self {
+        let mut ret: Self = Default::default();
+        ret.push_many(iter);
+        ret
+    }
 }
 
 pub type SplineIdInner = u16;
@@ -103,7 +173,6 @@ pub enum SplineId {
     CamScale,
     Beat,
 }
-
 impl<T: Tween> PartialEq for Spline<T> {
     fn eq(&self, other: &Self) -> bool {
         self.id.as_ref().map_or(false, |id1| {

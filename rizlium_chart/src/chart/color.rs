@@ -9,6 +9,8 @@ macro_rules! tween {
     };
 }
 
+
+/// 以RGBA格式存储的float color (linearRGBA), 每一项都处于0.0..=1.0
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ColorRGBA {
     pub r: f32,
