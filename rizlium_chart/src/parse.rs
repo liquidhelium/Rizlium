@@ -1,6 +1,5 @@
 use std::{error::Error, fmt::Display};
 
-pub mod official;
 pub mod official_next;
 #[derive(Debug)]
 pub struct ConvertError(&'static str);
