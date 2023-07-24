@@ -10,6 +10,16 @@ pub struct Line {
     pub vertical_move: Refc<Spline<f32>>,
     pub line_color: Refc<Spline<ColorRGBA>>,
 }
+#[derive(Debug, Clone)]
+pub struct LineNext {
+    /// Related to canvas
+    pub points: SplineNext<f32>,
+    /// Related to `line_color`
+    pub point_color: SplineNext<ColorRGBA>,
+    pub notes: Vec<Note>,
+    pub ring_color: SplineNext<ColorRGBA>,
+    pub line_color: SplineNext<ColorRGBA>,
+}
 
 impl Line {
     pub fn new(
