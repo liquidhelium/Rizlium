@@ -278,8 +278,8 @@ pub struct RizlineChart {
     pub camera_move: CameraMove,
 }
 
-impl Into<chart::RizChartNext> for RizlineChart {
-    fn into(self) -> chart::RizChartNext {
+impl Into<chart::ChartNext> for RizlineChart {
+    fn into(self) -> chart::ChartNext {
         let canvas = self.canvas_moves.into_iter().map(|c| c.into()).collect();
         let lines = self
             .lines
@@ -302,7 +302,7 @@ impl Into<chart::RizChartNext> for RizlineChart {
                 k.into()
             })
             .collect();
-        chart::RizChartNext {
+        chart::ChartNext {
             lines,
             canvases: canvas,
             cam_move,

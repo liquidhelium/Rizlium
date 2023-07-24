@@ -20,7 +20,7 @@ pub struct ColorRGBA {
 }
 
 impl Tween for ColorRGBA {
-    fn tween(x1: Self, x2: Self, t: crate::chart::Clamped) -> Self {
+    fn tween(x1: Self, x2: Self, t: f32) -> Self {
         tween!((r, g, b, a), x1, x2, t)
     }
 }

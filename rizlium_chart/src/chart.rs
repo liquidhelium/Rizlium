@@ -12,15 +12,7 @@ pub use note::*;
 pub use time::*;
 
 #[derive(Debug, Clone)]
-pub struct Chart {
-    pub lines: Vec<Line>,
-    pub canvas: Vec<Refc<Spline<f32>>>,
-    pub beats: Spline<f32>,
-    pub cam_scale: Spline<f32>,
-    pub cam_move: Spline<f32>
-}
-#[derive(Debug, Clone)]
-pub struct RizChartNext {
+pub struct ChartNext {
     pub lines: Vec<LineNext>,
     pub canvases: Vec<Canvas>,
     pub bpm: SplineNext<f32>,
@@ -40,12 +32,12 @@ pub struct ChartCache {
 }
 
 impl ChartCache {
-    pub fn from_chart(chart: &RizChartNext) -> Self {
+    pub fn from_chart(chart: &ChartNext) -> Self {
         let mut ret: Self = Default::default();
         ret.update_from_chart(chart);
         ret
     }
-    pub fn update_from_chart(&mut self,chart: &RizChartNext) {
+    pub fn update_from_chart(&mut self,chart: &ChartNext) {
         let mut points = chart.bpm.points().clone();
         points.iter_mut().fold(0., |current_start, keypoint| {
             let beat = real2beat(current_start, keypoint.time, &keypoint);
@@ -66,17 +58,6 @@ impl ChartCache {
     }
 }
 
-impl Chart {
-    pub fn lines_count(&self) -> usize {
-        self.lines.len()
-    }
-    pub fn segment_count(&self) -> usize {
-        self.lines.iter().map(|l| l.points.points.len() - 1).sum()
-    }
-    pub fn lines(&self) -> &Vec<Line> {
-        &self.lines
-    }
-}
 
 #[cfg(test)]
 mod test {
@@ -85,11 +66,11 @@ mod test {
 
     use crate::parse;
 
-    use super::RizChartNext;
+    use super::ChartNext;
 
     #[test]
     fn test() {
-        let a: RizChartNext = serde_json::from_str::<parse::official_next::RizlineChart>(include_str!(
+        let a: ChartNext = serde_json::from_str::<parse::official_next::RizlineChart>(include_str!(
             "../test_assets/take.json"
         ))
         .unwrap()
