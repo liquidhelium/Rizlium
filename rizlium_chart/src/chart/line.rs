@@ -1,13 +1,13 @@
 use super::*;
 
 #[derive(Debug, Clone)]
-pub struct LineNext {
+pub struct Line {
     /// Related to canvas
-    pub points: SplineNext<f32>,
+    pub points: Spline<f32>,
     /// Related to `line_color`
-    pub point_color: SplineNext<ColorRGBA>,
+    pub point_color: Spline<ColorRGBA>,
     pub notes: Vec<Note>,
-    pub ring_color: SplineNext<ColorRGBA>,
-    pub line_color: SplineNext<ColorRGBA>,
+    pub ring_color: Spline<ColorRGBA>,
+    pub line_color: Spline<ColorRGBA>,
 }
 
