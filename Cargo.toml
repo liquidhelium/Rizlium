@@ -1,8 +1,8 @@
 [workspace]
 members= [
     "rizlium_chart",
-    "rizlium_render",
-    "rizlium_render_main"
+    # "rizlium_render",
+    # "rizlium_render_main"
 ]
 resolver="2"
 

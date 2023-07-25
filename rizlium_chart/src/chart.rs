@@ -3,7 +3,6 @@ mod easing;
 mod line;
 mod note;
 mod time;
-use crate::Refc;
 
 pub use color::*;
 pub use easing::*;
@@ -12,32 +11,32 @@ pub use note::*;
 pub use time::*;
 
 #[derive(Debug, Clone)]
-pub struct ChartNext {
-    pub lines: Vec<LineNext>,
+pub struct Chart {
+    pub lines: Vec<Line>,
     pub canvases: Vec<Canvas>,
-    pub bpm: SplineNext<f32>,
-    pub cam_scale: SplineNext<f32>,
-    pub cam_move: SplineNext<f32>
+    pub bpm: Spline<f32>,
+    pub cam_scale: Spline<f32>,
+    pub cam_move: Spline<f32>
 }
 #[derive(Debug, Clone)]
 pub struct Canvas {
-    pub x_pos: SplineNext<f32>,
-    pub speed: SplineNext<f32>,
+    pub x_pos: Spline<f32>,
+    pub speed: Spline<f32>,
 }
 
 #[derive(Debug, Default)]
 pub struct ChartCache {
-    pub beat: SplineNext<f32>,
-    pub canvas_y: Vec<SplineNext<f32>>
+    pub beat: Spline<f32>,
+    pub canvas_y: Vec<Spline<f32>>
 }
 
 impl ChartCache {
-    pub fn from_chart(chart: &ChartNext) -> Self {
+    pub fn from_chart(chart: &Chart) -> Self {
         let mut ret: Self = Default::default();
         ret.update_from_chart(chart);
         ret
     }
-    pub fn update_from_chart(&mut self,chart: &ChartNext) {
+    pub fn update_from_chart(&mut self,chart: &Chart) {
         let mut points = chart.bpm.points().clone();
         points.iter_mut().fold(0., |current_start, keypoint| {
             let beat = real2beat(current_start, keypoint.time, &keypoint);
@@ -66,15 +65,15 @@ mod test {
 
     use crate::parse;
 
-    use super::ChartNext;
+    use super::Chart;
 
     #[test]
     fn test() {
-        let a: ChartNext = serde_json::from_str::<parse::official_next::RizlineChart>(include_str!(
+        let a: Chart = serde_json::from_str::<parse::official_next::RizlineChart>(include_str!(
             "../test_assets/take.json"
         ))
         .unwrap()
-        .into();
+        .try_into().unwrap();
         fs::write("./conv", format!("{:#?}", a)).unwrap();
     }
 }
