@@ -1,6 +1,8 @@
 use log::{error, warn};
 use simple_easing::*;
 
+
+
 #[derive(Clone, Debug, Default)]
 pub struct KeyPoint<T: Tween> {
     pub time: f32,
@@ -15,6 +17,8 @@ impl<T: Tween> KeyPoint<T> {
     }
 }
 
+
+/// Structure that defines how a value varies.
 #[derive(Debug, Clone)]
 pub struct Spline<T: Tween> {
     points: Vec<KeyPoint<T>>,
