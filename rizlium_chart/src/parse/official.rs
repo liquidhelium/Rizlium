@@ -5,8 +5,7 @@ use crate::parse::EmptyBPMSnafu;
 use serde_derive::{Deserialize, Serialize};
 use snafu::{OptionExt, ensure};
 
-use super::{ConvertError, HoldNoEndSnafu, ConvertResult, UnknownNoteKindSnafu};
-
+use super::{ConvertError, HoldNoEndSnafu, ConvertResult};
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

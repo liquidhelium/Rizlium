@@ -1,13 +1,11 @@
-use std::{error::Error, fmt::Display};
-
 use snafu::prelude::*;
 
-pub mod official_next;
+pub mod official;
 
 
 #[derive(Debug, Snafu)]
 pub enum ConvertError {
-    #[snafu(display("BpmShift is empty"))]
+    #[snafu(display("No bpm data found"))]
     EmptyBPM,
     #[snafu(display("Hold at line {line_idx}, index {note_idx} has no end"))]
     HoldNoEnd {

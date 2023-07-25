@@ -10,6 +10,7 @@ pub use line::*;
 pub use note::*;
 pub use time::*;
 
+/// Main Rizlium chart structure.
 #[derive(Debug, Clone)]
 pub struct Chart {
     pub lines: Vec<Line>,
@@ -18,12 +19,17 @@ pub struct Chart {
     pub cam_scale: Spline<f32>,
     pub cam_move: Spline<f32>
 }
+
+/// A object that points of [`Line`]s can be attached to.
 #[derive(Debug, Clone)]
 pub struct Canvas {
     pub x_pos: Spline<f32>,
     pub speed: Spline<f32>,
 }
 
+/// Some data that can be computed from [`Chart`] and don't expire even time changed.
+/// 
+/// Note that when the corresponding [`Chart`] is changed, this one expires.
 #[derive(Debug, Default)]
 pub struct ChartCache {
     pub beat: Spline<f32>,
@@ -31,11 +37,13 @@ pub struct ChartCache {
 }
 
 impl ChartCache {
+    /// Create a new [`ChartCache`] from an existing [`Chart`].
     pub fn from_chart(chart: &Chart) -> Self {
         let mut ret: Self = Default::default();
         ret.update_from_chart(chart);
         ret
     }
+    /// Update this [`ChartCache`] using the given [`Chart`].
     pub fn update_from_chart(&mut self,chart: &Chart) {
         let mut points = chart.bpm.points().clone();
         points.iter_mut().fold(0., |current_start, keypoint| {
@@ -69,7 +77,7 @@ mod test {
 
     #[test]
     fn test() {
-        let a: Chart = serde_json::from_str::<parse::official_next::RizlineChart>(include_str!(
+        let a: Chart = serde_json::from_str::<parse::official::RizlineChart>(include_str!(
             "../test_assets/take.json"
         ))
         .unwrap()
