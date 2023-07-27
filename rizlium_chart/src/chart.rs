@@ -2,69 +2,169 @@ mod color;
 mod easing;
 mod line;
 mod note;
+mod theme;
 mod time;
 
 pub use color::*;
 pub use easing::*;
 pub use line::*;
 pub use note::*;
+use snafu::{OptionExt, Whatever};
+pub use theme::*;
 pub use time::*;
 
-/// Main Rizlium chart structure.
+/// Rizlium谱面格式.
 #[derive(Debug, Clone)]
 pub struct Chart {
+    pub themes: Vec<ThemeData>,
+    pub theme_control: Spline<usize>,
     pub lines: Vec<Line>,
     pub canvases: Vec<Canvas>,
     pub bpm: Spline<f32>,
     pub cam_scale: Spline<f32>,
-    pub cam_move: Spline<f32>
+    pub cam_move: Spline<f32>,
 }
 
-/// A object that points of [`Line`]s can be attached to.
+impl Chart {
+    pub fn theme_at(&self, time: f32) -> Result<ThemeTransition<'_>, Whatever> {
+        let (this, next) = self.theme_control.pair(time);
+        let this = this.whatever_context("Empty theme control")?;
+        let next = next.whatever_context("Empty theme control")?;
+        let progress = (time - this.time) / (next.time - this.time);
+        Ok(ThemeTransition {
+            progress,
+            this: self
+                .themes
+                .get(this.value)
+                .whatever_context("Theme control value out of bounds")?,
+            next: self
+                .themes
+                .get(next.value)
+                .whatever_context("Theme control value out of bounds")?,
+        })
+    }
+    pub fn canvas_x(&self, index: usize, time: f32) -> Option<f32> {
+        self.canvases.get(index)?.x_pos.value_padding(time)
+    }
+    pub fn segment_count(&self) -> usize {
+        self.lines.iter().map(|l| l.points.len() - 1).sum()
+    }
+    pub fn with_cache<'a: 'b, 'b>(&'a self, cache: &'b ChartCache) -> ChartAndCache<'a, 'b> {
+        ChartAndCache {
+            chart: &self,
+            cache: &cache,
+        }
+    }
+}
+
+/// 用于改变线形状.
+///
+/// 所有 [`Line`] 上的点可以附着到 [`Canvas`] 上, 并随 [`Canvas`] 移动改变位置, 从而改变线的形状.
 #[derive(Debug, Clone)]
 pub struct Canvas {
     pub x_pos: Spline<f32>,
     pub speed: Spline<f32>,
 }
 
-/// Some data that can be computed from [`Chart`] and don't expire even time changed.
-/// 
-/// Note that when the corresponding [`Chart`] is changed, this one expires.
+/// 一些可以从谱面计算出且只在对应 [`Chart`] 的数据更改时过期的数据.
 #[derive(Debug, Default)]
 pub struct ChartCache {
+    /// 缓存的从实际时间转换为beat的数据.
     pub beat: Spline<f32>,
-    pub canvas_y: Vec<Spline<f32>>
+    /// 所有 [`Canvas`] 在某时间对应的高度 (从速度计算而来)
+    pub canvas_y: Vec<Spline<f32>>,
 }
 
 impl ChartCache {
-    /// Create a new [`ChartCache`] from an existing [`Chart`].
+    /// 从已有的 [`Chart`] 生成新 [`ChartCache`].
     pub fn from_chart(chart: &Chart) -> Self {
         let mut ret: Self = Default::default();
         ret.update_from_chart(chart);
         ret
     }
-    /// Update this [`ChartCache`] using the given [`Chart`].
-    pub fn update_from_chart(&mut self,chart: &Chart) {
-        let mut points = chart.bpm.points().clone();
-        points.iter_mut().fold(0., |current_start, keypoint| {
-            let beat = real2beat(current_start, keypoint.time, &keypoint);
-            keypoint.value = beat;
-            beat
-        });
-        
-        self.beat = points.into();
-        self.canvas_y = chart.canvases.iter().map(|canvas| {
-            let mut points = canvas.speed.points().clone();
-            points.iter_mut().fold((0., 0.), |(last_start, last_time), keypoint| {
-                let pos = last_start + keypoint.value * (keypoint.time - last_time);
-                keypoint.value = pos;
-                (pos, keypoint.time)
-            });
-            points.into()
-        } ).collect();
+    /// 用给定的 [`Chart`] 更新此 [`ChartCache`] .
+    pub fn update_from_chart(&mut self, chart: &Chart) {
+        let mut iter = chart.bpm.iter().peekable();
+        let mut beat_till_last = 0.;
+        let mut last_bpm = 0.;
+        self.beat = std::iter::from_fn(|| {
+            let mut point = iter.next()?.clone();
+            let Some(next) = iter.peek() else {
+                return None;
+            } ;
+            point.ease_type = EasingId::Linear;
+            None
+        }).collect();
+        self.canvas_y = chart
+            .canvases
+            .iter()
+            .map(|canvas| {
+                let mut points = canvas.speed.points().clone();
+                points
+                    .iter_mut()
+                    .fold((0., 0.), |(last_start, last_time), keypoint| {
+                        let pos = last_start + keypoint.value * (keypoint.time - last_time);
+                        keypoint.value = pos;
+                        (pos, keypoint.time)
+                    });
+                points.into()
+            })
+            .collect();
     }
 }
 
+pub struct ChartAndCache<'a, 'b> {
+    chart: &'a Chart,
+    cache: &'b ChartCache,
+}
+
+impl ChartAndCache<'_, '_> {
+    pub fn pos_for_linepoint_at(
+        &self,
+        line_idx: usize,
+        point_idx: usize,
+        game_time: f32,
+    ) -> Option<[f32; 2]> {
+        let point = self
+            .chart
+            .lines
+            .get(line_idx)?
+            .points
+            .points()
+            .get(point_idx)?;
+        Some([
+            self.keypoint_releated_x(point, game_time)?,
+            self.cache
+                .canvas_y
+                .get(point.relevent)?
+                .value_padding(point.time - game_time)?,
+        ])
+    }
+    pub fn line_pos_at(&self, line_idx: usize, time: f32, game_time: f32) -> Option<[f32; 2]> {
+        Some([
+            {
+                match self.chart.lines.get(line_idx)?.points.pair(time) {
+                    (Some(a), Some(b)) => f32::ease(
+                        self.keypoint_releated_x(a, game_time)?,
+                        self.keypoint_releated_x(b, game_time)?,
+                        invlerp(a.time, b.time, time),
+                        a.ease_type,
+                    ),
+                    _ => return None,
+                }
+            },
+            self.cache
+                .canvas_y
+                .get(line_idx)?
+                .value_padding(time)?,
+        ])
+    }
+
+    fn keypoint_releated_x(&self, point: &KeyPoint<f32,usize>, time: f32,) -> Option<f32> {
+        Some(point.value
+            + self.chart.canvas_x(point.relevent, time)?)
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -81,7 +181,8 @@ mod test {
             "../test_assets/take.json"
         ))
         .unwrap()
-        .try_into().unwrap();
+        .try_into()
+        .unwrap();
         fs::write("./conv", format!("{:#?}", a)).unwrap();
     }
 }
