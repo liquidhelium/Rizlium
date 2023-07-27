@@ -85,11 +85,11 @@ impl ChartCache {
     /// 用给定的 [`Chart`] 更新此 [`ChartCache`] .
     pub fn update_from_chart(&mut self, chart: &Chart) {
         let mut iter = chart.bpm.iter().peekable();
-        let mut beat_till_last = 0.;
-        let mut last_bpm = 0.;
+        let _beat_till_last = 0.;
+        let _last_bpm = 0.;
         self.beat = std::iter::from_fn(|| {
             let mut point = iter.next()?.clone();
-            let Some(next) = iter.peek() else {
+            let Some(_next) = iter.peek() else {
                 return None;
             } ;
             point.ease_type = EasingId::Linear;

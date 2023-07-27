@@ -1,5 +1,5 @@
 use log::{error, warn};
-use num_enum::{IntoPrimitive, FromPrimitive, TryFromPrimitive};
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 use simple_easing::*;
 #[macro_export]
 macro_rules! tween {
@@ -60,7 +60,7 @@ impl<T: Tween> Spline<T> {
     pub fn value(&self, time: f32) -> Option<T> {
         match self.pair(time) {
             (Some(curr), Some(next)) => {
-                let mut t = invlerp(curr.time, next.time, time);
+                let t = invlerp(curr.time, next.time, time);
                 Some(curr.ease_to(&next, t))
             }
             _ => None,

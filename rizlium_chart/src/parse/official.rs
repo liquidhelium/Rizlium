@@ -3,9 +3,9 @@ use crate::VIEW_RECT;
 use crate::chart::{self, Spline};
 use crate::parse::EmptyBPMSnafu;
 use serde_derive::{Deserialize, Serialize};
-use snafu::{ensure, OptionExt, ResultExt, AsErrorSource};
+use snafu::{ensure, OptionExt};
 
-use super::{ConvertError, ConvertResult, HoldNoEndSnafu, UnknownEaseKindSnafu};
+use super::{ConvertError, ConvertResult, HoldNoEndSnafu};
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -224,7 +224,7 @@ impl TryInto<chart::Canvas> for CanvasMove {
                         .x_position_key_points
                         .into_iter()
                         .map(|p| p.try_into())
-                        .map(|mut p: Result<chart::KeyPoint<f32>, _>| {
+                        .map(|p: Result<chart::KeyPoint<f32>, _>| {
                             let mut p = p?;
                             p.value = scale_x(p.value);
                             Ok(p)
@@ -235,7 +235,7 @@ impl TryInto<chart::Canvas> for CanvasMove {
                         .speed_key_points
                         .into_iter()
                         .map(|p| p.try_into())
-                        .map(|mut p: Result<chart::KeyPoint<f32>, _>| {
+                        .map(|p: Result<chart::KeyPoint<f32>, _>| {
                             let mut p = p?;
                             p.value = scale_y(p.value);
                             Ok(p)

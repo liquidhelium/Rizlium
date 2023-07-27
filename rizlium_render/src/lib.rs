@@ -1,7 +1,7 @@
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
-    DefaultPlugins, window::PresentMode,
+    DefaultPlugins,
 };
 
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -86,7 +86,7 @@ pub struct CameraControlPlugin;
 pub struct GameCamera;
 
 impl Plugin for CameraControlPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(&self, _app: &mut App) {
         // app.add_systems(PreUpdate, update_camera);
     }
 }
