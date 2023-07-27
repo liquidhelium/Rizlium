@@ -19,8 +19,16 @@ macro_rules! return_nothing_change {
 
 #[derive(Resource)]
 struct GameChart(Chart);
-#[derive(Resource)]
+#[derive(Resource, Default)]
 struct GameChartCache(ChartCache);
+
+impl Deref for GameChartCache {
+    type Target = ChartCache;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[derive(Resource, Reflect, Default)]
 #[reflect(Resource)]
 struct GameTime(f32);
@@ -33,12 +41,8 @@ impl GameChart {
         self.lines
             .iter()
             .enumerate()
-            .map(|(i, l)| std::iter::repeat(i).zip(0..l.points.points.len() - 1))
+            .map(|(i, l)| std::iter::repeat(i).zip(0..l.points.points().len() - 1))
             .flatten()
-    }
-    pub fn map_time(&self, real_time: f32) -> f32 {
-        //todo
-        self.beats.value_at(real_time)
     }
 }
 impl Deref for GameChart {
@@ -52,6 +56,7 @@ pub fn start() {
     App::new()
         .insert_resource(Msaa::Sample4)
         .insert_resource(GameTime(0.))
+        .init_resource::<GameChartCache>()
         .add_plugins((
             DefaultPlugins,
             WorldInspectorPlugin::new(),
@@ -63,6 +68,7 @@ pub fn start() {
             LogDiagnosticsPlugin::default(),
         ))
         .add_systems(Startup, before_render)
+        .add_systems(First, chart_cache)
         .add_systems(PreUpdate, game_time)
         .run();
 }
@@ -87,7 +93,7 @@ impl Plugin for CameraControlPlugin {
 
 fn update_camera(chart: Res<GameChart>, time: Res<GameTime>, mut cams: Query<&mut OrthographicProjection, With<GameCamera>>) {
     cams.par_iter_mut().for_each_mut(|mut cam| {
-        let scale = chart.cam_scale.value_at(time.0);
+        let scale = chart.cam_scale.value_padding(time.0).unwrap();
         if !scale.is_nan() {
             cam.scale = scale;
         }
@@ -95,16 +101,22 @@ fn update_camera(chart: Res<GameChart>, time: Res<GameTime>, mut cams: Query<&mu
             cam.scale = 0.;
         }
         // todo: still need test
-        cam.viewport_origin.x = chart.cam_move.value_at(time.0) / (VIEW_RECT[1][0]- VIEW_RECT[0][0]);
+        cam.viewport_origin.x = chart.cam_move.value_padding(time.0).unwrap() / (VIEW_RECT[1][0]- VIEW_RECT[0][0]);
     })
 }
 
 mod line_rendering;
 
-fn game_time(chart: Res<GameChart>, time: Res<Time>, mut game_time: ResMut<GameTime>) {
+fn chart_cache(chart: Res<GameChart>, mut cache: ResMut<GameChartCache>) {
+    return_nothing_change!(chart);
+    info!("update cache");
+    cache.0.update_from_chart(&chart);
+}
+
+fn game_time(cache: Res<GameChartCache>,time: Res<Time>, mut game_time: ResMut<GameTime>) {
     // todo: start
-    let since_start = time.raw_elapsed_wrapped();
-    *game_time = GameTime(chart.map_time(since_start.as_secs_f32() - 1.0 /* 1.0 dummy */));
+    let since_start = time.raw_elapsed_seconds();
+    *game_time = GameTime(cache.0.beat.value_padding(since_start).unwrap());
 }
 
 fn before_render(mut commands: Commands, mut window: Query<&mut Window>) {
@@ -127,5 +139,4 @@ fn before_render(mut commands: Commands, mut window: Query<&mut Window>) {
         .insert(GameCamera);
     commands.insert_resource(GameChart(__test_chart()));
     window.single_mut().resolution.set(450., 800.);
-    window.single_mut().present_mode = PresentMode::AutoVsync;
 }

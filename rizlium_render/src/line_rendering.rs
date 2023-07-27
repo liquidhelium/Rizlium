@@ -1,11 +1,13 @@
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
-use rizlium_chart::chart::{ColorRGBA, Tween};
+use rizlium_chart::chart::{ColorRGBA, Tween, EasingId};
 
 use bevy_prototype_lyon::prelude::*;
 
 use bevy::{prelude::*, render::view::RenderLayers};
 
 use bevy::render::primitives::Aabb;
+
+use crate::GameChartCache;
 
 use super::{GameChart, GameTime};
 
@@ -59,15 +61,15 @@ fn add_lines(mut commands: Commands, chart: Res<GameChart>, lines: Query<&ChartL
 
 fn change_bounding(
     chart: Res<GameChart>,
+    cache: Res<GameChartCache>,
     time: Res<GameTime>,
     mut lines: Query<(&mut Aabb, &Stroke, &ChartLineId)>,
 ) {
     lines.par_iter_mut().for_each_mut(|(mut vis, stroke, id)| {
         let line_idx = id.line_idx;
         let keypoint_idx = id.keypoint_idx;
-        let line = &chart.lines[line_idx];
-        let pos1 = line.pos_for(keypoint_idx, time.0).unwrap();
-        let pos2 = line.pos_for(keypoint_idx + 1, time.0).unwrap();
+        let pos1 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx, time.0).expect(&format!("{}, {}", line_idx, keypoint_idx));
+        let pos2 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx+1, time.0).unwrap();
         let extend = Vec2::splat(stroke.options.line_width);
         let mut rect = Rect::from_corners(pos1.into(), pos2.into());
         rect.min -= extend;
@@ -95,6 +97,7 @@ fn assocate_segment(
 
 fn update_shape(
     chart: Res<GameChart>,
+    cache: Res<GameChartCache>,
     time: Res<GameTime>,
     mut lines: Query<(&mut Path, &ComputedVisibility, &ChartLineId)>,
 ) {
@@ -105,14 +108,14 @@ fn update_shape(
         let line_idx = id.line_idx;
         let keypoint_idx = id.keypoint_idx;
         let line = &chart.lines[line_idx];
-        let keypoint = &line.points.points[keypoint_idx];
+        let keypoint = &line.points.points()[keypoint_idx+1];
 
         let mut builder = PathBuilder::new();
-        let pos1 = line.pos_for(keypoint_idx, time.0).unwrap();
-        let pos2 = line.pos_for(keypoint_idx + 1, time.0).unwrap();
+        let pos1 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx, time.0).unwrap();
+        let pos2 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx+1, time.0).unwrap();
         builder.move_to(pos1.into());
         // skip straight line
-        if !(keypoint.ease == 0 || pos1[0].approx_eq(&pos2[0]) || pos1[1].approx_eq(&pos2[1])) {
+        if !(keypoint.ease_type == EasingId::Linear || pos1[0].approx_eq(&pos2[0]) || pos1[1].approx_eq(&pos2[1])) {
             let point_count = ((pos2[1] - pos1[1]) / 1.).floor();
             // 0...>1...>2...>3..0'
             (1..point_count as usize)
@@ -120,7 +123,7 @@ fn update_shape(
                 .map(|i| i as f32 / point_count)
                 .map(|t| {
                     [
-                        f32::ease(pos1[0], pos2[0], t.into(), keypoint.ease),
+                        f32::ease(pos1[0], pos2[0], t.into(), keypoint.ease_type),
                         f32::tween(pos1[1], pos2[1], t.into()),
                     ]
                 })
@@ -131,7 +134,7 @@ fn update_shape(
         builder.line_to(pos2.into());
         // connect next segment
         if let Some(pos) =
-            line.try_pos_at_time(line.points.points[keypoint_idx + 1].time + 0.1, time.0)
+            chart.with_cache(&cache).line_pos_at(line_idx, keypoint.time+0.1, time.0)
         {
             builder.line_to(pos.into());
         }
@@ -143,6 +146,7 @@ const DEBUG_INVISIBLE: Color = Color::rgba_linear(1., 0., 1., 0.2);
 
 fn update_color(
     chart: Res<GameChart>,
+    cache: Res<GameChartCache>,
     time: Res<GameTime>,
     mut lines: Query<(&mut Stroke, &ComputedVisibility, &ChartLineId)>,
 ) {
@@ -150,11 +154,11 @@ fn update_color(
         if !vis.is_visible() {
             return;
         }
-        let line_index = id.line_idx;
-        let keypoint_index = id.keypoint_idx;
-        let line = &chart.lines[line_index];
-        let pos1 = line.pos_for(keypoint_index, time.0).unwrap();
-        let pos2 = line.pos_for(keypoint_index + 1, time.0).unwrap();
+        let line_idx = id.line_idx;
+        let keypoint_idx = id.keypoint_idx;
+        let line = &chart.lines[line_idx];
+        let pos1 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx, time.0).unwrap();
+        let pos2 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx+1, time.0).unwrap();
         match stroke.brush {
             Brush::Gradient(Gradient::Linear(ref mut gradient)) => {
                 gradient.start = pos1.into();
@@ -163,8 +167,8 @@ fn update_color(
             _ => (),
         }
 
-        let mut color1 = colorrgba_to_color(line.point_color.points[keypoint_index].try_related_value(time.0));
-        let mut color2 = colorrgba_to_color(line.point_color.points[keypoint_index + 1].try_related_value(time.0));
+        let mut color1 = colorrgba_to_color(line.point_color.points()[keypoint_idx].value);
+        let mut color2 = colorrgba_to_color(line.point_color.points()[keypoint_idx + 1].value);
         if color1.a().approx_eq(&0.) && color2.a().approx_eq(&0.) {
             color1 = DEBUG_INVISIBLE;
             color2 = DEBUG_INVISIBLE;
@@ -190,9 +194,9 @@ fn update_color(
 
 pub(crate) fn colorrgba_to_color(color: ColorRGBA) -> Color {
     Color::RgbaLinear {
-        red: color.r / 255.0,
-        green: color.g / 255.0,
-        blue: color.b / 255.0,
-        alpha: color.a / 255.0,
+        red: color.r ,
+        green: color.g,
+        blue: color.b ,
+        alpha: color.a,
     }
 }

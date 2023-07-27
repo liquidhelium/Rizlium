@@ -1,20 +1,21 @@
-//! # Rizlium chart library
-//! Data structures of Rizlium.
+//! # Rizlium 谱面格式
+//! Rizlium 所使用的谱面结构及部分操作.
 
-
-
-/// Data structures.
+/// 核心数据结构.
 pub mod chart;
-/// Get chart from various data formats.
+/// 从文件创建Rizlium谱面.
 pub mod parse;
 
-/// Chart states at a certain time.
-#[cfg(feature="runtime")]
+/// 在某个时间的谱面状态.
+#[cfg(feature = "runtime")]
 pub mod runtime;
+
+/// 正常情况下游戏画面截取的部分.
 pub const VIEW_RECT: [[f32; 2]; 2] = [[-450., 0.], [450., 1600.]];
 
 pub fn __test_chart() -> chart::Chart {
     serde_json::from_str::<parse::official::RizlineChart>(include_str!("../test_assets/take.json"))
         .unwrap()
-        .try_into().unwrap()
+        .try_into()
+        .unwrap()
 }

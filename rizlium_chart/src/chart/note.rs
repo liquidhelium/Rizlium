@@ -4,6 +4,8 @@ pub enum NoteKind {
     Hold { end: f32 },
     Drag,
 }
+
+/// 单个的Note.
 #[derive(Debug, Clone)]
 pub struct Note {
     pub time: f32,

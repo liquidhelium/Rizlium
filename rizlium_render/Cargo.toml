@@ -16,8 +16,6 @@ bevy = { version = "0.11", default-features = false, features = [
     "bevy_gltf",
     "bevy_render",
     "bevy_sprite",
-    "bevy_text",
-    "bevy_ui",
     "png",
     "hdr",
     "zstd",
@@ -28,9 +26,8 @@ bevy = { version = "0.11", default-features = false, features = [
     "webgl2"
 ] }
 bevy_kira_audio = { version = "0.16" }
-bevy_egui = "*"
 bevy-inspector-egui = "*"
 # bevy_prototype_lyon = {git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium"}
 bevy_prototype_lyon = {path = "../../bevy_prototype_lyon_rizlium"}
-rizlium_chart = {path="../rizlium_chart",features = ["atomic", "runtime"]}
+rizlium_chart = {path="../rizlium_chart"}
 mouse_tracking = {package = "bevy_mouse_tracking_plugin", version = "0.6.0"}
