@@ -13,7 +13,7 @@ pub struct ColorRGBA {
 }
 
 impl Tween for ColorRGBA {
-    fn tween(x1: Self, x2: Self, t: f32) -> Self {
+    fn lerp(x1: Self, x2: Self, t: f32) -> Self {
         tween!((r, g, b, a), x1, x2, t)
     }
 }
@@ -21,7 +21,7 @@ impl Add for ColorRGBA {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         // blend: (ONE_MINUS_SRC_ALPHA, SRC_ALPHA)
-        let mut blend = Self::tween(rhs, self, (rhs.a / 255.).into());
+        let mut blend = Self::lerp(rhs, self, (rhs.a / 255.).into());
         blend.a = self.a;
         blend
     }
