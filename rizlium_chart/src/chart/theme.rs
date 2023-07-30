@@ -21,15 +21,15 @@ pub struct ThemeTransition<'a> {
 }
 
 impl Tween for ThemeColor {
-    fn tween(x1: Self, x2: Self, t: f32) -> Self {
+    fn lerp(x1: Self, x2: Self, t: f32) -> Self {
         tween!((background, note), x1, x2, t)
     }
 }
 
 impl Tween for ThemeData {
-    fn tween(x1: Self, x2: Self, t: f32) -> Self {
+    fn lerp(x1: Self, x2: Self, t: f32) -> Self {
         Self {
-            color: Tween::tween(x1.color, x2.color, t),
+            color: Tween::lerp(x1.color, x2.color, t),
             is_challenge: x1.is_challenge && x2.is_challenge,
         }
     }

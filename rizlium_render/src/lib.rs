@@ -4,6 +4,7 @@ use bevy::{
     DefaultPlugins,
 };
 
+use bevy_kira_audio::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_prototype_lyon::prelude::*;
 use rizlium_chart::{__test_chart, chart::{Chart, ChartCache}, VIEW_RECT};
@@ -59,6 +60,7 @@ pub fn start() {
         .init_resource::<GameChartCache>()
         .add_plugins((
             DefaultPlugins,
+            AudioPlugin,
             WorldInspectorPlugin::new(),
             ShapePlugin,
             TypeRegisterPlugin,
@@ -67,7 +69,7 @@ pub fn start() {
             FrameTimeDiagnosticsPlugin::default(),
             LogDiagnosticsPlugin::default(),
         ))
-        .add_systems(Startup, before_render)
+        .add_systems(Startup, (before_render, audio))
         .add_systems(First, chart_cache)
         .add_systems(PreUpdate, game_time)
         .run();
@@ -139,4 +141,8 @@ fn before_render(mut commands: Commands, mut window: Query<&mut Window>) {
         .insert(GameCamera);
     commands.insert_resource(GameChart(__test_chart()));
     window.single_mut().resolution.set(450., 800.);
+}
+
+fn audio(server: Res<AssetServer>, audio: Res<Audio>) {
+    audio.play(server.load("/home/helium/code/rizlium/rizlium_render/assets/take.ogg"));
 }

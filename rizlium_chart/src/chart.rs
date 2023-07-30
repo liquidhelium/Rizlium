@@ -84,17 +84,33 @@ impl ChartCache {
     }
     /// 用给定的 [`Chart`] 更新此 [`ChartCache`] .
     pub fn update_from_chart(&mut self, chart: &Chart) {
-        let mut iter = chart.bpm.iter().peekable();
-        let _beat_till_last = 0.;
-        let _last_bpm = 0.;
+        let mut iter = chart.bpm.iter();
+        let mut last_time = 0.;
+        let mut last_key = None;
         self.beat = std::iter::from_fn(|| {
-            let mut point = iter.next()?.clone();
-            let Some(_next) = iter.peek() else {
-                return None;
+            let point = iter.next()?;
+            let Some(last) = last_key else {
+                last_key = Some(point);
+                return Some(KeyPoint {
+                                    time:0.,
+                                    value:0.0f32,
+                                    ease_type: EasingId::Linear,
+                                    relevent: ()
+                                })
             } ;
-            point.ease_type = EasingId::Linear;
-            None
-        }).collect();
+            last_key = Some(point);
+            Some(KeyPoint {
+                time: {
+                    let beat = real2beat(last_time, point.time, last);
+                    last_time = beat;
+                    beat
+                },
+                value: point.time,
+                ease_type: EasingId::Linear,
+                relevent: (),
+            })
+        })
+        .collect();
         self.canvas_y = chart
             .canvases
             .iter()
@@ -132,37 +148,36 @@ impl ChartAndCache<'_, '_> {
             .points
             .points()
             .get(point_idx)?;
-        Some([
-            self.keypoint_releated_x(point, game_time)?,
-            self.cache
-                .canvas_y
-                .get(point.relevent)?
-                .value_padding(point.time - game_time)?,
-        ])
+        Some([self.keypoint_releated_x(point, game_time)?, {
+            let line = self.cache.canvas_y.get(point.relevent)?;
+            line.value_padding(point.time)? - line.value_padding(game_time)?
+        }])
     }
     pub fn line_pos_at(&self, line_idx: usize, time: f32, game_time: f32) -> Option<[f32; 2]> {
+        let line = self.chart.lines.get(line_idx)?;
+        let index = line.points.keypoint_at(time).ok()?;
+        let point1 = &line.points.points()[index];
+        let point2 = &line.points.points()[index + 1];
+        // Safe because `keypoint_at`.
+        let pos1 = self
+            .pos_for_linepoint_at(line_idx, index, game_time)
+            .unwrap();
+        let pos2 = self
+            .pos_for_linepoint_at(line_idx, index + 1, game_time)
+            .unwrap();
         Some([
-            {
-                match self.chart.lines.get(line_idx)?.points.pair(time) {
-                    (Some(a), Some(b)) => f32::ease(
-                        self.keypoint_releated_x(a, game_time)?,
-                        self.keypoint_releated_x(b, game_time)?,
-                        invlerp(a.time, b.time, time),
-                        a.ease_type,
-                    ),
-                    _ => return None,
-                }
-            },
-            self.cache
-                .canvas_y
-                .get(line_idx)?
-                .value_padding(time)?,
+            f32::ease(
+                pos1[0],
+                pos2[0],
+                invlerp(point1.time, point2.time, time),
+                point1.ease_type,
+            ),
+            f32::lerp(pos1[1], pos2[1], invlerp(point1.time, point2.time, time)),
         ])
     }
 
-    fn keypoint_releated_x(&self, point: &KeyPoint<f32,usize>, time: f32,) -> Option<f32> {
-        Some(point.value
-            + self.chart.canvas_x(point.relevent, time)?)
+    fn keypoint_releated_x(&self, point: &KeyPoint<f32, usize>, time: f32) -> Option<f32> {
+        Some(point.value + self.chart.canvas_x(point.relevent, time)?)
     }
 }
 

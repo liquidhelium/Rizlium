@@ -5,7 +5,7 @@ use simple_easing::*;
 macro_rules! tween {
     (($($var:ident),*),$x1:ident,$x2:ident, $t:ident) => {
         Self {
-            $($var: Tween::tween($x1.$var,$x2.$var,$t),)*
+            $($var: Tween::lerp($x1.$var,$x2.$var,$t),)*
         }
     };
 }
@@ -139,7 +139,8 @@ impl<T: Tween,R> Spline<T,R> {
             Err(val)
         } else {
             // SAFETY: val != 0
-            Ok(val.wrapping_add_signed(-1))
+            let ret_value = val.wrapping_add_signed(-1);
+            Ok(ret_value)
         }
     }
     /// Start time of this [`Spline`], return `None` if this [`Spline`] is empty.
@@ -213,21 +214,21 @@ impl<T: Tween, R> FromIterator<KeyPoint<T,R>> for Spline<T,R> {
     }
 }
 pub trait Tween: Clone {
-    fn tween(x1: Self, x2: Self, t: f32) -> Self;
+    fn lerp(x1: Self, x2: Self, t: f32) -> Self;
     fn ease(x1: Self, x2: Self, t: f32, easing: EasingId) -> Self {
-        Self::tween(x1, x2, easef32(easing, t))
+        Self::lerp(x1, x2, easef32(easing, t))
     }
 }
 
 impl Tween for f32 {
-    fn tween(x1: Self, x2: Self, t: f32) -> Self {
+    fn lerp(x1: Self, x2: Self, t: f32) -> Self {
         t * (x2 - x1) + x1
     }
 }
 
 // Jump between values.
 impl Tween for usize {
-    fn tween(x1: Self, _x2: Self, _t: f32) -> Self {
+    fn lerp(x1: Self, _x2: Self, _t: f32) -> Self {
         x1
     }
 }
@@ -267,6 +268,12 @@ pub enum EasingId {
     QuadIn,
     QuadOut,
     QuadInOut,
+    QubicIn,
+    QubicOut,
+    QubicInOut,
+    QuartIn,
+    QuartOut,
+    QuartInOut,
     Start,
     End,
     AnimCurve
@@ -293,6 +300,6 @@ mod test {
     }
     #[test]
     fn test_lerp() {
-        assert_eq!(f32::tween(0.2, 1.2, 0.9), 1.2);
+        assert_eq!(f32::lerp(0.2, 1.2, 0.9), 1.2);
     }
 }

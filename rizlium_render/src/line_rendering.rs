@@ -108,14 +108,15 @@ fn update_shape(
         let line_idx = id.line_idx;
         let keypoint_idx = id.keypoint_idx;
         let line = &chart.lines[line_idx];
-        let keypoint = &line.points.points()[keypoint_idx+1];
+        let keypoint1 = &line.points.points()[keypoint_idx];
+        let keypoint2 = &line.points.points()[keypoint_idx+1];
 
         let mut builder = PathBuilder::new();
         let pos1 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx, time.0).unwrap();
         let pos2 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx+1, time.0).unwrap();
         builder.move_to(pos1.into());
         // skip straight line
-        if !(keypoint.ease_type == EasingId::Linear || pos1[0].approx_eq(&pos2[0]) || pos1[1].approx_eq(&pos2[1])) {
+        if !(keypoint1.ease_type == EasingId::Linear || pos1[0].approx_eq(&pos2[0]) || pos1[1].approx_eq(&pos2[1])) {
             let point_count = ((pos2[1] - pos1[1]) / 1.).floor();
             // 0...>1...>2...>3..0'
             (1..point_count as usize)
@@ -123,8 +124,8 @@ fn update_shape(
                 .map(|i| i as f32 / point_count)
                 .map(|t| {
                     [
-                        f32::ease(pos1[0], pos2[0], t.into(), keypoint.ease_type),
-                        f32::tween(pos1[1], pos2[1], t.into()),
+                        f32::ease(pos1[0], pos2[0], t, keypoint1.ease_type),
+                        f32::lerp(pos1[1], pos2[1], t),
                     ]
                 })
                 .for_each(|p| {
@@ -134,7 +135,7 @@ fn update_shape(
         builder.line_to(pos2.into());
         // connect next segment
         if let Some(pos) =
-            chart.with_cache(&cache).line_pos_at(line_idx, keypoint.time+0.1, time.0)
+            chart.with_cache(&cache).line_pos_at(line_idx, keypoint2.time+0.01, time.0)
         {
             builder.line_to(pos.into());
         }

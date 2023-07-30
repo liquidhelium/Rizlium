@@ -13,6 +13,16 @@ pub mod runtime;
 /// 正常情况下游戏画面截取的部分.
 pub const VIEW_RECT: [[f32; 2]; 2] = [[-450., 0.], [450., 1600.]];
 
+
+pub mod prelude {
+    pub use super::chart::*;
+    pub use super::parse::official::RizlineChart;
+    #[cfg(feature = "runtime")]
+    pub use super::runtime::*;
+    #[cfg(test)]
+    pub use super::__test_chart as test_chart;
+}
+
 pub fn __test_chart() -> chart::Chart {
     serde_json::from_str::<parse::official::RizlineChart>(include_str!("../test_assets/take.json"))
         .unwrap()
