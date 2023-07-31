@@ -1,84 +1,106 @@
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
+    render::{
+        camera::RenderTarget,
+        render_resource::{
+            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+        },
+    },
     DefaultPlugins,
 };
 
-use bevy_kira_audio::prelude::*;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_egui::{
+    egui::{self, FontData, FontDefinitions},
+    EguiContexts, EguiPlugin,
+};
 use bevy_prototype_lyon::prelude::*;
-use rizlium_chart::{__test_chart, chart::{Chart, ChartCache}, VIEW_RECT};
-use std::ops::Deref;
+use rizlium_chart::{
+    __test_chart,
+    chart::{Chart, ChartCache},
+    VIEW_RECT,
+};
 
-macro_rules! return_nothing_change {
-    ($($val:ident),+) => {
-        if !($(($val.is_changed() || $val.is_added()))||+) {
-            return;
-        }
-    };
-}
+use time::TimeAndAudioPlugin;
+pub use time::TimeManager;
 
+mod line_rendering;
+mod time;
+mod chart;
+
+use chart::{ChartCachePlugin, GameChartCache};
+use chart::GameChart;
+use time::GameTime;
 #[derive(Resource)]
-struct GameChart(Chart);
-#[derive(Resource, Default)]
-struct GameChartCache(ChartCache);
+pub struct GameView(pub Handle<Image>);
 
-impl Deref for GameChartCache {
-    type Target = ChartCache;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Resource, Reflect, Default)]
-#[reflect(Resource)]
-struct GameTime(f32);
-
-impl GameChart {
-    pub fn get_chart(&self) -> &Chart {
-        &self.0
-    }
-    pub fn iter_segment(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
-        self.lines
-            .iter()
-            .enumerate()
-            .map(|(i, l)| std::iter::repeat(i).zip(0..l.points.points().len() - 1))
-            .flatten()
-    }
-}
-impl Deref for GameChart {
-    type Target = Chart;
-    fn deref(&self) -> &Self::Target {
-        self.get_chart()
-    }
-}
-
-pub fn start() {
-    App::new()
-        .insert_resource(Msaa::Sample4)
-        .insert_resource(GameTime(0.))
-        .init_resource::<GameChartCache>()
-        .add_plugins((
-            DefaultPlugins,
-            AudioPlugin,
-            WorldInspectorPlugin::new(),
-            ShapePlugin,
-            TypeRegisterPlugin,
-            line_rendering::ChartLinePlugin,
-            // CameraControlPlugin,
-            FrameTimeDiagnosticsPlugin::default(),
-            LogDiagnosticsPlugin::default(),
-        ))
-        .add_systems(Startup, (before_render, audio))
-        .add_systems(First, chart_cache)
-        .add_systems(PreUpdate, game_time)
-        .run();
-}
 pub struct TypeRegisterPlugin;
 impl Plugin for TypeRegisterPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<line_rendering::ChartLine>()
             .register_type::<GameTime>();
+    }
+}
+
+pub struct RizliumRenderingPlugin {
+    pub config: (),
+    pub init_with_chart: Option<Chart>,
+}
+
+impl Plugin for RizliumRenderingPlugin {
+    fn is_unique(&self) -> bool {
+        true
+    }
+    fn build(&self, app: &mut App) {
+        let app = app
+            .add_plugins((
+                ShapePlugin,
+                TypeRegisterPlugin,
+                ChartCachePlugin,
+                TimeAndAudioPlugin,
+                line_rendering::ChartLinePlugin,
+            ))
+            .add_systems(Startup, spawn_game_camera)
+            .add_systems(Update,bind_gameview);
+        if let Some(chart) = self.init_with_chart.clone() {
+            app.insert_resource(GameChart::new(chart));
+        }
+    }
+}
+
+fn spawn_game_camera(mut commands: Commands) {
+    commands
+        .spawn(Camera2dBundle {
+            projection: OrthographicProjection {
+                viewport_origin: [0.5, 0.5].into(),
+                scaling_mode: bevy::render::camera::ScalingMode::Fixed {
+                    width: 900.,
+                    height: 1600.,
+                },
+                ..default()
+            },
+            transform: Transform {
+                translation: [900., 700.0, 999.0].into(),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(GameCamera);
+}
+
+fn bind_gameview(
+    gameview: Option<Res<GameView>>,
+    mut game_cameras: Query<&mut Camera, With<GameCamera>>,
+) {
+    let Some(gameview) = gameview else {
+        warn!("No game view exist.");
+        return;
+    };
+
+    let mut game_camera = game_cameras.single_mut();
+    if !matches!(game_camera.target,RenderTarget::Image(_))
+    {
+        game_camera.target = RenderTarget::Image(gameview.0.clone());
     }
 }
 
@@ -93,56 +115,26 @@ impl Plugin for CameraControlPlugin {
     }
 }
 
-fn update_camera(chart: Res<GameChart>, time: Res<GameTime>, mut cams: Query<&mut OrthographicProjection, With<GameCamera>>) {
+fn update_camera(
+    chart: Res<GameChart>,
+    time: Res<GameTime>,
+    mut cams: Query<&mut OrthographicProjection, With<GameCamera>>,
+) {
     cams.par_iter_mut().for_each_mut(|mut cam| {
-        let scale = chart.cam_scale.value_padding(time.0).unwrap();
+        let scale = chart.cam_scale.value_padding(**time).unwrap();
         if !scale.is_nan() {
             cam.scale = scale;
-        }
-        else {
+        } else {
             cam.scale = 0.;
         }
         // todo: still need test
-        cam.viewport_origin.x = chart.cam_move.value_padding(time.0).unwrap() / (VIEW_RECT[1][0]- VIEW_RECT[0][0]);
+        cam.viewport_origin.x =
+            chart.cam_move.value_padding(**time).unwrap() / (VIEW_RECT[1][0] - VIEW_RECT[0][0]);
     })
 }
 
-mod line_rendering;
 
-fn chart_cache(chart: Res<GameChart>, mut cache: ResMut<GameChartCache>) {
-    return_nothing_change!(chart);
-    info!("update cache");
-    cache.0.update_from_chart(&chart);
-}
 
-fn game_time(cache: Res<GameChartCache>,time: Res<Time>, mut game_time: ResMut<GameTime>) {
-    // todo: start
-    let since_start = time.raw_elapsed_seconds();
-    *game_time = GameTime(cache.0.beat.value_padding(since_start).unwrap());
-}
 
-fn before_render(mut commands: Commands, mut window: Query<&mut Window>) {
-    commands
-        .spawn(Camera2dBundle {
-            projection: OrthographicProjection {
-                viewport_origin: [0.5, 0.5].into(),
-                scaling_mode: bevy::render::camera::ScalingMode::Fixed {
-                    width: 900.,
-                    height: 1600.,
-                },
-                ..default()
-            },
-            transform: Transform {
-                translation: [900.,700.0,999.0].into(),
-                ..default()
-            },
-            ..default()
-        })
-        .insert(GameCamera);
-    commands.insert_resource(GameChart(__test_chart()));
-    window.single_mut().resolution.set(450., 800.);
-}
 
-fn audio(server: Res<AssetServer>, audio: Res<Audio>) {
-    audio.play(server.load("/home/helium/code/rizlium/rizlium_render/assets/take.ogg"));
-}
+

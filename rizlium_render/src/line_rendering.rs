@@ -1,5 +1,5 @@
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
-use rizlium_chart::chart::{ColorRGBA, Tween, EasingId};
+use rizlium_chart::chart::{ColorRGBA, EasingId, Tween};
 
 use bevy_prototype_lyon::prelude::*;
 
@@ -11,7 +11,11 @@ use crate::GameChartCache;
 
 use super::{GameChart, GameTime};
 
-use mouse_tracking::prelude::MousePosPlugin;
+#[derive(Debug, PartialEq, Eq, SystemSet, Clone, Hash)]
+pub enum LineRenderingSystemSet {
+    SyncChart,
+    Rendering,
+}
 
 #[derive(Component, Reflect, Debug, Default)]
 #[reflect(Component)]
@@ -43,18 +47,34 @@ impl Default for ChartLineBundle {
 
 pub struct ChartLinePlugin;
 
+// 长类型让我抓狂
+macro_rules! should_lines_update {
+    () => {
+        
+        resource_exists::<GameChart>().and_then(resource_changed::<GameChart>().or_else(resource_changed::<GameTime>()))
+    };
+}
+
 impl Plugin for ChartLinePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(MousePosPlugin)
-            .add_systems(First, (add_lines,))
-            .add_systems(PreUpdate, assocate_segment)
-            .add_systems(Update, (change_bounding, update_shape, update_color));
+        app.add_systems(
+            First,
+            (add_lines, assocate_segment)
+                .in_set(LineRenderingSystemSet::SyncChart)
+                .run_if(should_lines_update!()),
+        )
+        .add_systems(
+            Update,
+            (change_bounding, update_shape, update_color)
+                .in_set(LineRenderingSystemSet::Rendering)
+                .run_if(should_lines_update!()),
+        );
     }
 }
 
 fn add_lines(mut commands: Commands, chart: Res<GameChart>, lines: Query<&ChartLine>) {
-    return_nothing_change!(chart);
-    for _ in lines.iter().count()..chart.get_chart().segment_count() {
+    
+    for _ in lines.iter().count()..chart.segment_count() {
         commands.spawn(ChartLineBundle::default());
     }
 }
@@ -68,8 +88,14 @@ fn change_bounding(
     lines.par_iter_mut().for_each_mut(|(mut vis, stroke, id)| {
         let line_idx = id.line_idx;
         let keypoint_idx = id.keypoint_idx;
-        let pos1 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx, time.0).expect(&format!("{}, {}", line_idx, keypoint_idx));
-        let pos2 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx+1, time.0).unwrap();
+        let pos1 = chart
+            .with_cache(&cache)
+            .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
+            .expect(&format!("{}, {}", line_idx, keypoint_idx));
+        let pos2 = chart
+            .with_cache(&cache)
+            .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
+            .unwrap();
         let extend = Vec2::splat(stroke.options.line_width);
         let mut rect = Rect::from_corners(pos1.into(), pos2.into());
         rect.min -= extend;
@@ -109,14 +135,23 @@ fn update_shape(
         let keypoint_idx = id.keypoint_idx;
         let line = &chart.lines[line_idx];
         let keypoint1 = &line.points.points()[keypoint_idx];
-        let keypoint2 = &line.points.points()[keypoint_idx+1];
+        let keypoint2 = &line.points.points()[keypoint_idx + 1];
 
         let mut builder = PathBuilder::new();
-        let pos1 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx, time.0).unwrap();
-        let pos2 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx+1, time.0).unwrap();
+        let pos1 = chart
+            .with_cache(&cache)
+            .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
+            .unwrap();
+        let pos2 = chart
+            .with_cache(&cache)
+            .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
+            .unwrap();
         builder.move_to(pos1.into());
         // skip straight line
-        if !(keypoint1.ease_type == EasingId::Linear || pos1[0].approx_eq(&pos2[0]) || pos1[1].approx_eq(&pos2[1])) {
+        if !(keypoint1.ease_type == EasingId::Linear
+            || pos1[0].approx_eq(&pos2[0])
+            || pos1[1].approx_eq(&pos2[1]))
+        {
             let point_count = ((pos2[1] - pos1[1]) / 1.).floor();
             // 0...>1...>2...>3..0'
             (1..point_count as usize)
@@ -135,7 +170,9 @@ fn update_shape(
         builder.line_to(pos2.into());
         // connect next segment
         if let Some(pos) =
-            chart.with_cache(&cache).line_pos_at(line_idx, keypoint2.time+0.01, time.0)
+            chart
+                .with_cache(&cache)
+                .line_pos_at(line_idx, keypoint2.time + 0.01, **time)
         {
             builder.line_to(pos.into());
         }
@@ -158,8 +195,14 @@ fn update_color(
         let line_idx = id.line_idx;
         let keypoint_idx = id.keypoint_idx;
         let line = &chart.lines[line_idx];
-        let pos1 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx, time.0).unwrap();
-        let pos2 = chart.with_cache(&cache).pos_for_linepoint_at(line_idx, keypoint_idx+1, time.0).unwrap();
+        let pos1 = chart
+            .with_cache(&cache)
+            .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
+            .unwrap();
+        let pos2 = chart
+            .with_cache(&cache)
+            .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
+            .unwrap();
         match stroke.brush {
             Brush::Gradient(Gradient::Linear(ref mut gradient)) => {
                 gradient.start = pos1.into();
@@ -177,10 +220,7 @@ fn update_color(
         let gradient = LinearGradient {
             start: pos1.into(),
             end: pos2.into(),
-            stops: vec![
-                GradientStop::new(0., color1),
-                GradientStop::new(1., color2),
-            ],
+            stops: vec![GradientStop::new(0., color1), GradientStop::new(1., color2)],
         };
         stroke.brush = Brush::Gradient(gradient.into());
     });
@@ -195,9 +235,9 @@ fn update_color(
 
 pub(crate) fn colorrgba_to_color(color: ColorRGBA) -> Color {
     Color::RgbaLinear {
-        red: color.r ,
+        red: color.r,
         green: color.g,
-        blue: color.b ,
+        blue: color.b,
         alpha: color.a,
     }
 }
