@@ -1,23 +1,14 @@
 use bevy::{
-    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
     render::{
         camera::RenderTarget,
-        render_resource::{
-            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-        },
     },
-    DefaultPlugins,
 };
 
-use bevy_egui::{
-    egui::{self, FontData, FontDefinitions},
-    EguiContexts, EguiPlugin,
-};
+
 use bevy_prototype_lyon::prelude::*;
 use rizlium_chart::{
-    __test_chart,
-    chart::{Chart, ChartCache},
+    chart::{Chart},
     VIEW_RECT,
 };
 
