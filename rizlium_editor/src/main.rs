@@ -1,18 +1,18 @@
+use std::borrow::BorrowMut;
+
+use bevy::window::PrimaryWindow;
 use bevy::{prelude::*, render::render_resource::TextureDescriptor};
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
-use bevy_egui::EguiPlugin;
-use bevy_egui::{EguiContexts, egui::{self, FontDefinitions, FontData, Ui}};
+use bevy_egui::{EguiPlugin, EguiContext};
+use bevy_egui::EguiContexts;
+use egui::{FontDefinitions, FontData, Ui};
+use egui_dock::DockArea;
+use rizlium_editor::{EditorState, RizDockTree, RizTabViewer, dock_window_menu_button};
 use rizlium_render::{GameView, RizliumRenderingPlugin, TimeManager};
 
-#[derive(Debug, Resource, Default)]
-struct EditorState {
-    debug_resources: DebugResources,
-}
 
-#[derive(Debug, Default)]
-struct DebugResources {
-    show_cursor: bool
-}
+
+
 
 fn main() {
     App::new()
@@ -25,6 +25,7 @@ fn main() {
             },
         ))
         .init_resource::<EditorState>()
+        .init_resource::<RizDockTree>()
         .add_systems(PreStartup, (setup_game_view, egui_font).after(bevy_egui::EguiStartupSet::InitContexts))
         .add_systems(Update, egui_render)
         .run()
@@ -84,54 +85,40 @@ fn egui_font(mut egui_context: EguiContexts) {
     ctx.set_fonts(def);
 }
 fn egui_render(
-    mut egui_context: EguiContexts,
-    mut editor_state: ResMut<EditorState>,
-    gameview: Res<GameView>,
-    mut time: ResMut<TimeManager>,
-) {
-    let img = egui_context
-        .image_id(&gameview.0)
-        .expect("no gameview image found!");
-    let ctx = egui_context.ctx_mut();
-    egui::TopBottomPanel::top("menu").show(ctx, |ui| {
-        if editor_state.debug_resources.show_cursor {
-            ui.style_mut().debug.debug_on_hover = true;
-        }
-        ui.label("Rizlium");
-        ui.toggle_value(&mut editor_state.debug_resources.show_cursor, "Show cursor (Debug)");
-    });
-    egui::CentralPanel::default().show(ctx, |ui| {
-        if editor_state.debug_resources.show_cursor {
-            ui.style_mut().debug.debug_on_hover = true;
-        }
-        ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
 
-            let button = &ui.button("暂停");
-            if button.is_pointer_button_down_on() && !button.dragged() {
-                time.toggle_paused();
-            }
-            
-            keep_ratio(ui, 16./9., |ui, size| {
-                ui.centered_and_justified(|ui| ui.image(img, size));
-                
-            })
-            
+    world: &mut World,
+) {
+    let mut egui_context = world.query::<(&mut EguiContext, With<PrimaryWindow>)>();
+    let mut binding = egui_context.single_mut(world).0;
+    let ctx = &binding.get_mut().clone();
+    drop(binding);
+    drop(egui_context);
+    let mut editor_state= world.remove_resource::<EditorState>().expect("EditorState does not exist");
+    ctx.set_debug_on_hover(editor_state.debug_resources.show_cursor);
+    let mut tree = world.remove_resource::<RizDockTree>().expect("RizDockTree does not exist");
+    egui::TopBottomPanel::top("menu").show(ctx, |ui| {
+        ui.horizontal(|ui| {
+
+            ui.label("Rizlium");
+            ui.toggle_value(&mut editor_state.debug_resources.show_cursor, "Show cursor (Debug)");
+            dock_window_menu_button(ui, "View", &mut tree.tree);
         });
     });
+
+    DockArea::new(&mut tree.tree).scroll_area_in_tabs(false).show(ctx, &mut RizTabViewer {
+        world,
+        editor_state: &mut editor_state,
+    });
+
+    if tree.tree.is_empty() {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.centered_and_justified(|ui| {
+
+                ui.heading("Rizlium\n(Dev version)")
+            });
+        }); 
+    }
+    world.insert_resource(editor_state);
+    world.insert_resource(tree);
 }
 
-fn keep_ratio(ui: &mut Ui, ratio: f32,mut add_fn: impl FnMut(&mut Ui, egui::Vec2)) {
-    assert_ne!(ratio, 0.);
-    let current_size = ui.available_size();
-    let mut new_size = egui::Vec2::default();
-    if current_size.x < current_size.y/ ratio {
-        new_size.x = current_size.x;
-        new_size.y = current_size.x*ratio;
-    }
-    else {
-        new_size.x = current_size.y/ratio;
-        new_size.y = current_size.y;
-    }
-    add_fn(ui, new_size);
-
-}
