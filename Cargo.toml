@@ -2,7 +2,7 @@
 members= [
     "rizlium_chart",
     "rizlium_render",
-    "rizlium_render_main"
+    "rizlium_editor"
 ]
 resolver="2"
 
