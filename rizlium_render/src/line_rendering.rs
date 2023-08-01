@@ -1,5 +1,5 @@
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
-use rizlium_chart::chart::{ColorRGBA, EasingId, Tween};
+use rizlium_chart::chart::{EasingId, Tween};
 
 use bevy_prototype_lyon::prelude::*;
 
