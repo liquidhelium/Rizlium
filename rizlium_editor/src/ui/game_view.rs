@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_egui::{EguiContexts, EguiUserTextures};
+use bevy_egui::EguiUserTextures;
 use egui::Ui;
 use rizlium_render::{TimeManager, GameView};
 

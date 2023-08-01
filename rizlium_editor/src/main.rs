@@ -1,14 +1,14 @@
-use std::borrow::BorrowMut;
+
 
 use bevy::window::PrimaryWindow;
 use bevy::{prelude::*, render::render_resource::TextureDescriptor};
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy_egui::{EguiPlugin, EguiContext};
 use bevy_egui::EguiContexts;
-use egui::{FontDefinitions, FontData, Ui};
+use egui::{FontDefinitions, FontData};
 use egui_dock::DockArea;
 use rizlium_editor::{EditorState, RizDockTree, RizTabViewer, dock_window_menu_button};
-use rizlium_render::{GameView, RizliumRenderingPlugin, TimeManager};
+use rizlium_render::{GameView, RizliumRenderingPlugin};
 
 
 

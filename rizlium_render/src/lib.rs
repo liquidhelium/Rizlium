@@ -1,28 +1,19 @@
-use bevy::{
-    prelude::*,
-    render::{
-        camera::RenderTarget,
-    },
-};
-
+use bevy::{prelude::*, render::camera::RenderTarget};
 
 use bevy_prototype_lyon::prelude::*;
-use rizlium_chart::{
-    chart::{Chart},
-    VIEW_RECT, prelude::ColorRGBA,
-};
+use rizlium_chart::{chart::Chart, prelude::ColorRGBA, VIEW_RECT};
 
 use theme::BackgroundThemePlugin;
 use time::TimeAndAudioPlugin;
 pub use time::TimeManager;
 
-mod line_rendering;
-mod time;
 mod chart;
+mod line_rendering;
 mod theme;
+mod time;
 
-use chart::{ChartCachePlugin, GameChartCache};
 use chart::GameChart;
+use chart::{ChartCachePlugin, GameChartCache};
 use time::GameTime;
 #[derive(Resource)]
 pub struct GameView(pub Handle<Image>);
@@ -60,10 +51,10 @@ impl Plugin for RizliumRenderingPlugin {
                 ChartCachePlugin,
                 TimeAndAudioPlugin,
                 line_rendering::ChartLinePlugin,
-                BackgroundThemePlugin
+                BackgroundThemePlugin,
             ))
             .add_systems(Startup, spawn_game_camera)
-            .add_systems(Update,bind_gameview);
+            .add_systems(Update, bind_gameview);
         if let Some(chart) = self.init_with_chart.clone() {
             app.insert_resource(GameChart::new(chart));
         }
@@ -100,8 +91,7 @@ fn bind_gameview(
     };
 
     let mut game_camera = game_cameras.single_mut();
-    if !matches!(game_camera.target,RenderTarget::Image(_))
-    {
+    if !matches!(game_camera.target, RenderTarget::Image(_)) {
         game_camera.target = RenderTarget::Image(gameview.0.clone());
     }
 }
@@ -134,9 +124,3 @@ fn update_camera(
             chart.cam_move.value_padding(**time).unwrap() / (VIEW_RECT[1][0] - VIEW_RECT[0][0]);
     })
 }
-
-
-
-
-
-
