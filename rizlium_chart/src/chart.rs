@@ -28,8 +28,8 @@ pub struct Chart {
 impl Chart {
     pub fn theme_at(&self, time: f32) -> Result<ThemeTransition<'_>, Whatever> {
         let (this, next) = self.theme_control.pair(time);
-        let this = this.whatever_context("Empty theme control")?;
-        let next = next.whatever_context("Empty theme control")?;
+        let this = this.unwrap_or(self.theme_control.points().first().whatever_context("Empty theme control")?);
+        let next = next.unwrap_or(self.theme_control.points().last().whatever_context("Empty theme control")?);
         let progress = (time - this.time) / (next.time - this.time);
         Ok(ThemeTransition {
             progress,

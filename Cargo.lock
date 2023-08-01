@@ -3052,6 +3052,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rizlium_editor"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_egui",
+ "font-kit",
+ "rizlium_chart",
+ "rizlium_render",
+]
+
+[[package]]
 name = "rizlium_render"
 version = "0.1.0"
 dependencies = [
@@ -3061,17 +3072,6 @@ dependencies = [
  "bevy_mouse_tracking_plugin",
  "bevy_prototype_lyon",
  "rizlium_chart",
-]
-
-[[package]]
-name = "rizlium_render_main"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_egui",
- "font-kit",
- "rizlium_chart",
- "rizlium_render",
 ]
 
 [[package]]

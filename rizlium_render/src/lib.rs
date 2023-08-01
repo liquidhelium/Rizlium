@@ -9,15 +9,17 @@ use bevy::{
 use bevy_prototype_lyon::prelude::*;
 use rizlium_chart::{
     chart::{Chart},
-    VIEW_RECT,
+    VIEW_RECT, prelude::ColorRGBA,
 };
 
+use theme::BackgroundThemePlugin;
 use time::TimeAndAudioPlugin;
 pub use time::TimeManager;
 
 mod line_rendering;
 mod time;
 mod chart;
+mod theme;
 
 use chart::{ChartCachePlugin, GameChartCache};
 use chart::GameChart;
@@ -30,6 +32,14 @@ impl Plugin for TypeRegisterPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<line_rendering::ChartLine>()
             .register_type::<GameTime>();
+    }
+}
+pub(crate) fn colorrgba_to_color(color: ColorRGBA) -> Color {
+    Color::RgbaLinear {
+        red: color.r,
+        green: color.g,
+        blue: color.b,
+        alpha: color.a,
     }
 }
 
@@ -50,6 +60,7 @@ impl Plugin for RizliumRenderingPlugin {
                 ChartCachePlugin,
                 TimeAndAudioPlugin,
                 line_rendering::ChartLinePlugin,
+                BackgroundThemePlugin
             ))
             .add_systems(Startup, spawn_game_camera)
             .add_systems(Update,bind_gameview);

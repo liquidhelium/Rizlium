@@ -9,7 +9,7 @@ use bevy::render::primitives::Aabb;
 
 use crate::GameChartCache;
 
-use super::{GameChart, GameTime};
+use super::{GameChart, GameTime, colorrgba_to_color};
 
 #[derive(Debug, PartialEq, Eq, SystemSet, Clone, Hash)]
 pub enum LineRenderingSystemSet {
@@ -233,11 +233,4 @@ fn update_color(
 //     // todo: able to only display one line.
 // }
 
-pub(crate) fn colorrgba_to_color(color: ColorRGBA) -> Color {
-    Color::RgbaLinear {
-        red: color.r,
-        green: color.g,
-        blue: color.b,
-        alpha: color.a,
-    }
-}
+
