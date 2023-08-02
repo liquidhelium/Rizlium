@@ -116,17 +116,30 @@ impl LinePoint {
     fn convert(
         self,
         line_index: usize,
-    ) -> ConvertResult<(chart::KeyPoint<f32,usize>, chart::KeyPoint<chart::ColorRGBA,usize>)> {
+    ) -> ConvertResult<(
+        chart::KeyPoint<f32, usize>,
+        chart::KeyPoint<chart::ColorRGBA, usize>,
+    )> {
         let point = chart::KeyPoint {
             time: self.time,
             value: self.x_position,
-            ease_type: self.ease_type.try_into().or(Err(ConvertError::UnknownEaseKind { raw_kind: self.ease_type }))?,
+            ease_type: self
+                .ease_type
+                .try_into()
+                .or(Err(ConvertError::UnknownEaseKind {
+                    raw_kind: self.ease_type,
+                }))?,
             relevent: self.canvas_index,
         };
         let color = chart::KeyPoint {
             time: self.time,
             value: self.color.into(),
-            ease_type: self.ease_type.try_into().or(Err(ConvertError::UnknownEaseKind { raw_kind: self.ease_type }))?,
+            ease_type: self
+                .ease_type
+                .try_into()
+                .or(Err(ConvertError::UnknownEaseKind {
+                    raw_kind: self.ease_type,
+                }))?,
             relevent: line_index,
         };
         Ok((point, color))
@@ -169,9 +182,10 @@ impl Line {
         let a = self
             .line_points
             .into_iter()
-            .map(|p| p.convert(line_index)).collect::<ConvertResult<Vec<_>>>()?;
+            .map(|p| p.convert(line_index))
+            .collect::<ConvertResult<Vec<_>>>()?;
         let (points, colors): (Vec<_>, Vec<_>) = a.into_iter().unzip();
-        let points: Spline<_,_> = points
+        let points: Spline<_, _> = points
             .into_iter()
             .map(|mut x| {
                 x.value = scale_x(x.value);
@@ -203,7 +217,7 @@ fn scale_x(x: f32) -> f32 {
     (x + 0.5) * (VIEW_RECT[1][0] - VIEW_RECT[0][0])
 }
 fn scale_y(y: f32) -> f32 {
-    y * (VIEW_RECT[1][1] - VIEW_RECT[0][1])*0.25
+    y * (VIEW_RECT[1][1] - VIEW_RECT[0][1]) * 0.25
 }
 
 #[derive(Serialize, Deserialize)]
@@ -220,28 +234,28 @@ impl TryInto<chart::Canvas> for CanvasMove {
     type Error = ConvertError;
     fn try_into(self) -> ConvertResult<chart::Canvas> {
         Ok(chart::Canvas {
-                    x_pos: self
-                        .x_position_key_points
-                        .into_iter()
-                        .map(|p| p.try_into())
-                        .map(|p: Result<chart::KeyPoint<f32>, _>| {
-                            let mut p = p?;
-                            p.value = scale_x(p.value);
-                            Ok(p)
-                        })
-                        .collect::<Result<_,_>>()?,
-        
-                    speed: self
-                        .speed_key_points
-                        .into_iter()
-                        .map(|p| p.try_into())
-                        .map(|p: Result<chart::KeyPoint<f32>, _>| {
-                            let mut p = p?;
-                            p.value = scale_y(p.value);
-                            Ok(p)
-                        })
-                        .collect::<Result<_,_>>()?,
+            x_pos: self
+                .x_position_key_points
+                .into_iter()
+                .map(|p| p.try_into())
+                .map(|p: Result<chart::KeyPoint<f32>, _>| {
+                    let mut p = p?;
+                    p.value = scale_x(p.value);
+                    Ok(p)
                 })
+                .collect::<Result<_, _>>()?,
+
+            speed: self
+                .speed_key_points
+                .into_iter()
+                .map(|p| p.try_into())
+                .map(|p: Result<chart::KeyPoint<f32>, _>| {
+                    let mut p = p?;
+                    p.value = scale_y(p.value);
+                    Ok(p)
+                })
+                .collect::<Result<_, _>>()?,
+        })
     }
 }
 
@@ -263,7 +277,12 @@ impl TryInto<chart::KeyPoint<f32>> for KeyPoint {
         Ok(chart::KeyPoint {
             time: self.time,
             value: self.value,
-            ease_type: self.ease_type.try_into().or(Err(ConvertError::UnknownEaseKind { raw_kind: self.ease_type }))?,
+            ease_type: self
+                .ease_type
+                .try_into()
+                .or(Err(ConvertError::UnknownEaseKind {
+                    raw_kind: self.ease_type,
+                }))?,
             relevent: (),
         })
     }
@@ -355,7 +374,11 @@ impl TryInto<chart::Chart> for RizlineChart {
                 .enumerate()
                 .map(|(index, line)| line.convert(index))
                 .collect::<Result<Vec<_>, _>>()?,
-            canvases: self.canvas_moves.into_iter().map(|c| c.try_into()).collect::<ConvertResult<_>>()?,
+            canvases: self
+                .canvas_moves
+                .into_iter()
+                .map(|c| c.try_into())
+                .collect::<ConvertResult<_>>()?,
             cam_move: self
                 .camera_move
                 .x_position_key_points

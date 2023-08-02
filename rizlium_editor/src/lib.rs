@@ -9,16 +9,18 @@ pub struct EditorState {
 }
 #[derive(Debug, Default)]
 pub struct DebugResources {
-    pub show_cursor: bool
+    pub show_cursor: bool,
 }
 
-#[derive(Debug,Resource)]
+#[derive(Debug, Resource)]
 pub struct RizDockTree {
     pub tree: Tree<RizliumTab>,
 }
 
 impl Default for RizDockTree {
     fn default() -> Self {
-        Self { tree: Tree::new(vec![RizliumTab::GameView]) }
+        Self {
+            tree: Tree::new(vec![RizliumTab::GameView]),
+        }
     }
 }
