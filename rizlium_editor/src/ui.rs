@@ -6,15 +6,18 @@ use egui::Ui;
 use egui_dock::{TabViewer, Tree};
 use strum::{EnumIter, IntoEnumIterator};
 
-use self::dummy_window::dummy_window;
+use self::{dummy_window::dummy_window, game_view::GameViewTab, widget_system::WidgetId};
 
 mod dummy_window;
 mod game_view;
+mod information; //todo////////////////
+mod widget_system;
+pub use widget_system::{widget, WidgetSystem};
 
 #[derive(Debug, PartialEq, Eq, EnumIter, Clone, Copy)]
 pub enum RizliumTab {
     GameView,
-    Dummy,
+    Information,
     Dummy2,
     Dummy3,
 }
@@ -23,7 +26,7 @@ impl Display for RizliumTab {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::GameView => f.write_str("Game view"),
-            Self::Dummy => f.write_str("Dummy"),
+            Self::Information => f.write_str("Information"),
             _ => f.write_str("Dummy <N>"),
         }
     }
@@ -38,16 +41,13 @@ impl TabViewer for RizTabViewer<'_> {
     type Tab = RizliumTab;
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         match tab {
-            RizliumTab::GameView => game_view::game_view(ui, self.world, self.editor_state),
-            RizliumTab::Dummy => dummy_window(ui),
+            RizliumTab::GameView => widget::<GameViewTab>(self.world, ui, WidgetId::new("1")),
+            RizliumTab::Information => information::information(ui, self.world),
             _ => dummy_window(ui),
         }
     }
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
-        match tab {
-            RizliumTab::GameView => "GameView".into(),
-            _ => "<Unknown Tab>".into(),
-        }
+        tab.to_string().into()
     }
 }
 
@@ -59,9 +59,7 @@ pub fn dock_window_menu_button(
     let opened: Vec<_> = tree.tabs().copied().enumerate().collect();
     ui.menu_button(text, |ui| {
         for i in RizliumTab::iter() {
-            let value = opened.iter().find(|(_, tab)| i == *tab).map(|a| {
-                a.0
-            });
+            let value = opened.iter().find(|(_, tab)| i == *tab).map(|a| a.0);
             let contains = value.is_some();
             if ui.selectable_label(contains, i.to_string()).clicked() {
                 if contains {

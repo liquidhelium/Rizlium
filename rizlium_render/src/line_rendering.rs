@@ -9,7 +9,7 @@ use bevy::render::primitives::Aabb;
 
 use crate::GameChartCache;
 
-use super::{GameChart, GameTime, colorrgba_to_color};
+use super::{colorrgba_to_color, GameChart, GameTime};
 
 #[derive(Debug, PartialEq, Eq, SystemSet, Clone, Hash)]
 pub enum LineRenderingSystemSet {
@@ -50,8 +50,8 @@ pub struct ChartLinePlugin;
 // 长类型让我抓狂
 macro_rules! should_lines_update {
     () => {
-        
-        resource_exists::<GameChart>().and_then(resource_changed::<GameChart>().or_else(resource_changed::<GameTime>()))
+        resource_exists::<GameChart>()
+            .and_then(resource_changed::<GameChart>().or_else(resource_changed::<GameTime>()))
     };
 }
 
@@ -73,7 +73,6 @@ impl Plugin for ChartLinePlugin {
 }
 
 fn add_lines(mut commands: Commands, chart: Res<GameChart>, lines: Query<&ChartLine>) {
-    
     for _ in lines.iter().count()..chart.segment_count() {
         commands.spawn(ChartLineBundle::default());
     }
@@ -91,7 +90,7 @@ fn change_bounding(
         let pos1 = chart
             .with_cache(&cache)
             .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
-            .expect(&format!("{}, {}", line_idx, keypoint_idx));
+            .expect("Get pos for line point failed");
         let pos2 = chart
             .with_cache(&cache)
             .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
@@ -232,5 +231,3 @@ fn update_color(
 // ) {
 //     // todo: able to only display one line.
 // }
-
-

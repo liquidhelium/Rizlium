@@ -4,17 +4,17 @@ use bevy_prototype_lyon::prelude::*;
 use rizlium_chart::{chart::Chart, prelude::ColorRGBA, VIEW_RECT};
 
 use theme::BackgroundThemePlugin;
-use time::TimeAndAudioPlugin;
-pub use time::TimeManager;
+use time_and_audio::TimeAndAudioPlugin;
+pub use time_and_audio::TimeManager;
 
 mod chart;
 mod line_rendering;
 mod theme;
-mod time;
+mod time_and_audio;
 
-use chart::GameChart;
+pub use chart::GameChart;
 use chart::{ChartCachePlugin, GameChartCache};
-use time::GameTime;
+pub use time_and_audio::GameTime;
 #[derive(Resource)]
 pub struct GameView(pub Handle<Image>);
 
@@ -60,6 +60,11 @@ impl Plugin for RizliumRenderingPlugin {
         }
     }
 }
+
+#[derive(Component)]
+struct Ring(usize);
+
+fn rings(chart: Res<GameChart>, time: Res<GameTime>, rings: Query<(&mut Transform, &Ring)>) {}
 
 fn spawn_game_camera(mut commands: Commands) {
     commands

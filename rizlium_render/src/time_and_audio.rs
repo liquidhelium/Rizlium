@@ -4,7 +4,7 @@ use std::ops::Deref;
 
 use crate::chart::GameChartCache;
 
-#[derive(Resource, Debug)] 
+#[derive(Resource, Debug)]
 pub struct GameAudio(pub Handle<AudioInstance>);
 #[derive(Resource, Reflect, Default)]
 #[reflect(Resource, Default)]
@@ -15,7 +15,6 @@ impl Deref for GameTime {
         &self.0
     }
 }
-
 
 const COMPENSATION_RATE: f32 = 0.001;
 
@@ -30,15 +29,22 @@ pub struct TimeAndAudioPlugin;
 
 impl Plugin for TimeAndAudioPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins(bevy_kira_audio::AudioPlugin)
+        app.add_plugins(bevy_kira_audio::AudioPlugin)
             .init_resource::<GameTime>()
             .add_systems(Startup, (audio, init_time_manager))
-            .add_systems(Update, (align_audio, game_time.run_if(resource_exists::<GameChartCache>())));
+            .add_systems(
+                Update,
+                (
+                    align_audio,
+                    game_time.run_if(resource_exists::<GameChartCache>()),
+                ),
+            );
     }
 }
-fn audio(mut commands: Commands,server: Res<AssetServer>, audio: Res<Audio>) {
-    let handle =  audio.play(server.load("/home/helium/code/rizlium/rizlium_render/assets/take.ogg")).handle();
+fn audio(mut commands: Commands, server: Res<AssetServer>, audio: Res<Audio>) {
+    let handle = audio
+        .play(server.load("/home/helium/code/rizlium/rizlium_render/assets/take.ogg"))
+        .handle();
     commands.insert_resource(GameAudio(handle));
 }
 
@@ -50,9 +56,18 @@ fn init_time_manager(mut commands: Commands, time: Res<Time>) {
     });
 }
 fn game_time(cache: Res<GameChartCache>, time: Res<TimeManager>, mut game_time: ResMut<GameTime>) {
+    if time.paused() {
+        return;
+    }
     // todo: start
     let since_start = time.current();
-    *game_time = GameTime(cache.0.beat.value_padding(since_start).expect("cache is empty"));
+    *game_time = GameTime(
+        cache
+            .0
+            .beat
+            .value_padding(since_start)
+            .expect("cache is empty"),
+    );
 }
 
 impl TimeManager {

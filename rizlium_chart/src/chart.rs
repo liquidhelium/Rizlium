@@ -28,8 +28,18 @@ pub struct Chart {
 impl Chart {
     pub fn theme_at(&self, time: f32) -> Result<ThemeTransition<'_>, Whatever> {
         let (this, next) = self.theme_control.pair(time);
-        let this = this.unwrap_or(self.theme_control.points().first().whatever_context("Empty theme control")?);
-        let next = next.unwrap_or(self.theme_control.points().last().whatever_context("Empty theme control")?);
+        let this = this.unwrap_or(
+            self.theme_control
+                .points()
+                .first()
+                .whatever_context("Empty theme control")?,
+        );
+        let next = next.unwrap_or(
+            self.theme_control
+                .points()
+                .last()
+                .whatever_context("Empty theme control")?,
+        );
         let progress = (time - this.time) / (next.time - this.time);
         Ok(ThemeTransition {
             progress,
@@ -73,6 +83,7 @@ pub struct ChartCache {
     pub beat: Spline<f32>,
     /// 所有 [`Canvas`] 在某时间对应的高度 (从速度计算而来)
     pub canvas_y: Vec<Spline<f32>>,
+    pub canvas_y_remap: Vec<Spline<f32>>,
 }
 
 impl ChartCache {
@@ -126,6 +137,7 @@ impl ChartCache {
                 points.into()
             })
             .collect();
+        self.canvas_y_remap = self.canvas_y.iter().map(|i| i.clone_reversed()).collect();
     }
 }
 

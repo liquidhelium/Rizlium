@@ -13,7 +13,7 @@ pub struct ThemeColor {
     pub background: ColorRGBA,
     pub note: ColorRGBA,
 }
-
+#[derive(Debug)]
 pub struct ThemeTransition<'a> {
     pub this: &'a ThemeData,
     pub next: &'a ThemeData,

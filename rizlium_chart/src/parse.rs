@@ -2,7 +2,7 @@ use snafu::prelude::*;
 
 pub mod official;
 
-#[derive(Debug, Snafu,Clone)]
+#[derive(Debug, Snafu, Clone)]
 pub enum ConvertError {
     #[snafu(display("No bpm data found"))]
     EmptyBPM,
@@ -11,7 +11,7 @@ pub enum ConvertError {
     #[snafu(display("Unknown note kind: {raw_kind}"))]
     UnknownNoteKind { raw_kind: usize },
     #[snafu(display("Unknown ease kind: {raw_kind}"))]
-    UnknownEaseKind { raw_kind: u8}
+    UnknownEaseKind { raw_kind: u8 },
 }
 
 type ConvertResult<T, E = ConvertError> = std::result::Result<T, E>;

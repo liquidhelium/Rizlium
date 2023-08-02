@@ -1,3 +1,5 @@
+use std::mem::swap;
+
 use log::{error, warn};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use simple_easing::*;
@@ -13,8 +15,7 @@ pub fn invlerp(y1: f32, y2: f32, y0: f32) -> f32 {
     let t = (y0 - y1) / (y2 - y1);
     if t.is_nan() {
         0.
-    }
-    else {
+    } else {
         t
     }
 }
@@ -35,7 +36,7 @@ impl<T: Tween, R> KeyPoint<T, R> {
 
 /// 用于平缓地更改一个值.
 #[derive(Debug, Clone)]
-pub struct Spline<T: Tween, R= ()> {
+pub struct Spline<T: Tween, R = ()> {
     points: Vec<KeyPoint<T, R>>,
 }
 
@@ -69,7 +70,7 @@ impl<T: Tween> Spline<T> {
 }
 
 /// Find
-impl<T: Tween,R> Spline<T,R> {
+impl<T: Tween, R> Spline<T, R> {
     /// Return a pair of [`KeyPoint`] at this `time`.
     ///
     /// When this [`Spline`] is not empty, returns:
@@ -110,7 +111,7 @@ impl<T: Tween,R> Spline<T,R> {
     /// assert!(matches!(spline.pair(1.0), (Some(_), Some(_))));
     /// assert!(matches!(spline.pair(2.2), (Some(_), None)));
     /// ```
-    pub fn pair(&self, time: f32) -> (Option<&KeyPoint<T,R>>, Option<&KeyPoint<T,R>>) {
+    pub fn pair(&self, time: f32) -> (Option<&KeyPoint<T, R>>, Option<&KeyPoint<T, R>>) {
         match self.keypoint_at(time) {
             Ok(index) => (self.points.get(index), self.points.get(index + 1)),
             Err(index) => {
@@ -160,19 +161,19 @@ impl<T: Tween, R> Default for Spline<T, R> {
 }
 
 /// # Mutations
-impl<T: Tween,R> Spline<T,R> {
-    pub fn points(&self) -> &Vec<KeyPoint<T,R>> {
+impl<T: Tween, R> Spline<T, R> {
+    pub fn points(&self) -> &Vec<KeyPoint<T, R>> {
         &self.points
     }
     pub fn len(&self) -> usize {
         self.points.len()
     }
-    pub fn push(&mut self, keypoint: KeyPoint<T,R>) {
+    pub fn push(&mut self, keypoint: KeyPoint<T, R>) {
         self.points.push(keypoint);
         self.sort_unstable();
     }
 
-    pub fn remove(&mut self, index: usize) -> Option<KeyPoint<T,R>> {
+    pub fn remove(&mut self, index: usize) -> Option<KeyPoint<T, R>> {
         if index < self.points.len() {
             Some(self.points.remove(index))
         } else {
@@ -187,32 +188,44 @@ impl<T: Tween,R> Spline<T,R> {
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
     }
-    pub fn push_many(&mut self, keypoints: impl IntoIterator<Item = KeyPoint<T,R>>) {
+    pub fn push_many(&mut self, keypoints: impl IntoIterator<Item = KeyPoint<T, R>>) {
         let iter = keypoints.into_iter();
         for keypoint in iter {
             self.points.push(keypoint);
         }
         self.sort_unstable();
     }
-    pub fn iter(&self) -> impl Iterator<Item = &KeyPoint<T,R>> {
+    pub fn iter(&self) -> impl Iterator<Item = &KeyPoint<T, R>> {
         self.points.iter()
     }
 }
 impl<T: Tween, R> From<Vec<KeyPoint<T, R>>> for Spline<T, R> {
-    fn from(value: Vec<KeyPoint<T,R>>) -> Self {
+    fn from(value: Vec<KeyPoint<T, R>>) -> Self {
         let mut ret = Self { points: value };
         ret.sort_unstable();
         ret
     }
 }
 
-impl<T: Tween, R> FromIterator<KeyPoint<T,R>> for Spline<T,R> {
+impl<T: Tween, R> FromIterator<KeyPoint<T, R>> for Spline<T, R> {
     fn from_iter<I: IntoIterator<Item = KeyPoint<T, R>>>(iter: I) -> Self {
         let mut ret: Self = Default::default();
         ret.push_many(iter);
         ret
     }
 }
+
+impl<R: Clone> Spline<f32, R> {
+    /// 不一定正确
+    pub fn clone_reversed(&self) -> Self {
+        let mut ret = (*self).clone();
+        ret.points
+            .iter_mut()
+            .for_each(|a| swap(&mut a.time, &mut a.value));
+        ret
+    }
+}
+
 pub trait Tween: Clone {
     fn lerp(x1: Self, x2: Self, t: f32) -> Self;
     fn ease(x1: Self, x2: Self, t: f32, easing: EasingId) -> Self {
@@ -257,7 +270,8 @@ const EASING_MAP: [Easing; 16] = [
     },
 ];
 
-#[derive(IntoPrimitive,TryFromPrimitive, Clone, Copy, Debug,Default, PartialEq, Eq)]
+// rust-analyzer会发癫
+#[derive(IntoPrimitive, TryFromPrimitive, Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(u8)]
 pub enum EasingId {
     #[default]
@@ -276,7 +290,7 @@ pub enum EasingId {
     QuartInOut,
     Start,
     End,
-    AnimCurve
+    AnimCurve,
 }
 
 fn easef32(ease_type: EasingId, x: f32) -> f32 {
