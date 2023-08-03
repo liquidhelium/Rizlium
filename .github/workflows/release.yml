@@ -88,13 +88,16 @@ jobs:
         - os: macos-11
           dist-args: --artifacts=local --target=aarch64-apple-darwin --target=x86_64-apple-darwin
           install-dist: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.7/cargo-dist-installer.sh | sh
+          install-extra-deps: ""
         - os: ubuntu-20.04
           dist-args: --artifacts=local --target=x86_64-unknown-linux-gnu
           install-dist: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.7/cargo-dist-installer.sh | sh
+          install-extra-deps: apt install libasound2-dev
         - os: windows-2019
           dist-args: --artifacts=local --target=x86_64-pc-windows-msvc
           install-dist: irm  https://github.com/axodotdev/cargo-dist/releases/download/v0.0.7/cargo-dist-installer.ps1 | iex
-
+          install-extra-deps: ""
+          
     runs-on: ${{ matrix.os }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -104,6 +107,8 @@ jobs:
         run: rustup update 1.71.0 --no-self-update && rustup default 1.71.0
       - name: Install cargo-dist
         run: ${{ matrix.install-dist }}
+      - name: Install extra dependencies
+        run: ${{ matrix.install-extra-deps }}
       - name: Run cargo-dist
         # This logic is a bit janky because it's trying to be a polyglot between
         # powershell and bash since this will run on windows, macos, and linux!
