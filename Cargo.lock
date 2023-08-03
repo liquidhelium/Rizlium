@@ -3084,6 +3084,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "rizlium"
+version = "0.1.0"
+
+[[package]]
 name = "rizlium_chart"
 version = "0.1.0"
 dependencies = [
