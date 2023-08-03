@@ -1,4 +1,4 @@
-use bevy::diagnostic::{DiagnosticsPlugin, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::window::{PresentMode, PrimaryWindow, RequestRedraw};
 use bevy::winit::WinitSettings;
@@ -8,7 +8,7 @@ use bevy_egui::{EguiContext, EguiPlugin};
 use egui::{FontData, FontDefinitions};
 use egui_dock::DockArea;
 use rizlium_editor::{dock_window_menu_button, EditorState, RizDockTree, RizTabViewer};
-use rizlium_render::{GameTime, GameView, RizliumRenderingPlugin, TimeManager};
+use rizlium_render::{GameTime, GameView, RizliumRenderingPlugin};
 
 fn main() {
     App::new()
