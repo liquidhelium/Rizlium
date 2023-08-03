@@ -1,18 +1,10 @@
-[package]
-name = "rizlium"
-version = "0.1.0"
-repository = "https://github.com/liquidhelium/Rizlium"
-
-[[bin]]
-name = "rizlium_editor"
-path = "rizlium_editor/"
-
 [workspace]
 members= [
     "rizlium_chart",
     "rizlium_render",
     "rizlium_editor"
 ]
+repository = "https://github.com/liquidhelium/Rizlium"
 resolver="2"
 
 # Config for 'cargo dist'
