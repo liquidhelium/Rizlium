@@ -1,11 +1,14 @@
 use bevy::prelude::*;
-use bevy_kira_audio::{Audio, AudioControl, AudioInstance, AudioTween, PlaybackState};
+use bevy_kira_audio::{Audio, AudioControl, AudioInstance, AudioSource, AudioTween, PlaybackState};
 use std::ops::Deref;
 
 use crate::chart::GameChartCache;
 
 #[derive(Resource, Debug)]
-pub struct GameAudio(pub Handle<AudioInstance>);
+pub struct CurrentGameAudio(pub Handle<AudioInstance>);
+#[derive(Resource)]
+pub struct GameAudioSource(pub Handle<AudioSource>);
+
 #[derive(Resource, Reflect, Default)]
 #[reflect(Resource, Default)]
 pub struct GameTime(f32);
@@ -31,21 +34,66 @@ impl Plugin for TimeAndAudioPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(bevy_kira_audio::AudioPlugin)
             .init_resource::<GameTime>()
-            .add_systems(Startup, (audio, init_time_manager))
+            .add_event::<TimeControlEvent>()
+            .add_systems(Startup, init_time_manager)
             .add_systems(
                 Update,
                 (
-                    align_audio,
+                    dispatch_events,
+                    update_timemgr,
+                    sync_audio.run_if(resource_exists_and_changed::<GameAudioSource>()),
+                    align_audio.run_if(resource_exists::<CurrentGameAudio>()),
                     game_time.run_if(resource_exists::<GameChartCache>()),
                 ),
             );
     }
 }
-fn audio(mut commands: Commands, server: Res<AssetServer>, audio: Res<Audio>) {
-    let handle = audio
-        .play(server.load("/home/helium/code/rizlium/rizlium_render/assets/take.ogg"))
-        .handle();
-    commands.insert_resource(GameAudio(handle));
+#[derive(Event)]
+pub enum TimeControlEvent {
+    Pause,
+    Resume,
+    Toggle,
+    Seek(f32),
+    SetPaused(bool),
+}
+
+fn update_timemgr(mut time: ResMut<TimeManager>, real_time: Res<Time>) {
+    time.update(real_time.raw_elapsed_seconds());
+}
+
+fn dispatch_events(mut event: EventReader<TimeControlEvent>, mut time: ResMut<TimeManager>) {
+    for ev in event.iter() {
+        match ev {
+            TimeControlEvent::Pause => time.pause(),
+            TimeControlEvent::Resume => time.resume(),
+            TimeControlEvent::Seek(pos) => time.seek(*pos),
+            TimeControlEvent::Toggle => time.toggle_paused(),
+            TimeControlEvent::SetPaused(paused) => time.set_paused(*paused),
+        }
+    }
+}
+
+fn sync_audio(
+    mut commands: Commands,
+    game_audio: Option<ResMut<CurrentGameAudio>>,
+    mut game_audios: ResMut<Assets<AudioInstance>>,
+    mut time_control: EventWriter<TimeControlEvent>,
+    source: Res<GameAudioSource>,
+    audio: Res<Audio>,
+) {
+    let new_current = audio.play(source.0.clone()).handle();
+    info!("Syncing audio...");
+    if let Some(mut game_audio) = game_audio{
+        if let Some(current) = game_audios.get_mut(&game_audio.0) {
+            current.stop(default());
+            game_audio.0 = new_current;
+        } 
+    }
+    else {
+        commands.insert_resource(CurrentGameAudio(new_current));
+    }
+    time_control.send(TimeControlEvent::Pause);
+    time_control.send(TimeControlEvent::Seek(0.1));
 }
 
 fn init_time_manager(mut commands: Commands, time: Res<Time>) {
@@ -79,6 +127,7 @@ impl TimeManager {
         self.start_time
     }
     pub fn toggle_paused(&mut self) {
+        info!("Toggling pause, current: {}", self.paused());
         if self.paused() {
             self.resume();
         } else {
@@ -96,50 +145,55 @@ impl TimeManager {
         if self.paused() {
             return;
         }
+        info!("pausing..");
         self.paused_since = Some(self.now);
     }
     pub fn resume(&mut self) {
         if let Some(paused) = self.paused_since.take() {
+            info!("resuming");
             let delta = paused - self.start_time;
             let new_start = self.now - delta;
             self.start_time = new_start;
         }
     }
+    #[inline]
     pub fn paused(&self) -> bool {
         self.paused_since.is_some()
     }
     pub fn seek(&mut self, time: f32) {
-        self.start_time -= time;
+        self.start_time += self.current() - time;
     }
     pub fn current(&self) -> f32 {
         self.paused_since.unwrap_or(self.now) - self.start_time
     }
     pub fn align_to_audio_time(&mut self, audio_time: f32) {
-        self.seek((audio_time - self.current()) * COMPENSATION_RATE)
+        let current = self.current();
+        self.seek(current+ (audio_time - current) * COMPENSATION_RATE)
     }
 }
 
 fn align_audio(
     mut time: ResMut<TimeManager>,
-    real_time: Res<Time>,
-    audio: Res<GameAudio>,
+    audio: Res<CurrentGameAudio>,
     mut audios: ResMut<Assets<AudioInstance>>,
 ) {
     let Some(audio) = audios.get_mut(&audio.0) else {
         return;
     };
-    time.update(real_time.raw_elapsed_seconds());
 
     match audio.state() {
         PlaybackState::Playing { position } => {
-            time.align_to_audio_time(position as f32);
             if time.paused() {
+                info!("Pausing audio");
                 audio.pause(AudioTween::default());
+            } else {
+                time.align_to_audio_time(position as f32);
             }
         }
         _ => {
             audio.seek_to(time.current().into());
             if !time.paused() {
+                info!("resuming audio");
                 audio.resume(AudioTween::default());
             }
         }

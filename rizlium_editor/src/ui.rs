@@ -12,6 +12,7 @@ mod dummy_window;
 mod game_view;
 mod information; //todo////////////////
 mod widget_system;
+mod file_menu;
 pub use widget_system::{widget, WidgetSystem};
 
 #[derive(Debug, PartialEq, Eq, EnumIter, Clone, Copy)]
@@ -43,6 +44,7 @@ impl TabViewer for RizTabViewer<'_> {
         match tab {
             RizliumTab::GameView => widget::<GameViewTab>(self.world, ui, WidgetId::new("1")),
             RizliumTab::Information => information::information(ui, self.world),
+            RizliumTab::Dummy2 => widget::<file_menu::FileMenu>(self.world, ui, WidgetId::new("2").into()),
             _ => dummy_window(ui),
         }
     }

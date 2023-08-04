@@ -33,3 +33,6 @@ bevy_prototype_lyon = {git = "https://github.com/liquidhelium/bevy_prototype_lyo
 # bevy_prototype_lyon = {path = "../../bevy_prototype_lyon_rizlium"}
 rizlium_chart = {path="../rizlium_chart"}
 mouse_tracking = {package = "bevy_mouse_tracking_plugin", version = "0.6.0"}
+zip = "*"
+serde = {version = "*", features = ["derive"]}
+serde_yaml = "*"
