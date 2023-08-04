@@ -17,7 +17,7 @@ fn main() {
             EguiPlugin,
             RizliumRenderingPlugin {
                 config: (),
-                init_with_chart: Some(rizlium_chart::__test_chart()),
+                init_with_chart: None,
             },
             LogDiagnosticsPlugin::default(),
             FrameTimeDiagnosticsPlugin,

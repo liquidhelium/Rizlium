@@ -141,9 +141,9 @@ impl ChartCache {
     }
 }
 
-pub struct ChartAndCache<'a, 'b> {
-    chart: &'a Chart,
-    cache: &'b ChartCache,
+pub struct ChartAndCache<'chart, 'cache> {
+    chart: &'chart Chart,
+    cache: &'cache ChartCache,
 }
 
 impl ChartAndCache<'_, '_> {

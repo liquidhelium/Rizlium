@@ -1,7 +1,8 @@
 use bevy::{prelude::*, render::camera::RenderTarget};
 
-use bevy_prototype_lyon::prelude::*;
-use rizlium_chart::{chart::Chart, prelude::ColorRGBA, VIEW_RECT};
+use bevy_prototype_lyon::{prelude::*, shapes::Circle};
+use chart_loader::ChartLoadingPlugin;
+use rizlium_chart::{chart::Chart, prelude::{ColorRGBA, ChartCache}, VIEW_RECT};
 
 use theme::BackgroundThemePlugin;
 use time_and_audio::TimeAndAudioPlugin;
@@ -11,10 +12,11 @@ mod chart;
 mod line_rendering;
 mod theme;
 mod time_and_audio;
+mod chart_loader;
+pub use chart_loader::LoadChartEvent;
 
-pub use chart::GameChart;
-use chart::{ChartCachePlugin, GameChartCache};
-pub use time_and_audio::GameTime;
+pub use chart::*;
+pub use time_and_audio::*;
 #[derive(Resource)]
 pub struct GameView(pub Handle<Image>);
 
@@ -52,9 +54,10 @@ impl Plugin for RizliumRenderingPlugin {
                 TimeAndAudioPlugin,
                 line_rendering::ChartLinePlugin,
                 BackgroundThemePlugin,
+                ChartLoadingPlugin,
             ))
             .add_systems(Startup, spawn_game_camera)
-            .add_systems(Update, bind_gameview);
+            .add_systems(PostUpdate, (bind_gameview,( rings, add_rings).run_if(resource_exists::<GameChart>())));
         if let Some(chart) = self.init_with_chart.clone() {
             app.insert_resource(GameChart::new(chart));
         }
@@ -64,7 +67,36 @@ impl Plugin for RizliumRenderingPlugin {
 #[derive(Component)]
 struct Ring(usize);
 
-fn rings(chart: Res<GameChart>, time: Res<GameTime>, rings: Query<(&mut Transform, &Ring)>) {}
+fn rings(chart: Res<GameChart>,cache: Res<GameChartCache>, time: Res<GameTime>, mut rings: Query<(&mut Transform, &mut Visibility, &Ring)>) {
+    rings.par_iter_mut().for_each_mut(|(mut transform,mut vis,ring)| {
+        // info!("processing ring {}",ring.0);
+        let chart_with_cache = chart.with_cache(&cache);
+        let Some(pos) = chart_with_cache.line_pos_at(ring.0, **time, **time) else {
+            *vis = Visibility::Hidden;
+            return;
+        };
+        *vis = Visibility::Visible;
+        *transform = transform.with_translation(Vec2::from(pos).extend(0.));
+    })
+}
+
+fn add_rings(mut commands: Commands, chart: Res<GameChart>, rings: Query<&Ring>) {
+    for i in rings.iter().count()..chart.lines.len() {
+        // info!("adding ring {}", i);
+        commands.spawn(
+            (ShapeBundle {
+                path: GeometryBuilder::new().add(&Circle {
+                    radius: 50.,
+                    center: [0.,0.].into()
+                }).build(),
+                transform: Transform::from_translation(Vec3 { x: 0., y: 0., z: 10. }),
+                ..default()
+            },
+            Stroke::new(Color::BLACK, 10.),
+            Ring(i))
+        );
+    }
+}
 
 fn spawn_game_camera(mut commands: Commands) {
     commands

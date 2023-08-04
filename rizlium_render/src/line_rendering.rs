@@ -51,7 +51,7 @@ pub struct ChartLinePlugin;
 macro_rules! should_lines_update {
     () => {
         resource_exists::<GameChart>()
-            .and_then(resource_changed::<GameChart>().or_else(resource_changed::<GameTime>()))
+            .and_then(resource_exists_and_changed::<GameChart>().or_else(resource_changed::<GameTime>()))
     };
 }
 
