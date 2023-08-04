@@ -26,7 +26,7 @@ fn main() {
         .init_resource::<RizDockTree>()
         .add_systems(
             PreStartup,
-            (setup_game_view, egui_font).after(bevy_egui::EguiStartupSet::InitContexts),
+            (setup_game_view, /* egui_font */).after(bevy_egui::EguiStartupSet::InitContexts),
         )
         .add_systems(Startup, change_render_type)
         .add_systems(Update, egui_render)

@@ -10,7 +10,7 @@ use self::{dummy_window::dummy_window, game_view::GameViewTab, widget_system::Wi
 
 mod dummy_window;
 mod game_view;
-mod information; //todo////////////////
+mod information;
 mod widget_system;
 mod file_menu;
 pub use widget_system::{widget, WidgetSystem};
