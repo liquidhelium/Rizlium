@@ -107,7 +107,6 @@ fn game_time(cache: Res<GameChartCache>, time: Res<TimeManager>, mut game_time: 
     if time.paused() {
         return;
     }
-    // todo: start
     let since_start = time.current();
     *game_time = GameTime(
         cache
