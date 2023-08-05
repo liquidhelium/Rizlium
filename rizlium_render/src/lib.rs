@@ -10,6 +10,7 @@ pub use time_and_audio::TimeManager;
 
 mod chart;
 mod line_rendering;
+pub use line_rendering::ShowLines;
 mod theme;
 mod time_and_audio;
 mod chart_loader;

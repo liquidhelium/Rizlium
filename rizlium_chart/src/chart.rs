@@ -86,6 +86,8 @@ pub struct ChartCache {
     pub canvas_y_remap: Vec<Spline<f32>>,
 }
 
+const LARGE: f32 = 1.0e10;
+
 impl ChartCache {
     /// 从已有的 [`Chart`] 生成新 [`ChartCache`].
     pub fn from_chart(chart: &Chart) -> Self {
@@ -122,6 +124,12 @@ impl ChartCache {
             })
         })
         .collect();
+        // self.beat.push(KeyPoint {
+        //     time: LARGE,
+        //     value: self.beat.points().last().unwrap().value + LARGE * chart.bpm.points().last().unwrap().value,
+        //     ease_type: EasingId::Linear,
+        //     relevent: (),
+        // });
         self.canvas_y = chart
             .canvases
             .iter()
@@ -134,7 +142,14 @@ impl ChartCache {
                         keypoint.value = pos;
                         (pos, keypoint.time)
                     });
-                points.into()
+                let mut  spline: Spline<_> = points.into();
+                    spline.push(KeyPoint {
+                        time: LARGE,
+                        value: spline.points().last().unwrap().value + LARGE*canvas.speed.points()[0].value,
+                        ease_type: EasingId::Linear,
+                        relevent: (),
+                    });
+                spline
             })
             .collect();
         self.canvas_y_remap = self.canvas_y.iter().map(|i| i.clone_reversed()).collect();

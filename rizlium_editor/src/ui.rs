@@ -6,21 +6,24 @@ use egui::Ui;
 use egui_dock::{TabViewer, Tree};
 use strum::{EnumIter, IntoEnumIterator};
 
-use self::{dummy_window::dummy_window, game_view::GameViewTab, widget_system::WidgetId};
+use self::{dummy_window::dummy_window, game_view::GameViewTab, widget_system::WidgetId, canvas_window::CanvasWindow};
 
 mod dummy_window;
 mod game_view;
 mod information;
 mod widget_system;
 mod file_menu;
+mod show_line_control;
+mod canvas_window;
 pub use widget_system::{widget, WidgetSystem};
 
 #[derive(Debug, PartialEq, Eq, EnumIter, Clone, Copy)]
 pub enum RizliumTab {
     GameView,
     Information,
-    Dummy2,
+    File,
     Dummy3,
+    CanvasInspect,
 }
 
 impl Display for RizliumTab {
@@ -28,6 +31,7 @@ impl Display for RizliumTab {
         match self {
             Self::GameView => f.write_str("Game view"),
             Self::Information => f.write_str("Information"),
+            Self::CanvasInspect => f.write_str("CanvasInspect"),
             _ => f.write_str("Dummy <N>"),
         }
     }
@@ -44,7 +48,9 @@ impl TabViewer for RizTabViewer<'_> {
         match tab {
             RizliumTab::GameView => widget::<GameViewTab>(self.world, ui, WidgetId::new("1")),
             RizliumTab::Information => information::information(ui, self.world),
-            RizliumTab::Dummy2 => widget::<file_menu::FileMenu>(self.world, ui, WidgetId::new("2").into()),
+            RizliumTab::CanvasInspect => widget::<CanvasWindow>(self.world, ui, WidgetId::new("2")),
+            RizliumTab::File => widget::<file_menu::FileMenu>(self.world, ui, WidgetId::new("3").into()),
+            RizliumTab::Dummy3 => widget::<show_line_control::ShowLineControl>(self.world, ui, WidgetId::new("4").into()),
             _ => dummy_window(ui),
         }
     }
