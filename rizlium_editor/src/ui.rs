@@ -1,38 +1,36 @@
 use std::fmt::Display;
 
 use crate::EditorState;
-use bevy::prelude::World;
-use egui::Ui;
+use bevy::prelude::{Resource, World};
+use egui::{Color32, Ui};
 use egui_dock::{TabViewer, Tree};
-use strum::{EnumIter, IntoEnumIterator};
 
-use self::{dummy_window::dummy_window, game_view::GameViewTab, widget_system::WidgetId, canvas_window::CanvasWindow};
+pub mod tab_system;
+pub use tab_system::{CachedTab, TabInstace, TabProvider};
+pub use tab_system::tabs::*;
 
-mod dummy_window;
-mod game_view;
-mod information;
-mod widget_system;
-mod file_menu;
-mod show_line_control;
-mod canvas_window;
-pub use widget_system::{widget, WidgetSystem};
-
-#[derive(Debug, PartialEq, Eq, EnumIter, Clone, Copy)]
-pub enum RizliumTab {
-    GameView,
-    Information,
-    File,
-    Dummy3,
-    CanvasInspect,
+macro_rules! tabs {
+    ($($tab:path),*) => {
+        vec![
+            $(Box::new(TabInstace::<$tab>::default()),)*
+        ]
+    };
 }
 
-impl Display for RizliumTab {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::GameView => f.write_str("Game view"),
-            Self::Information => f.write_str("Information"),
-            Self::CanvasInspect => f.write_str("CanvasInspect"),
-            _ => f.write_str("Dummy <N>"),
+#[derive(Resource)]
+pub struct RizTabs {
+    pub tabs: Vec<Box<dyn CachedTab>>,
+}
+
+impl Default for RizTabs {
+    fn default() -> Self {
+        Self {
+            tabs: tabs![
+                GameViewTab,
+                CanvasWindow,
+                FileMenu,
+                ShowLineControl
+            ],
         }
     }
 }
@@ -40,41 +38,49 @@ impl Display for RizliumTab {
 pub struct RizTabViewer<'a> {
     pub world: &'a mut World,
     pub editor_state: &'a mut EditorState,
+    pub tabs: &'a mut Vec<Box<dyn CachedTab>>,
 }
 
 impl TabViewer for RizTabViewer<'_> {
-    type Tab = RizliumTab;
+    type Tab = usize;
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
-        match tab {
-            RizliumTab::GameView => widget::<GameViewTab>(self.world, ui, WidgetId::new("1")),
-            RizliumTab::Information => information::information(ui, self.world),
-            RizliumTab::CanvasInspect => widget::<CanvasWindow>(self.world, ui, WidgetId::new("2")),
-            RizliumTab::File => widget::<file_menu::FileMenu>(self.world, ui, WidgetId::new("3").into()),
-            RizliumTab::Dummy3 => widget::<show_line_control::ShowLineControl>(self.world, ui, WidgetId::new("4").into()),
-            _ => dummy_window(ui),
+        if let Some(tab) = self.tabs.get_mut(*tab) {
+            tab.ui(self.world, ui);
+        } else {
+            ui.colored_label(
+                Color32::LIGHT_RED,
+                format!(
+                    "UNRESOLVED TAB: tab index {tab} does not exist. There are {} tabs avalible",
+                    self.tabs.len()
+                ),
+            );
         }
     }
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
-        tab.to_string().into()
+        self.tabs
+            .get(*tab)
+            .map(|tab| tab.name())
+            .unwrap_or("MISSINGNO".into())
+            .into()
     }
 }
 
 pub fn dock_window_menu_button(
     ui: &mut Ui,
     text: impl Into<egui::WidgetText>,
-    tree: &mut Tree<RizliumTab>,
+    tree: &mut Tree<usize>,
+    tabs: &Vec<Box<dyn CachedTab>>,
 ) {
-    let opened: Vec<_> = tree.tabs().copied().enumerate().collect();
+    let opened: Vec<_> = tree.tabs().copied().collect();
     ui.menu_button(text, |ui| {
-        for i in RizliumTab::iter() {
-            let value = opened.iter().find(|(_, tab)| i == *tab).map(|a| a.0);
-            let contains = value.is_some();
-            if ui.selectable_label(contains, i.to_string()).clicked() {
-                if contains {
-                    tree.remove_leaf((value.unwrap()).into());
+        for (i, tab) in tabs.iter().enumerate() {
+            let is_opened = opened.contains(&i);
+            if ui.selectable_label(is_opened, tab.name()).clicked() {
+                if is_opened {
+                    tree.remove_leaf(i.into());
                     ui.close_menu();
                 } else {
-                    tree.push_to_focused_leaf(i);
+                    tree.push_to_first_leaf(i);
                     ui.close_menu();
                 }
             }

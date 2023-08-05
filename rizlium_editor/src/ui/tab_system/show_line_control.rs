@@ -1,7 +1,7 @@
 use bevy::{ecs::system::SystemParam, prelude::*, render::view::RenderLayers};
 use rizlium_render::{GameCamera, GameChart, ShowLines};
 
-use crate::WidgetSystem;
+use crate::TabProvider;
 
 #[derive(SystemParam)]
 pub struct ShowLineControl<'w, 's> {
@@ -11,12 +11,11 @@ pub struct ShowLineControl<'w, 's> {
     current_show: ResMut<'w, ShowLines>,
 }
 
-impl WidgetSystem for ShowLineControl<'_, '_> {
+impl TabProvider for ShowLineControl<'_, '_> {
     fn system(
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,
         ui: &mut egui::Ui,
-        id: super::widget_system::WidgetId,
     ) {
         let ShowLineControl::<'_, '_> {
             mut commands,
@@ -51,5 +50,8 @@ impl WidgetSystem for ShowLineControl<'_, '_> {
             });
             ui.text_edit_multiline(&mut format!("{:#?}", chart.lines.get(*current)));
         }
+    }
+    fn name() -> String {
+        "Line inspector".into()
     }
 }
