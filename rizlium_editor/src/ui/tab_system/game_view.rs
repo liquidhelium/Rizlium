@@ -5,7 +5,7 @@ use bevy_egui::EguiUserTextures;
 use egui::{Button, Color32, Layout, RichText, Ui};
 use rizlium_render::{GameView, TimeManager};
 
-use crate::{TabProvider};
+use crate::TabProvider;
 
 #[derive(SystemParam)]
 pub struct GameViewTab<'w> {
@@ -41,7 +41,8 @@ impl<'w> TabProvider for GameViewTab<'w> {
         });
 
         ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
-            let button = &ui.button("暂停");
+            // TODO: i18n
+            let button = &ui.button("Pause");
             if button.clicked() {
                 time.toggle_paused();
             }
@@ -70,6 +71,7 @@ fn keep_ratio(ui: &mut Ui, ratio: f32, mut add_fn: impl FnMut(&mut Ui, egui::Vec
     add_fn(ui, new_size);
 }
 
+// todo: control game view time
 fn video_control(
     ui: &mut Ui,
     paused: &mut bool,

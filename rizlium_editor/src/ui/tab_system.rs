@@ -22,10 +22,11 @@ use bevy::{
     ecs::system::{SystemParam, SystemState},
     prelude::*,
 };
-use egui::{Ui};
+use egui::Ui;
 pub trait TabProvider: SystemParam + Send + Sync {
     fn system(world: &mut World, state: &mut SystemState<Self>, ui: &mut Ui);
     fn name() -> String {
+        // TODO: i18n
         "".into()
     }
     fn avaliable(_world: &World) -> bool {
