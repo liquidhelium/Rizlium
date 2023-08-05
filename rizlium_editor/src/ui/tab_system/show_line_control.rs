@@ -54,4 +54,8 @@ impl TabProvider for ShowLineControl<'_, '_> {
     fn name() -> String {
         "Line inspector".into()
     }
+
+    fn avaliable(world: &World) -> bool {
+        world.contains_resource::<GameChart>()
+    }
 }
