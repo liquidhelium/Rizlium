@@ -2,7 +2,7 @@
 
 use crate::EditorState;
 use bevy::prelude::{Resource, World};
-use egui::{Color32, Ui};
+use egui::{Color32, Ui, RichText};
 use egui_dock::{TabViewer, Tree};
 
 pub mod tab_system;
@@ -45,7 +45,13 @@ impl TabViewer for RizTabViewer<'_> {
     type Tab = usize;
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         if let Some(tab) = self.tabs.get_mut(*tab) {
-            tab.ui(self.world, ui);
+            if tab.avaliable(self.world) {
+
+                tab.ui(self.world, ui);
+            }
+            else {
+                ui.colored_label(Color32::GRAY, RichText::new("Not avalible").italics());
+            }
         } else {
             ui.colored_label(
                 Color32::LIGHT_RED,

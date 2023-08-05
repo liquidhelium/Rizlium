@@ -37,4 +37,7 @@ impl TabProvider for CanvasWindow<'_,'_> {
     fn name() -> String {
         "Canvas inspector".into()
     }
+    fn avaliable(world: &World) -> bool {
+        world.contains_resource::<GameChart>() && world.contains_resource::<GameChartCache>()
+    }
 }
