@@ -1,4 +1,4 @@
-use std::io::{BufReader, Cursor, Read};
+use std::io::{Cursor, Read};
 
 use bevy::{
     asset::{AssetLoader, LoadState, LoadedAsset},
@@ -7,8 +7,7 @@ use bevy::{
     reflect::{TypePath, TypeUuid},
 };
 use bevy_kira_audio::{
-    prelude::{StaticSoundData, StaticSoundSettings},
-    Audio, AudioInstance, AudioSource,
+    prelude::{StaticSoundData, StaticSoundSettings}, AudioSource,
 };
 use rizlium_chart::prelude::{Chart, RizlineChart};
 use serde::Deserialize;

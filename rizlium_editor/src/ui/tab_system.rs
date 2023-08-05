@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+
 pub(crate) mod canvas_window;
 
 pub(crate) mod file_menu;
@@ -22,7 +22,7 @@ use bevy::{
     ecs::system::{SystemParam, SystemState},
     prelude::*,
 };
-use egui::{Id, Ui};
+use egui::{Ui};
 pub trait TabProvider: SystemParam + Send + Sync {
     fn system(world: &mut World, state: &mut SystemState<Self>, ui: &mut Ui);
     fn name() -> String {

@@ -2,10 +2,10 @@ use std::ops::RangeInclusive;
 
 use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_egui::EguiUserTextures;
-use egui::{Button, Color32, Layout, Rect, Response, RichText, Slider, Ui, WidgetText};
-use rizlium_render::{GameTime, GameView, TimeManager};
+use egui::{Button, Color32, Layout, RichText, Ui};
+use rizlium_render::{GameView, TimeManager};
 
-use crate::{EditorState, TabProvider};
+use crate::{TabProvider};
 
 #[derive(SystemParam)]
 pub struct GameViewTab<'w> {
@@ -79,7 +79,7 @@ fn video_control(
     ui.with_layout(Layout::bottom_up(egui::Align::Center), |ui| {
         let pause_icon = if *paused { "▶" } else { "⏸" };
         ui.add(Button::new(RichText::from(pause_icon).size(18.)).frame(false));
-        let (seekbar_id, seekbar_rect) = ui.allocate_space([ui.available_width(), 20.].into());
+        let (_seekbar_id, seekbar_rect) = ui.allocate_space([ui.available_width(), 20.].into());
         let seekbar_main_rect = seekbar_rect.shrink2([20., 8.].into());
         ui.painter()
             .rect_filled(seekbar_main_rect, 0., Color32::GRAY);

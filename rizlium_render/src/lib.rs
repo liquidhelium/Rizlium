@@ -2,7 +2,7 @@ use bevy::{prelude::*, render::camera::RenderTarget};
 
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 use chart_loader::ChartLoadingPlugin;
-use rizlium_chart::{chart::Chart, prelude::{ColorRGBA, ChartCache}, VIEW_RECT};
+use rizlium_chart::{chart::Chart, prelude::{ColorRGBA}, VIEW_RECT};
 
 use theme::BackgroundThemePlugin;
 use time_and_audio::TimeAndAudioPlugin;
