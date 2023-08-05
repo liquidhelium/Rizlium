@@ -208,23 +208,3 @@ impl ChartAndCache<'_, '_> {
     }
 }
 
-#[cfg(test)]
-mod test {
-
-    use std::fs;
-
-    use crate::parse;
-
-    use super::Chart;
-
-    #[test]
-    fn test() {
-        let a: Chart = serde_json::from_str::<parse::official::RizlineChart>(include_str!(
-            "../test_assets/take.json"
-        ))
-        .unwrap()
-        .try_into()
-        .unwrap();
-        fs::write("./conv", format!("{:#?}", a)).unwrap();
-    }
-}

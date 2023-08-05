@@ -7,7 +7,7 @@ use bevy_egui::EguiContexts;
 use bevy_egui::{EguiContext, EguiPlugin};
 use egui::{FontData, FontDefinitions};
 use egui_dock::DockArea;
-use rizlium_editor::{dock_window_menu_button, EditorState, RizDockTree, RizTabViewer};
+use rizlium_editor::{dock_window_menu_button, EditorState, RizDockTree, RizTabViewer, RizTabs};
 use rizlium_render::{GameTime, GameView, RizliumRenderingPlugin};
 
 fn main() {
@@ -25,6 +25,7 @@ fn main() {
         .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
         .init_resource::<RizDockTree>()
+        .init_resource::<RizTabs>()
         .add_systems(
             PreStartup,
             (setup_game_view, /* egui_font */).after(bevy_egui::EguiStartupSet::InitContexts),
@@ -110,6 +111,8 @@ fn egui_render(world: &mut World) {
     let mut tree = world
         .remove_resource::<RizDockTree>()
         .expect("RizDockTree does not exist");
+    let mut tab = world.remove_resource::<RizTabs>()
+        .unwrap();
     egui::TopBottomPanel::top("menu").show(ctx, |ui| {
         ui.horizontal(|ui| {
             ui.label("Rizlium");
@@ -117,7 +120,7 @@ fn egui_render(world: &mut World) {
                 &mut editor_state.debug_resources.show_cursor,
                 "Show cursor (Debug)",
             );
-            dock_window_menu_button(ui, "View", &mut tree.tree);
+            dock_window_menu_button(ui, "View", &mut tree.tree, &tab.tabs);
         });
     });
 
@@ -128,6 +131,7 @@ fn egui_render(world: &mut World) {
             &mut RizTabViewer {
                 world,
                 editor_state: &mut editor_state,
+                tabs: &mut tab.tabs
             },
         );
 
@@ -138,4 +142,5 @@ fn egui_render(world: &mut World) {
     }
     world.insert_resource(editor_state);
     world.insert_resource(tree);
+    world.insert_resource(tab);
 }

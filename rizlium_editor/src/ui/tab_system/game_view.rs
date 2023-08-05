@@ -5,7 +5,7 @@ use bevy_egui::EguiUserTextures;
 use egui::{Button, Color32, Layout, Rect, Response, RichText, Slider, Ui, WidgetText};
 use rizlium_render::{GameTime, GameView, TimeManager};
 
-use crate::{EditorState, WidgetSystem};
+use crate::{EditorState, TabProvider};
 
 #[derive(SystemParam)]
 pub struct GameViewTab<'w> {
@@ -14,12 +14,11 @@ pub struct GameViewTab<'w> {
     time: ResMut<'w, TimeManager>,
 }
 
-impl<'w> WidgetSystem for GameViewTab<'w> {
+impl<'w> TabProvider for GameViewTab<'w> {
     fn system(
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,
         ui: &mut Ui,
-        _id: super::widget_system::WidgetId,
     ) {
         let GameViewTab::<'_> {
             gameview,
@@ -51,6 +50,9 @@ impl<'w> WidgetSystem for GameViewTab<'w> {
                 ui.centered_and_justified(|ui| ui.image(img, size));
             })
         });
+    }
+    fn name() -> String {
+        "Game view".into()
     }
 }
 

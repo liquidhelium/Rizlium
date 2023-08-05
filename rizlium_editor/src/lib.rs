@@ -1,6 +1,5 @@
 use bevy::prelude::Resource;
 use egui_dock::Tree;
-use ui::RizliumTab;
 pub use ui::*;
 mod ui;
 #[derive(Debug, Resource, Default)]
@@ -14,13 +13,13 @@ pub struct DebugResources {
 
 #[derive(Debug, Resource)]
 pub struct RizDockTree {
-    pub tree: Tree<RizliumTab>,
+    pub tree: Tree<usize>,
 }
 
 impl Default for RizDockTree {
     fn default() -> Self {
         Self {
-            tree: Tree::new(vec![RizliumTab::GameView]),
+            tree: Tree::new(vec![0]),
         }
     }
 }

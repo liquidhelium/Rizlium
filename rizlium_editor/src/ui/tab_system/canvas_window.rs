@@ -3,7 +3,7 @@ use bevy::ecs::system::SystemParam;
 use egui::{Slider, Layout};
 use rizlium_render::{GameChart, GameChartCache};
 
-use crate::WidgetSystem;
+use crate::TabProvider;
 
 #[derive(SystemParam)]
 pub struct CanvasWindow<'w,'s> {
@@ -12,8 +12,8 @@ pub struct CanvasWindow<'w,'s> {
     current_canvas: Local<'s,usize>,
 }
 
-impl WidgetSystem for CanvasWindow<'_,'_> {
-    fn system(world: &mut World, state: &mut bevy::ecs::system::SystemState<Self>, ui: &mut egui::Ui, id: super::widget_system::WidgetId) {
+impl TabProvider for CanvasWindow<'_,'_> {
+    fn system(world: &mut World, state: &mut bevy::ecs::system::SystemState<Self>, ui: &mut egui::Ui) {
         let CanvasWindow::<'_,'_> {
             chart,
             cache,
@@ -33,5 +33,8 @@ impl WidgetSystem for CanvasWindow<'_,'_> {
                 ui.text_edit_multiline(&mut format!("{:#?}", cache.canvas_y.get(*current_canvas)));
             });
         });
+    }
+    fn name() -> String {
+        "Canvas inspector".into()
     }
 }

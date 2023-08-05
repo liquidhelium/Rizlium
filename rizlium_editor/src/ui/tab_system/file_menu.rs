@@ -1,7 +1,7 @@
 use bevy::{prelude::*, ecs::system::SystemParam};
 use rizlium_render::LoadChartEvent;
 
-use crate::WidgetSystem;
+use crate::TabProvider;
 
 #[derive(SystemParam)]
 pub struct FileMenu<'w,'s> {
@@ -9,8 +9,8 @@ pub struct FileMenu<'w,'s> {
     stored_text: Local<'s,String>
 }
 
-impl WidgetSystem for FileMenu<'_,'_> {
-    fn system(world: &mut World, state: &mut bevy::ecs::system::SystemState<Self>, ui: &mut egui::Ui, _id: super::widget_system::WidgetId) {
+impl TabProvider for FileMenu<'_,'_> {
+    fn system(world: &mut World, state: &mut bevy::ecs::system::SystemState<Self>, ui: &mut egui::Ui) {
         let FileMenu::<'_,'_>{
             mut events,
             mut stored_text
@@ -22,5 +22,8 @@ impl WidgetSystem for FileMenu<'_,'_> {
         if ui.button("Submit_fast").clicked() {
             events.send(LoadChartEvent("/home/helium/code/rizlium/rizlium_render/assets/1.zip".to_owned()));
         }
+    }
+    fn name() -> String {
+        "Load files (Debug)".into()
     }
 }
