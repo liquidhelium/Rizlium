@@ -22,6 +22,7 @@ fn main() {
             LogDiagnosticsPlugin::default(),
             FrameTimeDiagnosticsPlugin,
         ))
+        .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
         .init_resource::<RizDockTree>()
         .add_systems(
