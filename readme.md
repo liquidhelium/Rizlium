@@ -5,7 +5,7 @@ You're right, but this is an editor. (?)
  - [ ] ring colors
  - [ ] fix strange ring position
  - [ ] top and bottom mask 
- - [*] single notes
+ - [x] single notes
  - [ ] note textures
  - [ ] holds
  - [ ] hit particles
