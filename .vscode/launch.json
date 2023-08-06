@@ -11,7 +11,7 @@
             "cargo": {
                 "args": [
                     "build",
-                    "--package=rizlium_render_main"
+                    "--package=rizlium_editor",
                 ]
             },
             "args": []

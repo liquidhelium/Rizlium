@@ -59,6 +59,9 @@ impl Chart {
     pub fn segment_count(&self) -> usize {
         self.lines.iter().map(|l| l.points.len() - 1).sum()
     }
+    pub fn note_count(&self) -> usize {
+        self.lines.iter().map(|l| l.notes.len()).sum()
+    }
     pub fn with_cache<'a: 'b, 'b>(&'a self, cache: &'b ChartCache) -> ChartAndCache<'a, 'b> {
         ChartAndCache {
             chart: &self,
@@ -97,7 +100,42 @@ impl ChartCache {
     }
     /// 用给定的 [`Chart`] 更新此 [`ChartCache`] .
     pub fn update_from_chart(&mut self, chart: &Chart) {
-        let mut iter = chart.bpm.iter();
+        self.update_beat(&chart.bpm);
+        self.canvas_y = chart
+            .canvases
+            .iter()
+            .map(|canvas| {
+                let mut points = canvas.speed.points().clone();
+                points.push(KeyPoint {
+                    time: points.last().unwrap().time + LARGE,
+                    value: 0.,
+                    ease_type: EasingId::Start,
+                    relevent: (),
+                });
+                points.iter_mut().fold(
+                    (0., 0., 0.),
+                    |(last_start, last_time, last_value), keypoint| {
+                        let pos = last_start + last_value * (keypoint.time - last_time);
+                        let value = keypoint.value;
+                        keypoint.value = pos;
+                        (pos, keypoint.time, value)
+                    },
+                );
+
+                points.into()
+            })
+            .collect();
+        self.canvas_y_remap = self.canvas_y.iter().map(|i| i.clone_reversed()).collect();
+    }
+
+    pub(crate) fn update_beat(&mut self, spline: &Spline<f32> ) {
+        let last = KeyPoint {
+            time: spline.points().last().unwrap().time + LARGE,
+            value: 0.,
+            ease_type: EasingId::Start,
+            relevent: (),
+        };
+        let mut iter = spline.iter().chain(Some(&last));
         let mut last_time = 0.;
         let mut last_key = None;
         self.beat = std::iter::from_fn(|| {
@@ -124,35 +162,6 @@ impl ChartCache {
             })
         })
         .collect();
-        // self.beat.push(KeyPoint {
-        //     time: LARGE,
-        //     value: self.beat.points().last().unwrap().value + LARGE * chart.bpm.points().last().unwrap().value,
-        //     ease_type: EasingId::Linear,
-        //     relevent: (),
-        // });
-        self.canvas_y = chart
-            .canvases
-            .iter()
-            .map(|canvas| {
-                let mut points = canvas.speed.points().clone();
-                points
-                    .iter_mut()
-                    .fold((0., 0.), |(last_start, last_time), keypoint| {
-                        let pos = last_start + keypoint.value * (keypoint.time - last_time);
-                        keypoint.value = pos;
-                        (pos, keypoint.time)
-                    });
-                let mut  spline: Spline<_> = points.into();
-                    spline.push(KeyPoint {
-                        time: LARGE,
-                        value: spline.points().last().unwrap().value + LARGE*canvas.speed.points()[0].value,
-                        ease_type: EasingId::Linear,
-                        relevent: (),
-                    });
-                spline
-            })
-            .collect();
-        self.canvas_y_remap = self.canvas_y.iter().map(|i| i.clone_reversed()).collect();
     }
 }
 
@@ -202,9 +211,13 @@ impl ChartAndCache<'_, '_> {
             f32::lerp(pos1[1], pos2[1], invlerp(point1.time, point2.time, time)),
         ])
     }
+    pub fn line_pos_at_clamped(&self, line_idx: usize,mut  time: f32, game_time: f32) -> Option<[f32;2]> {
+        let line = self.chart.lines.get(line_idx)?;
+        time = time.clamp(line.points.start_time()?+0.01, line.points.end_time()? -0.01);
+        self.line_pos_at(line_idx, time, game_time)
+    }
 
     fn keypoint_releated_x(&self, point: &KeyPoint<f32, usize>, time: f32) -> Option<f32> {
         Some(point.value + self.chart.canvas_x(point.relevent, time)?)
     }
 }
-

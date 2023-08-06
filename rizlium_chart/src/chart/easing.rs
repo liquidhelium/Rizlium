@@ -37,10 +37,24 @@ impl<T: Tween, R> KeyPoint<T, R> {
 /// 用于平缓地更改一个值.
 #[derive(Debug, Clone)]
 pub struct Spline<T: Tween, R = ()> {
-    points: Vec<KeyPoint<T, R>>,
+    pub(crate) points: Vec<KeyPoint<T, R>>,
 }
 
-impl<T: Tween> Spline<T> {
+impl<T: Tween, R> Spline<T, R> {
+    pub fn with_relevant<R2: Default>(self) -> Spline<T, R2> {
+        self.points.into_iter().map(|point| {
+            KeyPoint {
+                relevent: R2::default(),
+                time: point.time,
+                value: point.value,
+                ease_type: point.ease_type
+            }
+        }).collect()
+    }
+}
+
+
+impl<T: Tween,R> Spline<T,R> {
     /// 该 [`Spline`] 在 `time` 时间的值.
     ///
     /// 如果该 [`Spline`] 是空的, 返回 `None`.
@@ -204,6 +218,12 @@ impl<T: Tween, R> From<Vec<KeyPoint<T, R>>> for Spline<T, R> {
         let mut ret = Self { points: value };
         ret.sort_unstable();
         ret
+    }
+}
+
+impl<T: Tween, R> AsRef<[KeyPoint<T,R>]> for Spline<T,R> {
+    fn as_ref(&self) -> &[KeyPoint<T,R>] {
+        self.points.as_ref()
     }
 }
 
