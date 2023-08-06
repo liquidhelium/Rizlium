@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::window::{PresentMode, PrimaryWindow, RequestRedraw};
@@ -5,9 +7,12 @@ use bevy::winit::WinitSettings;
 use bevy::{prelude::*, render::render_resource::TextureDescriptor};
 use bevy_egui::EguiContexts;
 use bevy_egui::{EguiContext, EguiPlugin};
+use bevy_persistent::prelude::*;
 use egui::{FontData, FontDefinitions};
 use egui_dock::DockArea;
-use rizlium_editor::{dock_window_menu_button, EditorState, RizDockTree, RizTabViewer, RizTabs};
+use rizlium_editor::{
+    dock_window_menu_button, EditorState, RizDockTree, RizTabPresets, RizTabViewer, RizTabs,
+};
 use rizlium_render::{GameTime, GameView, RizliumRenderingPlugin};
 
 fn main() {
@@ -28,9 +33,9 @@ fn main() {
         .init_resource::<RizTabs>()
         .add_systems(
             PreStartup,
-            (setup_game_view, /* egui_font */).after(bevy_egui::EguiStartupSet::InitContexts),
+            (setup_game_view /* egui_font */,).after(bevy_egui::EguiStartupSet::InitContexts),
         )
-        .add_systems(Startup, change_render_type)
+        .add_systems(Startup, (change_render_type,setup_tab_presets))
         .add_systems(Update, egui_render)
         .add_systems(
             PostUpdate,
@@ -79,6 +84,21 @@ fn setup_game_view(
     commands.insert_resource(GameView(image_handle.clone()));
 }
 
+fn setup_tab_presets(mut commands: Commands) {
+    let config_dir = dirs::config_dir()
+        .expect("Config dir is None")
+        .join("rizlium-editor");
+    commands.insert_resource(
+        Persistent::<RizTabPresets>::builder()
+            .format(StorageFormat::Json)
+            .name("Tab layout presets")
+            .path(config_dir.join("layout-presets.json"))
+            .default(RizTabPresets { presets: HashMap::new() })
+            .build()
+            .expect("failed to setup tab presets"),
+    )
+}
+
 fn egui_font(mut egui_context: EguiContexts) {
     // TODO: this font name is hard coded
     let data = font_kit::source::SystemSource::new()
@@ -111,16 +131,29 @@ fn egui_render(world: &mut World) {
     let mut tree = world
         .remove_resource::<RizDockTree>()
         .expect("RizDockTree does not exist");
-    let mut tab = world.remove_resource::<RizTabs>()
-        .unwrap();
-    egui::TopBottomPanel::top("menu").show(ctx, |ui| {
-        ui.horizontal(|ui| {
-            ui.label("Rizlium");
-            ui.toggle_value(
-                &mut editor_state.debug_resources.show_cursor,
-                "Show cursor (Debug)",
-            );
-            dock_window_menu_button(ui, "View", &mut tree.tree, &tab.tabs);
+    let mut tab = world.remove_resource::<RizTabs>().unwrap();
+    world.resource_scope(|_world, mut presets: Mut<Persistent<RizTabPresets>>| {
+        egui::TopBottomPanel::top("menu").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("Rizlium");
+                ui.toggle_value(
+                    &mut editor_state.debug_resources.show_cursor,
+                    "Show cursor (Debug)",
+                );
+                dock_window_menu_button(ui, "View", &mut tree.tree, &tab.tabs);
+                ui.menu_button("Presets", |ui| {
+                    for (key, preset_tree) in presets.get().presets.iter() {
+                        if ui.button(key).clicked() {
+                            tree.tree = preset_tree.clone();
+                        }
+                    }
+                    if ui.button("Save current as preset").clicked() {
+                        presets.update(|presets| {
+                            presets.presets.insert("New".into(), tree.tree.clone());
+                        }).unwrap();
+                    }
+                }); 
+            });
         });
     });
 
@@ -131,7 +164,7 @@ fn egui_render(world: &mut World) {
             &mut RizTabViewer {
                 world,
                 editor_state: &mut editor_state,
-                tabs: &mut tab.tabs
+                tabs: &mut tab.tabs,
             },
         );
 

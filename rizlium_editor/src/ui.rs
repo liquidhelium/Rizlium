@@ -1,5 +1,7 @@
 
 
+use std::collections::HashMap;
+
 use crate::EditorState;
 use bevy::prelude::{Resource, World};
 use egui::{Color32, Ui, RichText};
@@ -8,6 +10,7 @@ use egui_dock::{TabViewer, Tree};
 pub mod tab_system;
 pub use tab_system::{CachedTab, TabInstace, TabProvider};
 pub use tab_system::tabs::*;
+use serde::{Serialize, Deserialize};
 
 macro_rules! tabs {
     ($($tab:path),*) => {
@@ -20,6 +23,11 @@ macro_rules! tabs {
 #[derive(Resource)]
 pub struct RizTabs {
     pub tabs: Vec<Box<dyn CachedTab>>,
+}
+
+#[derive(Resource, Serialize, Deserialize)]
+pub struct RizTabPresets {
+    pub presets: HashMap<String,Tree<usize>>
 }
 
 impl Default for RizTabs {
