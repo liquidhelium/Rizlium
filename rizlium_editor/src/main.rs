@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::format;
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
@@ -13,7 +14,7 @@ use egui_dock::DockArea;
 use rizlium_editor::{
     dock_window_menu_button, EditorState, RizDockTree, RizTabPresets, RizTabViewer, RizTabs,
 };
-use rizlium_render::{GameTime, GameView, RizliumRenderingPlugin};
+use rizlium_render::{GameChart, GameTime, GameView, RizliumRenderingPlugin};
 
 fn main() {
     App::new()
@@ -35,7 +36,7 @@ fn main() {
             PreStartup,
             (setup_game_view /* egui_font */,).after(bevy_egui::EguiStartupSet::InitContexts),
         )
-        .add_systems(Startup, (change_render_type,setup_tab_presets))
+        .add_systems(Startup, (change_render_type, setup_tab_presets))
         .add_systems(Update, egui_render)
         .add_systems(
             PostUpdate,
@@ -93,7 +94,9 @@ fn setup_tab_presets(mut commands: Commands) {
             .format(StorageFormat::Json)
             .name("Tab layout presets")
             .path(config_dir.join("layout-presets.json"))
-            .default(RizTabPresets { presets: HashMap::new() })
+            .default(RizTabPresets {
+                presets: HashMap::new(),
+            })
             .build()
             .expect("failed to setup tab presets"),
     )
@@ -132,6 +135,21 @@ fn egui_render(world: &mut World) {
         .remove_resource::<RizDockTree>()
         .expect("RizDockTree does not exist");
     let mut tab = world.remove_resource::<RizTabs>().unwrap();
+    egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
+        ui.horizontal_centered(|ui| {
+
+            if world.contains_resource::<GameChart>() {
+                let chart = world.resource::<GameChart>();
+                ui.label("Ready");
+                ui.separator();
+                ui.label(format!("{} segments", chart.segment_count()));
+                ui.separator();
+                ui.label(format!("{} notes", chart.note_count()));
+            } else {
+                ui.label("No chart loaded");
+            }
+        });
+    });
     world.resource_scope(|_world, mut presets: Mut<Persistent<RizTabPresets>>| {
         egui::TopBottomPanel::top("menu").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -148,11 +166,13 @@ fn egui_render(world: &mut World) {
                         }
                     }
                     if ui.button("Save current as preset").clicked() {
-                        presets.update(|presets| {
-                            presets.presets.insert("New".into(), tree.tree.clone());
-                        }).unwrap();
+                        presets
+                            .update(|presets| {
+                                presets.presets.insert("New".into(), tree.tree.clone());
+                            })
+                            .unwrap();
                     }
-                }); 
+                });
             });
         });
     });
