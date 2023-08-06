@@ -47,14 +47,7 @@ impl Default for ChartLineBundle {
 
 pub struct ChartLinePlugin;
 
-// 长类型让我抓狂
-macro_rules! should_lines_update {
-    () => {
-        resource_exists::<GameChart>().and_then(
-            resource_exists_and_changed::<GameChart>().or_else(resource_changed::<GameTime>()),
-        )
-    };
-}
+use super::chart_update;
 
 impl Plugin for ChartLinePlugin {
     fn build(&self, app: &mut App) {
@@ -64,13 +57,13 @@ impl Plugin for ChartLinePlugin {
             First,
             (add_lines, assocate_segment)
                 .in_set(LineRenderingSystemSet::SyncChart)
-                .run_if(should_lines_update!()),
+                .run_if(chart_update!()),
         )
         .add_systems(
             Update,
             (change_bounding, update_shape, update_color, update_layer)
                 .in_set(LineRenderingSystemSet::Rendering)
-                .run_if(should_lines_update!()),
+                .run_if(chart_update!()),
         );
     }
 }
@@ -152,14 +145,16 @@ fn update_shape(
         if pos1[1].approx_eq(&0.) && pos2[1].approx_eq(&0.) {
             warn!("Possible wrong segment: line {}, point {}, canvas {}", id.line_idx, id.keypoint_idx, keypoint1.relevent);
         }
+        // k = 1600意味着1个像素内就经过了一个屏幕
+        let k =( pos2[1] - pos1[1])/ (pos2[0] - pos1[0]);
         // skip straight line
         if !(keypoint1.ease_type == EasingId::Linear
             || pos1[0].approx_eq(&pos2[0])
-            || pos1[1].approx_eq(&pos2[1]))
+            || pos1[1].approx_eq(&pos2[1]) || k.abs() >= 1400.0)
         {
             let point_count = ((pos2[1] - pos1[1]) / 1.).floor();
             if point_count > 10000. {
-                warn!("long segment found, line = {}, point = {}", id.line_idx, id.keypoint_idx);
+                warn!("long segment found, line = {}, point = {} (k= {k})", id.line_idx, id.keypoint_idx);
             }
             // 0...>1...>2...>3..0'
             (1..point_count as usize)

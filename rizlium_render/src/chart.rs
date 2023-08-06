@@ -15,6 +15,13 @@ impl GameChart {
             .map(|(i, l)| std::iter::repeat(i).zip(0..l.points.points().len() - 1))
             .flatten()
     }
+    pub fn iter_note(&self) -> impl Iterator<Item = (usize, usize)> + '_  {
+        self.lines
+            .iter()
+            .enumerate()
+            .map(|(i, l)| std::iter::repeat(i).zip(0..l.notes.len()))
+            .flatten()
+    }
 }
 
 #[derive(Resource, Default)]

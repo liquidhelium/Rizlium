@@ -3,7 +3,7 @@ use std::ops::RangeInclusive;
 use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_egui::EguiUserTextures;
 use egui::{Button, Color32, Layout, RichText, Ui};
-use rizlium_render::{GameView, TimeManager};
+use rizlium_render::{GameView, TimeManager, GameTime};
 
 use crate::TabProvider;
 
@@ -12,6 +12,7 @@ pub struct GameViewTab<'w> {
     gameview: Res<'w, GameView>,
     textures: Res<'w, EguiUserTextures>,
     time: ResMut<'w, TimeManager>,
+    game_time: Res<'w, GameTime>
 }
 
 impl<'w> TabProvider for GameViewTab<'w> {
@@ -24,6 +25,7 @@ impl<'w> TabProvider for GameViewTab<'w> {
             gameview,
             textures,
             mut time,
+            game_time
         } = state.get_mut(world);
         let img = textures
             .image_id(&gameview.0)
@@ -32,7 +34,7 @@ impl<'w> TabProvider for GameViewTab<'w> {
             ui.horizontal_top(|ui| {
                 ui.label(format!("Real: {:.2}", time.current()));
                 ui.separator();
-                // ui.label(format!("Game: {:.2}", **world.resource::<GameTime>()));
+                ui.label(format!("Game: {:.2}", **game_time));
                 ui.separator();
                 ui.menu_button("title", |ui| {
                     ui.label("text");

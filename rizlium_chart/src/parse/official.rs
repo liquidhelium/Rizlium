@@ -2,6 +2,8 @@ use crate::VIEW_RECT;
 
 use crate::chart::{self, Spline};
 use crate::parse::EmptyBPMSnafu;
+use chart::ChartCache;
+use log::info;
 use serde_derive::{Deserialize, Serialize};
 use snafu::{ensure, OptionExt};
 
@@ -217,7 +219,7 @@ fn scale_x(x: f32) -> f32 {
     (x + 0.5) * (VIEW_RECT[1][0] - VIEW_RECT[0][0])
 }
 fn scale_y(y: f32) -> f32 {
-    y * (VIEW_RECT[1][1] - VIEW_RECT[0][1]) * 0.25
+    y * (VIEW_RECT[1][1] - VIEW_RECT[0][1]) 
 }
 
 #[derive(Serialize, Deserialize)]
@@ -230,9 +232,8 @@ pub struct CanvasMove {
     pub speed_key_points: Vec<KeyPoint>,
 }
 
-impl TryInto<chart::Canvas> for CanvasMove {
-    type Error = ConvertError;
-    fn try_into(self) -> ConvertResult<chart::Canvas> {
+impl CanvasMove {
+    fn convert(self, beat_to_time: &Spline<f32>) -> ConvertResult<chart::Canvas> {
         Ok(chart::Canvas {
             x_pos: self
                 .x_position_key_points
@@ -245,16 +246,33 @@ impl TryInto<chart::Canvas> for CanvasMove {
                 })
                 .collect::<Result<_, _>>()?,
 
-            speed: self
-                .speed_key_points
-                .into_iter()
-                .map(|p| p.try_into())
-                .map(|p: Result<chart::KeyPoint<f32>, _>| {
-                    let mut p = p?;
-                    p.value = scale_y(p.value);
-                    Ok(p)
-                })
-                .collect::<Result<_, _>>()?,
+            speed: {
+                info!("index: {}", self.index);
+                let mut speed: Spline<f32> = self
+                    .speed_key_points
+                    .into_iter()
+                    .map(|p| p.try_into())
+                    .map(|p: Result<chart::KeyPoint<f32>, _>| {
+                        let mut p = p?;
+                        p.value = scale_y(p.value);
+                        Ok(p)
+                    })
+                    .collect::<Result<_, _>>()?;
+                let mut relevant_speed = speed.with_relevant::<f32>();
+                let mut peekable = relevant_speed.points.iter_mut();
+                while let Some(point) = peekable.next() {
+                    let (this,next) = beat_to_time.pair(point.time + 0.01);
+                    let this = this.unwrap();
+                    let next = next.unwrap();
+                    let mut k = (next.value - this.value) / (next.time- this.time);
+                    if k.is_nan() {
+                        k = 0.;
+                    }
+                    point.value *= k;
+                }
+                let speed = relevant_speed.with_relevant::<()>();
+                speed
+            },
         })
     }
 }
@@ -327,6 +345,11 @@ impl TryInto<chart::Chart> for RizlineChart {
 
     fn try_into(self) -> ConvertResult<chart::Chart> {
         let [normal, challenge] = self.themes;
+        let bpm = convert_bpm_to_timemap(self.bpm, self.bpm_shifts)?;
+        let mut beat_cache = ChartCache::default();
+        beat_cache.update_beat(&bpm);
+        let beat_spline = beat_cache.beat.clone_reversed();
+        info!("chart convert started");
         Ok(chart::Chart {
             themes: vec![normal.convert(false), challenge.convert(true)],
             // 如果challenge_times相互重叠(含 trans_time)则会产生奇怪的结果.
@@ -377,7 +400,7 @@ impl TryInto<chart::Chart> for RizlineChart {
             canvases: self
                 .canvas_moves
                 .into_iter()
-                .map(|c| c.try_into())
+                .map(|c| c.convert(&beat_spline))
                 .collect::<ConvertResult<_>>()?,
             cam_move: self
                 .camera_move
@@ -394,7 +417,7 @@ impl TryInto<chart::Chart> for RizlineChart {
                 .into_iter()
                 .map(|k| k.try_into())
                 .collect::<ConvertResult<_>>()?,
-            bpm: convert_bpm_to_timemap(self.bpm, self.bpm_shifts)?,
+            bpm,
         })
     }
 }
