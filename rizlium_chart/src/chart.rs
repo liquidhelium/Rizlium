@@ -84,9 +84,9 @@ pub struct Canvas {
 pub struct ChartCache {
     /// 缓存的从实际时间转换为beat的数据.
     pub beat: Spline<f32>,
+    pub beat_remap: Spline<f32>,
     /// 所有 [`Canvas`] 在某时间对应的高度 (从速度计算而来)
-    pub canvas_y: Vec<Spline<f32>>,
-    pub canvas_y_remap: Vec<Spline<f32>>,
+    pub canvas_y_by_real: Vec<Spline<f32>>,
 }
 
 const LARGE: f32 = 1.0e10;
@@ -101,34 +101,49 @@ impl ChartCache {
     /// 用给定的 [`Chart`] 更新此 [`ChartCache`] .
     pub fn update_from_chart(&mut self, chart: &Chart) {
         self.update_beat(&chart.bpm);
-        self.canvas_y = chart
+        self.beat_remap = self.beat.clone_reversed();
+        self.canvas_y_by_real = chart
             .canvases
             .iter()
             .map(|canvas| {
-                let mut points = canvas.speed.points().clone();
+                let mut points = canvas.speed.clone().with_relevant::<f32>().points;
                 points.push(KeyPoint {
                     time: points.last().unwrap().time + LARGE,
                     value: 0.,
                     ease_type: EasingId::Start,
-                    relevent: (),
+                    relevent: 0.,
                 });
                 points.iter_mut().fold(
                     (0., 0., 0.),
-                    |(last_start, last_time, last_value), keypoint| {
-                        let pos = last_start + last_value * (keypoint.time - last_time);
+                    |(last_start, last_real, last_value), keypoint| {
+                        let this_real = self.beat_remap.value_padding(keypoint.time).unwrap();
+                        let pos = last_start + last_value * (this_real - last_real);
                         let value = keypoint.value;
                         keypoint.value = pos;
-                        (pos, keypoint.time, value)
+                        keypoint.time = this_real;
+                        (pos, this_real, value)
                     },
                 );
 
-                points.into()
+                points.into_iter().map(|k| {
+                    KeyPoint{
+                        time:k.time,
+                        value: k.value,
+                        ease_type: k.ease_type,
+                        relevent:()
+                    }
+                }).collect()
             })
             .collect();
-        self.canvas_y_remap = self.canvas_y.iter().map(|i| i.clone_reversed()).collect();
     }
 
-    pub(crate) fn update_beat(&mut self, spline: &Spline<f32> ) {
+    pub fn canvas_y_at(&self, index: usize,time: f32) ->Option<f32> {
+        let canvas = self.canvas_y_by_real.get(index)?;
+        let real_time = self.beat_remap.value_padding(time).unwrap();
+        canvas.value_padding(real_time)
+    }
+
+    pub(crate) fn update_beat(&mut self, spline: &Spline<f32>) {
         let last = KeyPoint {
             time: spline.points().last().unwrap().time + LARGE,
             value: 0.,
@@ -184,10 +199,7 @@ impl ChartAndCache<'_, '_> {
             .points
             .points()
             .get(point_idx)?;
-        Some([self.keypoint_releated_x(point, game_time)?, {
-            let line = self.cache.canvas_y.get(point.relevent)?;
-            line.value_padding(point.time)? - line.value_padding(game_time)?
-        }])
+        Some([self.keypoint_releated_x(point, game_time)?, self.cache.canvas_y_at(point.relevent, point.time)? - self.cache.canvas_y_at(point.relevent, game_time)?])
     }
     pub fn line_pos_at(&self, line_idx: usize, time: f32, game_time: f32) -> Option<[f32; 2]> {
         let line = self.chart.lines.get(line_idx)?;
@@ -211,9 +223,17 @@ impl ChartAndCache<'_, '_> {
             f32::lerp(pos1[1], pos2[1], invlerp(point1.time, point2.time, time)),
         ])
     }
-    pub fn line_pos_at_clamped(&self, line_idx: usize,mut  time: f32, game_time: f32) -> Option<[f32;2]> {
+    pub fn line_pos_at_clamped(
+        &self,
+        line_idx: usize,
+        mut time: f32,
+        game_time: f32,
+    ) -> Option<[f32; 2]> {
         let line = self.chart.lines.get(line_idx)?;
-        time = time.clamp(line.points.start_time()?+0.01, line.points.end_time()? -0.01);
+        time = time.clamp(
+            line.points.start_time()? + 0.01,
+            line.points.end_time()? - 0.01,
+        );
         self.line_pos_at(line_idx, time, game_time)
     }
 

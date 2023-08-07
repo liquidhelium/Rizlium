@@ -7,7 +7,8 @@ use bevy::{
     reflect::{TypePath, TypeUuid},
 };
 use bevy_kira_audio::{
-    prelude::{StaticSoundData, StaticSoundSettings}, AudioSource,
+    prelude::{StaticSoundData, StaticSoundSettings},
+    AudioSource,
 };
 use rizlium_chart::prelude::{Chart, RizlineChart};
 use serde::Deserialize;
@@ -51,6 +52,10 @@ impl AssetLoader for GameChartLoader {
         load_context: &'a mut bevy::asset::LoadContext,
     ) -> bevy::utils::BoxedFuture<'a, Result<(), bevy::asset::Error>> {
         Box::pin(async move {
+            #[cfg(feature = "trace")]
+            let span = info_span!("load chart");
+            #[cfg(feature = "trace")]
+            let _enter = span.enter();
             //     let Some(suffix) = load_context.path().extension() else {
             //     return Ok(())
             // };
@@ -59,26 +64,63 @@ impl AssetLoader for GameChartLoader {
             // match suffix {
             //     ".zip" => {
             let mut res = ZipArchive::new(reader)?;
+            #[cfg(feature = "trace")]
+            let span = info_span!("load info");
+            #[cfg(feature = "trace")]
+            let _enter = span.enter();
             let info_file = res.by_name("info.yml")?;
             let info: ChartInfo = serde_yaml::from_reader(info_file)?;
+            #[cfg(feature = "trace")]
+            drop(_enter);
+            #[cfg(feature = "trace")]
+            let span = info_span!("load chart it self");
+            #[cfg(feature = "trace")]
+            let _enter = span.enter();
             let chart_path = &info.chart_path;
             let music_path = &info.music_path;
+            #[cfg(feature = "trace")]
+            let span = info_span!("Deserialize chart");
+            #[cfg(feature = "trace")]
+            let _enter1 = span.enter();
             let chart: RizlineChart = serde_yaml::from_reader(res.by_name(chart_path)?)?;
+            #[cfg(feature = "trace")]
+            drop(_enter1);
+            #[cfg(feature = "trace")]
+            let span = info_span!("Convert chart");
+            #[cfg(feature = "trace")]
+            let _enter1 = span.enter();
             let chart: Chart = chart.try_into()?;
+            #[cfg(feature = "trace")]
+            drop(_enter1);
+            #[cfg(feature = "trace")]
+            drop(_enter);
+            #[cfg(feature = "trace")]
+            let span = info_span!("load music");
+            #[cfg(feature = "trace")]
+            let _enter = span.enter();
+            #[cfg(feature = "trace")]
+            let span = info_span!("extract music");
+            #[cfg(feature = "trace")]
+            let _enter1 = span.enter();
             let mut sound_data = Vec::new();
             res.by_name(music_path)?.read_to_end(&mut sound_data)?;
-            load_context.set_default_asset(LoadedAsset::new({
-                GameChartAsset {
-                    music: bevy_kira_audio::AudioSource {
-                        sound: StaticSoundData::from_cursor(
-                            Cursor::new(sound_data),
-                            StaticSoundSettings::default(),
-                        )?,
-                    },
-                    chart,
-                    info,
-                }
-            }));
+            #[cfg(feature = "trace")]
+            drop(_enter1);
+            #[cfg(feature = "trace")]
+            let span = info_span!("create music");
+            #[cfg(feature = "trace")]
+            let _enter1 = span.enter();
+            let music = bevy_kira_audio::AudioSource {
+                sound: StaticSoundData::from_cursor(
+                    Cursor::new(sound_data),
+                    StaticSoundSettings::default(),
+                )?,
+            };
+            #[cfg(feature = "trace")]
+            drop(_enter1);
+            #[cfg(feature = "trace")]
+            drop(_enter);
+            load_context.set_default_asset(LoadedAsset::new(GameChartAsset { music, chart, info }));
 
             //     }
             //     _ => unreachable!("Bevy should guarantee the extension"),

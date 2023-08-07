@@ -3,6 +3,7 @@ use bevy::{prelude::*, render::camera::RenderTarget};
 use bevy_prototype_lyon::prelude::*;
 use chart_loader::ChartLoadingPlugin;
 use notes::ChartNotePlugin;
+use rings::RingPlugin;
 use rizlium_chart::{chart::Chart, VIEW_RECT, prelude::ColorRGBA};
 
 use theme::BackgroundThemePlugin;
@@ -70,10 +71,11 @@ impl Plugin for RizliumRenderingPlugin {
                 line_rendering::ChartLinePlugin,
                 BackgroundThemePlugin,
                 ChartLoadingPlugin,
-                ChartNotePlugin
+                ChartNotePlugin,
+                RingPlugin
             ))
             .add_systems(Startup, spawn_game_camera)
-            .add_systems(PostUpdate, (bind_gameview,( rings::rings, rings::add_rings).run_if(resource_exists::<GameChart>())));
+            .add_systems(PostUpdate, (bind_gameview,));
         if let Some(chart) = self.init_with_chart.clone() {
             app.insert_resource(GameChart::new(chart));
         }

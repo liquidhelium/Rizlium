@@ -56,9 +56,9 @@ pub struct ChartNoteId {
 }
 
 fn add_notes(mut commands: Commands, chart: Res<GameChart>, lines: Query<&ChartNote>) {
-    info!("adding note");
+    // info!("adding note");
     for i in lines.iter().count()..chart.note_count() {
-        info!("adding note {}", i);
+        // info!("adding note {}", i);
         commands.spawn(ChartNoteBundle::default());
     }
 }
@@ -69,7 +69,7 @@ fn assocate_note(
     notes: Query<Entity, With<ChartNote>>,
 ) {
     for (entity, (line_idx, note_idx)) in notes.iter().zip(chart.iter_note()) {
-        info!("assocating {line_idx}, {note_idx}");
+        // info!("assocating {line_idx}, {note_idx}");
         commands
             .entity(entity)
             .insert(ChartNoteId { line_idx, note_idx });
