@@ -10,7 +10,7 @@ impl<'a> RuntimeChart<'a> {
         // 错误处理留给后人.jpg()
         assert_eq!(
             chart.canvases.len(),
-            cache.canvas_y.len(),
+            cache.canvas_y_by_real.len(),
             "chart do not match cache"
         );
         let theme = chart.theme_at(time).unwrap();

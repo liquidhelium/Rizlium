@@ -246,9 +246,7 @@ impl CanvasMove {
                 })
                 .collect::<Result<_, _>>()?,
 
-            speed: {
-                info!("index: {}", self.index);
-                let mut speed: Spline<f32> = self
+            speed: self
                     .speed_key_points
                     .into_iter()
                     .map(|p| p.try_into())
@@ -257,22 +255,8 @@ impl CanvasMove {
                         p.value = scale_y(p.value);
                         Ok(p)
                     })
-                    .collect::<Result<_, _>>()?;
-                let mut relevant_speed = speed.with_relevant::<f32>();
-                let mut peekable = relevant_speed.points.iter_mut();
-                while let Some(point) = peekable.next() {
-                    let (this,next) = beat_to_time.pair(point.time + 0.01);
-                    let this = this.unwrap();
-                    let next = next.unwrap();
-                    let mut k = (next.value - this.value) / (next.time- this.time);
-                    if k.is_nan() {
-                        k = 0.;
-                    }
-                    point.value *= k;
-                }
-                let speed = relevant_speed.with_relevant::<()>();
-                speed
-            },
+                    .collect::<Result<_, _>>()?,
+                
         })
     }
 }

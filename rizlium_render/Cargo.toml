@@ -14,7 +14,7 @@ bevy = { version = "0.11", default-features = false, features = [
     "bevy_winit",
     "bevy_core_pipeline",
     # "bevy_pbr",
-    "bevy_gltf",
+    # "bevy_gltf",
     "bevy_render",
     "bevy_sprite",
     "png",
@@ -36,3 +36,6 @@ mouse_tracking = {package = "bevy_mouse_tracking_plugin", version = "0.6.0"}
 zip = "*"
 serde = {version = "*", features = ["derive"]}
 serde_yaml = "*"
+
+[features]
+trace = ["bevy/trace_tracy"]

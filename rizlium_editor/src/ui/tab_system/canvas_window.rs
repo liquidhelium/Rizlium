@@ -30,7 +30,7 @@ impl TabProvider for CanvasWindow<'_,'_> {
                 ui.text_edit_multiline(&mut format!("{:#?}", chart.canvases.get(*current_canvas)));
             });
             egui::ScrollArea::new([false, true]).id_source("id_source2").auto_shrink([true,false]).show(ui, |ui| {
-                ui.text_edit_multiline(&mut format!("{:#?}", cache.canvas_y.get(*current_canvas)));
+                ui.text_edit_multiline(&mut format!("{:#?}", cache.canvas_y_by_real.get(*current_canvas)));
             });
         });
     }
