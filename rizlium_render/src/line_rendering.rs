@@ -161,9 +161,10 @@ fn update_shape(
                 .into_iter()
                 .map(|i| i as f32 / point_count)
                 .map(|t| {
+                    let thistime = f32::lerp(keypoint1.time, keypoint2.time, t);
                     [
                         f32::ease(pos1[0], pos2[0], t, keypoint1.ease_type),
-                        f32::lerp(pos1[1], pos2[1], t),
+                        cache.canvas_y_at(keypoint1.relevent, thistime).unwrap() - cache.canvas_y_at(keypoint1.relevent, **time).unwrap(),
                     ]
                 })
                 .for_each(|p| {

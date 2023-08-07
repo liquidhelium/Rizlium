@@ -220,7 +220,8 @@ impl ChartAndCache<'_, '_> {
                 invlerp(point1.time, point2.time, time),
                 point1.ease_type,
             ),
-            f32::lerp(pos1[1], pos2[1], invlerp(point1.time, point2.time, time)),
+            // f32::lerp(pos1[1], pos2[1], invlerp(point1.time, point2.time, time)),
+            self.cache.canvas_y_at(point1.relevent, time)? - self.cache.canvas_y_at(point1.relevent, game_time)?,
         ])
     }
     pub fn line_pos_at_clamped(
