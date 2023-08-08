@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::format;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
@@ -27,6 +27,7 @@ fn main() {
             },
             LogDiagnosticsPlugin::default(),
             FrameTimeDiagnosticsPlugin,
+            WorldInspectorPlugin::default()
         ))
         .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()

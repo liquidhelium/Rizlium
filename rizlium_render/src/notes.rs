@@ -57,7 +57,7 @@ pub struct ChartNoteId {
 
 fn add_notes(mut commands: Commands, chart: Res<GameChart>, lines: Query<&ChartNote>) {
     // info!("adding note");
-    for i in lines.iter().count()..chart.note_count() {
+    for _ in lines.iter().count()..chart.note_count() {
         // info!("adding note {}", i);
         commands.spawn(ChartNoteBundle::default());
     }

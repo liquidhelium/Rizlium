@@ -43,7 +43,7 @@ pub fn rings(
                 return;
             };
             *vis = Visibility::Visible;
-            *transform = transform.with_translation(Vec2::from(pos).extend(0.));
+            transform.translation = Vec2::from(pos).extend(20.);
             let Some(line) = chart.lines.get(ring.0)else {
                 return;
             };
@@ -76,14 +76,4 @@ pub fn add_rings(mut commands: Commands, chart: Res<GameChart>, rings: Query<&Ri
             Ring(i),
         ));
     }
-}
-
-pub fn change_ring_color(
-    chart: Res<GameChart>,
-    time: Res<GameTime>,
-    mut rings: Query<(&mut Stroke, &Ring)>,
-) {
-    rings.par_iter_mut().for_each_mut(|(mut stroke, ring)| {
-        
-    });
 }
