@@ -12,4 +12,4 @@ You're right, but this is an editor. (?)
  - [ ] hit particles
  - [ ] configurable log / warn / optimizations
  - [ ] large game view cam
- - [ ] dock window layout saving and loading
+ - [x] dock window layout saving and loading (partial)
