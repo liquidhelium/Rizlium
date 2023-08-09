@@ -1,4 +1,5 @@
 use bevy::{
+    math::Vec3A,
     prelude::*,
     render::{camera::RenderTarget, primitives::Aabb},
 };
@@ -77,7 +78,7 @@ impl Plugin for RizliumRenderingPlugin {
                 RingPlugin,
             ))
             .add_systems(Startup, (spawn_game_camera, init_mask))
-            .add_systems(PostUpdate, (bind_gameview, update_mask));
+            .add_systems(PostUpdate, (bind_gameview, update_mask_bottom,update_mask_top));
         if let Some(chart) = self.init_with_chart.clone() {
             app.insert_resource(GameChart::new(chart));
         }
@@ -86,6 +87,8 @@ impl Plugin for RizliumRenderingPlugin {
 
 #[derive(Component)]
 struct MaskBottom;
+#[derive(Component)]
+struct MaskTop;
 
 fn init_mask(mut commands: Commands) {
     commands
@@ -93,8 +96,8 @@ fn init_mask(mut commands: Commands) {
             ShapeBundle {
                 transform: Transform::from_xyz(900., 0., 10.),
                 aabb: Aabb {
-                    center: Vec3::new(0., 0., 0.).into(),
-                    half_extents: Vec3::new(10000., 10000., 10000.).into(),
+                    center: default(),
+                    half_extents: Vec3A::MAX,
                 },
                 ..default()
             },
@@ -102,12 +105,27 @@ fn init_mask(mut commands: Commands) {
         ))
         .insert(Name::new("mask_bottom"))
         .insert(MaskBottom);
+    commands
+        .spawn((
+            ShapeBundle {
+                transform: Transform::from_xyz(900., 0., 10.),
+                aabb: Aabb {
+                    center: default(),
+                    half_extents: Vec3A::MAX,
+                },
+                ..default()
+            },
+            Fill::default(),
+        ))
+        .insert(Name::new("mask_top"))
+        .insert(MaskTop);
 }
 
 const GRADIENT_NORMALIZED_HEIGHT: f32 = 0.05;
 const RING_OFFSET: f32 = 0.2;
-fn update_mask(
-    mut mask: Query<(&mut Fill, &mut Path), With<MaskBottom>>,
+const TOP_MASK_HEIGHT: f32 = 0.2;
+fn update_mask_bottom(
+    mut mask_bottom: Query<(&mut Fill, &mut Path), With<MaskBottom>>,
     cams: Query<&OrthographicProjection, With<GameCamera>>,
     chart: Option<Res<GameChart>>,
     time: Res<GameTime>,
@@ -135,7 +153,7 @@ fn update_mask(
             y: area.min.y - area.height(),
         },
     };
-    let (mut fill, mut path) = mask.single_mut();
+    let (mut fill, mut path) = mask_bottom.single_mut();
     fill.brush = {
         let gradient: Gradient = {
             let mut linear =
@@ -151,6 +169,65 @@ fn update_mask(
             {
                 linear.add_stop(0., color.with_a(1.));
                 linear.add_stop(1., color.with_a(0.));
+            }
+            linear.into()
+        };
+        gradient.into()
+    };
+    *path = GeometryBuilder::new()
+        .add(&Rectangle::new(mask_non_transparent_rect))
+        .add(&Rectangle::new(gradient_rect))
+        .build();
+}
+
+fn update_mask_top(
+    mut mask_top: Query<(&mut Fill, &mut Path), With<MaskTop>>,
+    cams: Query<&OrthographicProjection, With<GameCamera>>,
+    chart: Option<Res<GameChart>>,
+    time: Res<GameTime>,
+) {
+    let game = cams.single();
+    let area = game.area;
+    let gradient_height = game.area.height() * GRADIENT_NORMALIZED_HEIGHT;
+    let mask_height = game.area.height() * TOP_MASK_HEIGHT;
+    let gradient_rect = Rect {
+        min: Vec2 {
+            x: area.min.x - area.width(),
+            y: area.max.y - mask_height,
+        },
+        max: Vec2 {
+            x: area.max.x + area.width(),
+            y: area.max.y - mask_height + gradient_height,
+        },
+    };
+    let mask_non_transparent_rect = Rect {
+        max: Vec2 {
+            x: area.max.x + area.width(),
+            y: area.max.y + area.height(),
+        },
+        min: Vec2 {
+            x: area.min.x - area.width(),
+            y: area.max.y - mask_height + gradient_height,
+        },
+    };
+    let (mut fill, mut path) = mask_top.single_mut();
+    fill.brush = {
+        let gradient: Gradient = {
+            let mut linear = LinearGradient::new_empty(
+                Vec2::new(0., area.max.y - mask_height),
+                Vec2::new(0., area.max.y - mask_height + gradient_height),
+            );
+            if let Some(color) = chart
+                .map(|chart| {
+                    chart
+                        .theme_at(**time)
+                        .ok()
+                        .map(|t| colorrgba_to_color(t.this.color.background))
+                })
+                .flatten()
+            {
+                linear.add_stop(0., color.with_a(0.));
+                linear.add_stop(1., color.with_a(1.));
             }
             linear.into()
         };
