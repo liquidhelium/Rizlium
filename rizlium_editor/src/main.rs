@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use rizlium_editor::widgets::{widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons};
+use std::collections::HashMap;
 
-use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::window::{PresentMode, PrimaryWindow, RequestRedraw};
 use bevy::winit::WinitSettings;
@@ -9,10 +9,12 @@ use bevy::{prelude::*, render::render_resource::TextureDescriptor};
 use bevy_egui::EguiContexts;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
-use egui::{FontData, FontDefinitions};
+use egui::{Align2, FontData, FontDefinitions, Layout};
 use egui_dock::DockArea;
 use rizlium_editor::{
-    dock_window_menu_button, EditorState, RizDockTree, RizTabPresets, RizTabViewer, RizTabs,
+    dock_window_menu_buttons, open_chart, open_dialog, ui_when_no_dock, CountFpsPlugin,
+    EditorCommands, EditorState, NowFps, PendingDialog, RecentFiles, RizDockTree, RizTabPresets,
+    RizTabViewer, RizTabs,
 };
 use rizlium_render::{GameChart, GameTime, GameView, RizliumRenderingPlugin};
 
@@ -25,23 +27,27 @@ fn main() {
                 config: (),
                 init_with_chart: None,
             },
-            LogDiagnosticsPlugin::default(),
-            FrameTimeDiagnosticsPlugin,
-            WorldInspectorPlugin::default()
+            // WorldInspectorPlugin::default(),
+            CountFpsPlugin,
         ))
         .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
         .init_resource::<RizDockTree>()
         .init_resource::<RizTabs>()
+        .init_resource::<PendingDialog>()
+        .init_resource::<RecentFiles>()
         .add_systems(
             PreStartup,
             (setup_game_view /* egui_font */,).after(bevy_egui::EguiStartupSet::InitContexts),
         )
-        .add_systems(Startup, (change_render_type, setup_tab_presets))
+        .add_systems(Startup, (change_render_type, setup_persistent))
         .add_systems(Update, egui_render)
         .add_systems(
             PostUpdate,
-            update_type_changing.run_if(resource_changed::<GameTime>()),
+            (
+                update_type_changing.run_if(resource_changed::<GameTime>()),
+                open_chart,
+            ),
         )
         .insert_resource(WinitSettings::desktop_app())
         .run();
@@ -86,7 +92,7 @@ fn setup_game_view(
     commands.insert_resource(GameView(image_handle.clone()));
 }
 
-fn setup_tab_presets(mut commands: Commands) {
+fn setup_persistent(mut commands: Commands) {
     let config_dir = dirs::config_dir()
         .expect("Config dir is None")
         .join("rizlium-editor");
@@ -95,11 +101,18 @@ fn setup_tab_presets(mut commands: Commands) {
             .format(StorageFormat::Json)
             .name("Tab layout presets")
             .path(config_dir.join("layout-presets.json"))
-            .default(RizTabPresets {
-                presets: HashMap::new(),
-            })
+            .default(RizTabPresets::default())
             .build()
             .expect("failed to setup tab presets"),
+    );
+    commands.insert_resource(
+        Persistent::<RecentFiles>::builder()
+            .format(StorageFormat::Json)
+            .name("Recent files")
+            .path(config_dir.join("recent-files.json"))
+            .default(RecentFiles::default())
+            .build()
+            .expect("failed to setup recent files"),
     )
 }
 
@@ -132,13 +145,10 @@ fn egui_render(world: &mut World) {
         .remove_resource::<EditorState>()
         .expect("EditorState does not exist");
     ctx.set_debug_on_hover(editor_state.debug_resources.show_cursor);
-    let mut tree = world
-        .remove_resource::<RizDockTree>()
-        .expect("RizDockTree does not exist");
-    let mut tab = world.remove_resource::<RizTabs>().unwrap();
+    let mut commands = EditorCommands::default();
+
     egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
         ui.horizontal_centered(|ui| {
-
             if world.contains_resource::<GameChart>() {
                 let chart = world.resource::<GameChart>();
                 ui.label("Ready");
@@ -151,50 +161,66 @@ fn egui_render(world: &mut World) {
             }
         });
     });
-    world.resource_scope(|_world, mut presets: Mut<Persistent<RizTabPresets>>| {
-        egui::TopBottomPanel::top("menu").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.label("Rizlium");
-                ui.toggle_value(
-                    &mut editor_state.debug_resources.show_cursor,
-                    "Show cursor (Debug)",
-                );
-                dock_window_menu_button(ui, "View", &mut tree.tree, &tab.tabs);
+    egui::TopBottomPanel::top("menu").show(ctx, |ui| {
+        ui.horizontal(|ui| {
+            ui.label("Rizlium");
+            ui.toggle_value(
+                &mut editor_state.debug_resources.show_cursor,
+                "Show cursor (Debug)",
+            );
+            ui.menu_button("File", |ui| {
+                if ui.button("Open..").clicked() {
+                    commands.open_dialog_and_load_chart();
+                }
+            });
+            ui.menu_button("View", |ui| {
                 ui.menu_button("Presets", |ui| {
-                    for (key, preset_tree) in presets.get().presets.iter() {
-                        if ui.button(key).clicked() {
-                            tree.tree = preset_tree.clone();
-                        }
-                    }
-                    if ui.button("Save current as preset").clicked() {
-                        presets
-                            .update(|presets| {
-                                presets.presets.insert("New".into(), tree.tree.clone());
-                            })
-                            .unwrap();
-                    }
+                    widget_with::<PresetButtons>(world, ui, &mut editor_state.editing_presets);
+                });
+                widget::<DockButtons>(world, ui);
+            });
+            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                world.resource_scope(|_world, fps: Mut<'_, NowFps>| {
+                    ui.label(format!("fps: {}", fps.0));
                 });
             });
         });
     });
-
-    DockArea::new(&mut tree.tree)
-        .scroll_area_in_tabs(false)
-        .show(
-            ctx,
-            &mut RizTabViewer {
-                world,
-                editor_state: &mut editor_state,
-                tabs: &mut tab.tabs,
-            },
-        );
-
-    if tree.tree.is_empty() {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.centered_and_justified(|ui| ui.heading("Rizlium\n(Dev version)"));
+    let before = editor_state.editing_presets;
+    egui::Window::new("Presets")
+        .collapsible(false)
+        .open(&mut editor_state.editing_presets)
+        .anchor(Align2::CENTER_CENTER, [0.; 2])
+        .show(ctx, |ui| {
+            widget::<LayoutPresetEdit>(world, ui);
         });
+    if before != editor_state.editing_presets {
+        commands.persist_resource::<RizTabPresets>();
     }
+    world.resource_scope(|world: &mut World, mut tab: Mut<'_, RizTabs>| {
+        world.resource_scope(|world: &mut World, mut tree: Mut<'_, RizDockTree>| {
+            DockArea::new(&mut tree.tree)
+                .scroll_area_in_tabs(false)
+                .show(
+                    ctx,
+                    &mut RizTabViewer {
+                        world,
+                        editor_state: &mut editor_state,
+                        tabs: &mut tab.tabs,
+                    },
+                );
+
+            if tree.tree.is_empty() {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui_when_no_dock(
+                        ui,
+                        &world.resource::<Persistent<RecentFiles>>(),
+                        &mut commands,
+                    )
+                });
+            }
+        });
+    });
+    commands.apply(world);
     world.insert_resource(editor_state);
-    world.insert_resource(tree);
-    world.insert_resource(tab);
 }

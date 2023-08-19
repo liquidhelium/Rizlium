@@ -2,6 +2,15 @@ use crate::tween;
 
 use super::{ColorRGBA, Tween};
 
+macro_rules! fields_str {
+    ($this:ident, $match:ident,$($str:ident),+) => {
+        match $match {
+            $(stringify!($str) => Some($this.$str),)+
+            _ => None
+        }
+    };
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct ThemeData {
     pub color: ThemeColor,
@@ -13,6 +22,12 @@ pub struct ThemeColor {
     pub background: ColorRGBA,
     pub note: ColorRGBA,
 }
+impl ThemeColor {
+    pub fn color_with_id(&self, id: &str) -> Option<ColorRGBA> {
+        fields_str!(self, id, background, note)
+    }
+}
+
 #[derive(Debug)]
 pub struct ThemeTransition<'a> {
     pub this: &'a ThemeData,
