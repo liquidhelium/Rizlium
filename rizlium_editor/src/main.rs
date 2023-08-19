@@ -1,6 +1,6 @@
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+
 use rizlium_editor::widgets::{widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons};
-use std::collections::HashMap;
+
 
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::window::{PresentMode, PrimaryWindow, RequestRedraw};
@@ -12,7 +12,7 @@ use bevy_persistent::prelude::*;
 use egui::{Align2, FontData, FontDefinitions, Layout};
 use egui_dock::DockArea;
 use rizlium_editor::{
-    dock_window_menu_buttons, open_chart, open_dialog, ui_when_no_dock, CountFpsPlugin,
+    open_chart, ui_when_no_dock, CountFpsPlugin,
     EditorCommands, EditorState, NowFps, PendingDialog, RecentFiles, RizDockTree, RizTabPresets,
     RizTabViewer, RizTabs,
 };
