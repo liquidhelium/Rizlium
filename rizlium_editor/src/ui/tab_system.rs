@@ -1,4 +1,3 @@
-
 pub(crate) mod canvas_window;
 
 pub(crate) mod file_menu;
@@ -9,14 +8,16 @@ pub(crate) mod information;
 
 pub(crate) mod show_line_control;
 
-pub mod tabs{
+pub(crate) mod spline_edit;
+
+pub mod tabs {
+    pub use super::canvas_window::CanvasWindow;
     pub use super::file_menu::FileMenu;
     pub use super::game_view::GameViewTab;
     pub use super::information::information;
     pub use super::show_line_control::ShowLineControl;
-    pub use super::canvas_window::CanvasWindow;
+    pub use super::spline_edit::SplineWindow;
 }
-
 
 use bevy::{
     ecs::system::{SystemParam, SystemState},
