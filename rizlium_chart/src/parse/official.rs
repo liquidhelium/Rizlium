@@ -233,7 +233,7 @@ pub struct CanvasMove {
 }
 
 impl CanvasMove {
-    fn convert(self, beat_to_time: &Spline<f32>) -> ConvertResult<chart::Canvas> {
+    fn convert(self, _beat_to_time: &Spline<f32>) -> ConvertResult<chart::Canvas> {
         Ok(chart::Canvas {
             x_pos: self
                 .x_position_key_points

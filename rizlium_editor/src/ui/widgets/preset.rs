@@ -1,4 +1,4 @@
-use std::f32::consts::E;
+
 
 use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_persistent::Persistent;
@@ -6,7 +6,7 @@ use egui::{RichText, Color32};
 
 use crate::{RizDockTree, RizTabPresets};
 
-use super::{widget, WidgetSystem};
+use super::{WidgetSystem};
 
 #[derive(SystemParam)]
 pub struct PresetButtons<'w> {

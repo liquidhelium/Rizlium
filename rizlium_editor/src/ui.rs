@@ -1,10 +1,10 @@
 
 
-use std::collections::HashMap;
 
-use crate::{EditorState, RizDockTree};
-use bevy::prelude::{Resource, World, Mut, DerefMut, Deref};
-use bevy_persistent::Persistent;
+
+use crate::{EditorState};
+use bevy::prelude::{Resource, World, DerefMut, Deref};
+
 use egui::{Color32, Ui, RichText};
 use egui_dock::{TabViewer, Tree};
 
