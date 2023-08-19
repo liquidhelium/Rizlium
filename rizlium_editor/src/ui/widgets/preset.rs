@@ -6,7 +6,7 @@ use egui::{RichText, Color32};
 
 use crate::{RizDockTree, RizTabPresets};
 
-use super::{WidgetSystem};
+use super::WidgetSystem;
 
 #[derive(SystemParam)]
 pub struct PresetButtons<'w> {

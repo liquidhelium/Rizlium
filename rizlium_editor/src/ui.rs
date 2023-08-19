@@ -10,6 +10,7 @@ use egui_dock::{TabViewer, Tree};
 
 pub mod tab_system;
 pub mod widgets;
+mod editing;
 pub use tab_system::{CachedTab, TabInstace, TabProvider};
 pub use tab_system::tabs::*;
 use serde::{Serialize, Deserialize};
@@ -37,7 +38,8 @@ impl Default for RizTabs {
                 GameViewTab,
                 CanvasWindow,
                 FileMenu,
-                ShowLineControl
+                ShowLineControl,
+                SplineWindow
             ],
         }
     }
