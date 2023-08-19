@@ -37,3 +37,7 @@ rizlium_chart ={ path = "../rizlium_chart"}
 bevy-persistent = {version = "0.3.2", features = ["json","toml"]}
 serde ={ version = "*", features = ["derive"]}
 dirs = "*"
+rfd = "*"
+# Needed to poll Task
+futures-lite = "1"
+indexmap = {version = "*", features = ["serde"]}

@@ -2,12 +2,14 @@
 
 use std::collections::HashMap;
 
-use crate::EditorState;
-use bevy::prelude::{Resource, World};
+use crate::{EditorState, RizDockTree};
+use bevy::prelude::{Resource, World, Mut, DerefMut, Deref};
+use bevy_persistent::Persistent;
 use egui::{Color32, Ui, RichText};
 use egui_dock::{TabViewer, Tree};
 
 pub mod tab_system;
+pub mod widgets;
 pub use tab_system::{CachedTab, TabInstace, TabProvider};
 pub use tab_system::tabs::*;
 use serde::{Serialize, Deserialize};
@@ -25,10 +27,8 @@ pub struct RizTabs {
     pub tabs: Vec<Box<dyn CachedTab>>,
 }
 
-#[derive(Resource, Serialize, Deserialize)]
-pub struct RizTabPresets {
-    pub presets: HashMap<String,Tree<usize>>
-}
+#[derive(Resource, Serialize, Deserialize,Default, DerefMut,Deref)]
+pub struct RizTabPresets(Vec<(String,Tree<usize>)>);
 
 impl Default for RizTabs {
     fn default() -> Self {
@@ -79,7 +79,7 @@ impl TabViewer for RizTabViewer<'_> {
     }
 }
 
-pub fn dock_window_menu_button(
+pub fn dock_window_menu_buttons(
     ui: &mut Ui,
     text: impl Into<egui::WidgetText>,
     tree: &mut Tree<usize>,
@@ -101,3 +101,4 @@ pub fn dock_window_menu_button(
         }
     });
 }
+
