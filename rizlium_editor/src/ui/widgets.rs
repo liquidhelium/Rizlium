@@ -1,7 +1,9 @@
 mod dock_buttons;
 mod preset;
+mod recent_file_buttons;
 pub use dock_buttons::DockButtons;
 pub use preset::{PresetButtons, LayoutPresetEdit};
+pub use recent_file_buttons::RecentButtons;
 
 use bevy::{
     ecs::system::{SystemParam, SystemState},

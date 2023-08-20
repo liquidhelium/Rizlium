@@ -1,5 +1,5 @@
 
-use rizlium_editor::widgets::{widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons};
+use rizlium_editor::widgets::{widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons, RecentButtons};
 
 
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
@@ -170,6 +170,9 @@ fn egui_render(world: &mut World) {
                 if ui.button("Open..").clicked() {
                     commands.open_dialog_and_load_chart();
                 }
+                ui.separator();
+                ui.weak("Recent");
+                widget_with::<RecentButtons>(world, ui, &mut commands);
             });
             ui.menu_button("View", |ui| {
                 ui.menu_button("Presets", |ui| {
