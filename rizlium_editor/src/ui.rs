@@ -1,8 +1,4 @@
-
-
-
-
-use crate::{EditorState};
+use crate::EditorState;
 use bevy::prelude::{Resource, World, DerefMut, Deref};
 
 use egui::{Color32, Ui, RichText};
@@ -56,7 +52,6 @@ impl TabViewer for RizTabViewer<'_> {
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         if let Some(tab) = self.tabs.get_mut(*tab) {
             if tab.avaliable(self.world) {
-
                 tab.ui(self.world, ui);
             }
             else {
