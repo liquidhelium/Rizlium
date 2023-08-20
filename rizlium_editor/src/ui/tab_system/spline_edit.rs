@@ -34,17 +34,10 @@ impl<'w, 's> TabProvider for SplineWindow<'w, 's> {
             *scale = [200.,200.];
         }
         let view = ui.available_rect_before_wrap();
-        timeline_horizontal(
-            ui,
-            **time,
-            &mut (cache_range.0..=cache_range.1),
-            &mut scale[0],
-            view,
-        );
         let mut show_first = false;
         ui.scope(|ui| {
             ui.style_mut().spacing.slider_width = 500.;
-
+            
             show_first |= ui.add(egui::Slider::new(
                 &mut *current,
                 0..=(chart.lines.len() - 1),
@@ -53,20 +46,28 @@ impl<'w, 's> TabProvider for SplineWindow<'w, 's> {
             ui.add(egui::Slider::new(&mut scale[1], 1.0..=2000.0).logarithmic(true));
         });
         show_first |= ui.button("view").clicked();
-
-        let spline = &chart.lines[*current].points;
-        let response = spline_editor_horizontal(
-            ui,
-            spline,
-            &mut Some(0),
-            **time,
-            &mut scale,
-            &mut (0.0..=1000.0),
-            show_first
-        );
-        let range = response.view_data;
-        cache_range.0 = *range.time_range.start();
-        cache_range.1 = *range.time_range.end();
+        ui.allocate_ui_at_rect(ui.available_rect_before_wrap(), |ui| {
+            timeline_horizontal(
+                ui,
+                **time,
+                &mut (cache_range.0..=cache_range.1),
+                &mut scale[0],
+                view,
+            );
+            let spline = &chart.lines[*current].points;
+            let response = spline_editor_horizontal(
+                ui,
+                spline,
+                &mut Some(0),
+                **time,
+                &mut scale,
+                show_first
+            );
+            let range = response.view_rect;
+            cache_range.0 = *range.x_range().start();
+            cache_range.1 = *range.y_range().end();
+        });
+        
     }
     fn name() -> String {
         "Spline".into()

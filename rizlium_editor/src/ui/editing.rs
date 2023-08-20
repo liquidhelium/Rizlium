@@ -10,7 +10,6 @@ pub fn spline_editor_horizontal<R>(
     focus: &mut Option<usize>,
     _cursor: f32,
     scale: &mut [f32; 2],
-    _vertical_view: &mut RangeInclusive<f32>,
     scroll_to_first: bool,
 ) -> SplineEditorResponse {
     assert_ne!(*scale, [0., 0.]);
@@ -49,42 +48,41 @@ pub fn spline_editor_horizontal<R>(
                         let next_pos = remap_point(next.as_slice().into());
                         let rect = egui::Rect::from_two_pos(this_pos, next_pos);
                         ui.allocate_rect(rect, egui::Sense::hover());
-                        ui.ctx().debug_painter().debug_rect(
-                            rect,
-                            Color32::LIGHT_BLUE,
-                            current_index,
-                        );
-                        // if next.time > min_time || this.time < max_time {
-                        let point_count = width.floor();
-                        let iter = (0..point_count as usize)
-                            .map(|i| i as f32 / point_count)
-                            .map(|x| {
-                                Pos2::from([
-                                    f32::lerp(rect.left(), rect.right(), x),
-                                    f32::ease(this_pos.y, next_pos.y, x, this.ease_type),
-                                ])
-                            })
-                            .chain(Some(next_pos));
-                        let shape =
-                            PathShape::line(iter.collect(), Stroke::new(2., Color32::LIGHT_BLUE));
-                        ui.painter().add(shape);
-                        let rect = egui::Rect::from_center_size(this_pos, egui::Vec2::splat(10.));
-                        ui.painter().circle_stroke(
-                            this_pos,
-                            5.,
-                            Stroke::new(2., Color32::DARK_BLUE),
-                        );
-                        let knob = ui
-                            .interact(rect, ui.next_auto_id(), egui::Sense::click_and_drag())
-                            .on_hover_cursor(egui::CursorIcon::Grab)
-                            .on_hover_and_drag_cursor(egui::CursorIcon::Grabbing);
-                        if knob.clicked() || knob.drag_started() {
-                            *focus = Some(current_index);
-                        } else if knob.drag_released() {
-                            *focus = None;
-                        }
-                        if current_index == 0 && scroll_to_first {
-                            ui.scroll_to_rect(rect, None);
+                        if next.time > min_time || this.time < max_time {
+                            let point_count = width.floor();
+                            let iter = (0..point_count as usize)
+                                .map(|i| i as f32 / point_count)
+                                .map(|x| {
+                                    Pos2::from([
+                                        f32::lerp(rect.left(), rect.right(), x),
+                                        f32::ease(this_pos.y, next_pos.y, x, this.ease_type),
+                                    ])
+                                })
+                                .chain(Some(next_pos));
+                            let shape = PathShape::line(
+                                iter.collect(),
+                                Stroke::new(2., Color32::LIGHT_BLUE),
+                            );
+                            ui.painter().add(shape);
+                            let rect =
+                                egui::Rect::from_center_size(this_pos, egui::Vec2::splat(10.));
+                            ui.painter().circle_stroke(
+                                this_pos,
+                                5.,
+                                Stroke::new(2., Color32::DARK_BLUE),
+                            );
+                            let knob = ui
+                                .interact(rect, ui.next_auto_id(), egui::Sense::click_and_drag())
+                                .on_hover_cursor(egui::CursorIcon::Grab)
+                                .on_hover_and_drag_cursor(egui::CursorIcon::Grabbing);
+                            if knob.clicked() || knob.drag_started() {
+                                *focus = Some(current_index);
+                            } else if knob.drag_released() {
+                                *focus = None;
+                            }
+                            if current_index == 0 && scroll_to_first {
+                                ui.scroll_to_rect(rect, Some(egui::Align::Center));
+                            }
                         }
                     }
                 });
@@ -107,9 +105,7 @@ pub fn spline_editor_horizontal<R>(
                 focus_changed: false,
                 value_range_changed: false,
                 scale_changed,
-                view_data: SplineViewData {
-                    time_range: min_time..=max_time,
-                },
+                view_rect: egui::Rect::from_x_y_ranges(min_time..=max_time, min_value..=max_value),
                 seek_to: None,
             }
         })
@@ -121,13 +117,8 @@ pub struct SplineEditorResponse {
     pub focus_changed: bool,
     pub value_range_changed: bool,
     pub scale_changed: bool,
-    pub view_data: SplineViewData,
+    pub view_rect: egui::Rect,
     pub seek_to: Option<f32>,
-}
-
-#[derive(Clone)]
-pub struct SplineViewData {
-    pub time_range: RangeInclusive<f32>,
 }
 
 pub fn timeline_horizontal(
@@ -159,11 +150,6 @@ pub fn timeline_horizontal(
                     |ui| {
                         ui.label(format!("{time:.2}"));
                     },
-                );
-                ui.ctx().debug_painter().debug_rect(
-                    egui::Rect::from_x_y_ranges(x..=x + 100., range_y.clone()),
-                    Color32::BLUE,
-                    "r",
                 );
             }
             TimeLineResponse {
