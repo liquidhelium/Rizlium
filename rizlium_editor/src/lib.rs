@@ -1,13 +1,16 @@
-use std::{time::Duration};
+use std::time::Duration;
 
-use bevy::{core::FrameCount, prelude::*, tasks::{IoTaskPool, Task}};
+use bevy::{
+    core::FrameCount,
+    prelude::*,
+    tasks::{IoTaskPool, Task},
+};
 use egui::{Color32, Rect, RichText, Ui};
 use egui_dock::Tree;
 use futures_lite::future;
-use indexmap::{IndexSet};
+use indexmap::IndexSet;
 use rfd::AsyncFileDialog;
-use serde::{Serialize, Deserialize};
-
+use serde::{Deserialize, Serialize};
 
 pub use ui::*;
 mod editor_commands;
@@ -118,27 +121,30 @@ fn do114514<const LEN: usize>() -> String {
     ["114514"; LEN].join("")
 }
 
-#[derive(Resource,Default)]
+#[derive(Resource, Default)]
 pub struct PendingDialog(Option<Task<Option<String>>>);
 
 pub fn open_dialog(container: &mut PendingDialog) {
     info!("opening chart");
     container.0 = Some(IoTaskPool::get().spawn(async {
-            let file = AsyncFileDialog::new()
-                .add_filter("Bundled chart file", &["zip"])
-                .pick_file()
-                .await;
-    
-            file.map(|file| file.path().to_string_lossy().into_owned())
-        }));
+        let file = AsyncFileDialog::new()
+            .add_filter("Bundled chart file", &["zip"])
+            .pick_file()
+            .await;
+
+        file.map(|file| file.path().to_string_lossy().into_owned())
+    }));
 }
 
-
 pub fn open_chart(mut dialog: ResMut<PendingDialog>, mut editor_command: Deferred<EditorCommands>) {
-    if let Some(chart) = dialog.0.as_mut().map(|t| future::block_on(future::poll_once(t))).flatten() {
+    if let Some(chart) = dialog
+        .0
+        .as_mut()
+        .and_then(|t| future::block_on(future::poll_once(t)))
+    {
         dialog.0.take();
         if let Some(chart) = chart {
-            editor_command.load_chart(chart)
+            editor_command.load_chart(chart);
         }
     }
 }
@@ -151,7 +157,6 @@ impl Default for RecentFiles {
         Self(default(), 4)
     }
 }
-
 
 impl RecentFiles {
     pub fn push(&mut self, name: String) {
@@ -175,10 +180,19 @@ mod test {
         for i in 1..5 {
             rec.push(i.to_string());
         }
-        assert_eq!("RecentFiles({\"1\", \"2\", \"3\", \"4\"}, 4)".to_string(), format!("{:?}",rec));
+        assert_eq!(
+            "RecentFiles({\"1\", \"2\", \"3\", \"4\"}, 4)".to_string(),
+            format!("{:?}", rec)
+        );
         rec.push("1".into());
-        assert_eq!("RecentFiles({\"2\", \"3\", \"4\", \"1\"}, 4)".to_string(), format!("{:?}",rec));
+        assert_eq!(
+            "RecentFiles({\"2\", \"3\", \"4\", \"1\"}, 4)".to_string(),
+            format!("{:?}", rec)
+        );
         rec.push("3".into());
-        assert_eq!("RecentFiles({\"2\", \"4\", \"1\", \"3\"}, 4)".to_string(), format!("{:?}",rec));
+        assert_eq!(
+            "RecentFiles({\"2\", \"4\", \"1\", \"3\"}, 4)".to_string(),
+            format!("{:?}", rec)
+        );
     }
 }

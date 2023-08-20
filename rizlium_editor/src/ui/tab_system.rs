@@ -28,7 +28,7 @@ pub trait TabProvider: SystemParam + Send + Sync {
     fn system(world: &mut World, state: &mut SystemState<Self>, ui: &mut Ui);
     fn name() -> String {
         // TODO: i18n
-        "".into()
+        default()
     }
     fn avaliable(_world: &World) -> bool {
         true

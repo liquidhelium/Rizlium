@@ -51,20 +51,19 @@ use super::chart_update;
 
 impl Plugin for ChartLinePlugin {
     fn build(&self, app: &mut App) {
-        app
-        .init_resource::<ShowLines>()
-        .add_systems(
-            First,
-            (add_lines, assocate_segment)
-                .in_set(LineRenderingSystemSet::SyncChart)
-                .run_if(chart_update!()),
-        )
-        .add_systems(
-            Update,
-            (change_bounding, update_shape, update_color, update_layer)
-                .in_set(LineRenderingSystemSet::Rendering)
-                .run_if(chart_update!()),
-        );
+        app.init_resource::<ShowLines>()
+            .add_systems(
+                First,
+                (add_lines, assocate_segment)
+                    .in_set(LineRenderingSystemSet::SyncChart)
+                    .run_if(chart_update!()),
+            )
+            .add_systems(
+                Update,
+                (change_bounding, update_shape, update_color, update_layer)
+                    .in_set(LineRenderingSystemSet::Rendering)
+                    .run_if(chart_update!()),
+            );
     }
 }
 
@@ -143,28 +142,35 @@ fn update_shape(
             .unwrap();
         builder.move_to(pos1.into());
         if pos1[1].approx_eq(&0.) && pos2[1].approx_eq(&0.) {
-            warn!("Possible wrong segment: line {}, point {}, canvas {}", id.line_idx, id.keypoint_idx, keypoint1.relevent);
+            warn!(
+                "Possible wrong segment: line {}, point {}, canvas {}",
+                id.line_idx, id.keypoint_idx, keypoint1.relevent
+            );
         }
         // k = 1600意味着1个像素内就经过了一个屏幕
-        let k =( pos2[1] - pos1[1])/ (pos2[0] - pos1[0]);
+        let k = (pos2[1] - pos1[1]) / (pos2[0] - pos1[0]);
         // skip straight line
         if !(keypoint1.ease_type == EasingId::Linear
             || pos1[0].approx_eq(&pos2[0])
-            || pos1[1].approx_eq(&pos2[1]) || k.abs() >= 1400.0)
+            || pos1[1].approx_eq(&pos2[1])
+            || k.abs() >= 1400.0)
         {
             let point_count = ((pos2[1] - pos1[1]) / 1.).floor();
             if point_count > 10000. {
-                warn!("long segment found, line = {}, point = {} (k= {k})", id.line_idx, id.keypoint_idx);
+                warn!(
+                    "long segment found, line = {}, point = {} (k= {k})",
+                    id.line_idx, id.keypoint_idx
+                );
             }
             // 0...>1...>2...>3..0'
             (1..point_count as usize)
-                .into_iter()
                 .map(|i| i as f32 / point_count)
                 .map(|t| {
                     let thistime = f32::lerp(keypoint1.time, keypoint2.time, t);
                     [
                         f32::ease(pos1[0], pos2[0], t, keypoint1.ease_type),
-                        cache.canvas_y_at(keypoint1.relevent, thistime).unwrap() - cache.canvas_y_at(keypoint1.relevent, **time).unwrap(),
+                        cache.canvas_y_at(keypoint1.relevent, thistime).unwrap()
+                            - cache.canvas_y_at(keypoint1.relevent, **time).unwrap(),
                     ]
                 })
                 .for_each(|p| {
@@ -207,12 +213,10 @@ fn update_color(
             .with_cache(&cache)
             .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
             .unwrap();
-        match stroke.brush {
-            Brush::Gradient(Gradient::Linear(ref mut gradient)) => {
-                gradient.start = pos1.into();
-                gradient.end = pos2.into();
-            }
-            _ => (),
+
+        if let Brush::Gradient(Gradient::Linear(ref mut gradient)) = stroke.brush {
+            gradient.start = pos1.into();
+            gradient.end = pos2.into();
         }
 
         let mut color1 = colorrgba_to_color(line.point_color.points()[keypoint_idx].value);
@@ -244,5 +248,5 @@ fn update_layer(show_lines: Res<ShowLines>, mut lines: Query<(&mut RenderLayers,
             }
         }
         *layer = RenderLayers::layer(0);
-    })
+    });
 }

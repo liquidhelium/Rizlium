@@ -52,7 +52,7 @@ pub fn rings(
                 color = color + line_color;
             }
             stroke.brush = colorrgba_to_color(color).into();
-        })
+        });
 }
 
 pub fn add_rings(mut commands: Commands, chart: Res<GameChart>, rings: Query<&Ring>) {

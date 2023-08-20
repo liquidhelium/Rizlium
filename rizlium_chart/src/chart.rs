@@ -62,10 +62,10 @@ impl Chart {
     pub fn note_count(&self) -> usize {
         self.lines.iter().map(|l| l.notes.len()).sum()
     }
-    pub fn with_cache<'a: 'b, 'b>(&'a self, cache: &'b ChartCache) -> ChartAndCache<'a, 'b> {
+    pub const fn with_cache<'a: 'b, 'b>(&'a self, cache: &'b ChartCache) -> ChartAndCache<'a, 'b> {
         ChartAndCache {
-            chart: &self,
-            cache: &cache,
+            chart: self,
+            cache,
         }
     }
 }
@@ -114,10 +114,10 @@ impl ChartCache {
                     relevent: 0.,
                 });
                 points.iter_mut().fold(
-                    (0., 0., 0.),
+                    (0., 0., 0.0f32),
                     |(last_start, last_real, last_value), keypoint| {
                         let this_real = self.beat_remap.value_padding(keypoint.time).unwrap();
-                        let pos = last_start + last_value * (this_real - last_real);
+                        let pos = last_value.mul_add(this_real - last_real, last_start);
                         let value = keypoint.value;
                         keypoint.value = pos;
                         keypoint.time = this_real;

@@ -1,8 +1,6 @@
-
-
 use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_persistent::Persistent;
-use egui::{RichText, Color32};
+use egui::{Color32, RichText};
 
 use crate::{RizDockTree, RizTabPresets};
 
@@ -16,11 +14,11 @@ pub struct PresetButtons<'w> {
 
 impl WidgetSystem for PresetButtons<'static> {
     type Extra<'a> = &'a mut bool;
-    fn system<'a>(
+    fn system(
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,
         ui: &mut egui::Ui,
-        open_window: Self::Extra<'a>,
+        open_window: Self::Extra<'_>,
     ) {
         let PresetButtons::<'_> {
             mut presets,
@@ -33,7 +31,11 @@ impl WidgetSystem for PresetButtons<'static> {
             }
         }
         if presets.get().is_empty() {
-            ui.label(RichText::new("Nothing here..").color(Color32::GRAY).italics());
+            ui.label(
+                RichText::new("Nothing here..")
+                    .color(Color32::GRAY)
+                    .italics(),
+            );
         }
         if ui.button("Edit..").clicked() {
             *open_window = true;
@@ -65,7 +67,7 @@ impl WidgetSystem for LayoutPresetEdit<'static, 'static> {
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,
         ui: &mut egui::Ui,
-        _extra: Self::Extra<'_>
+        _extra: Self::Extra<'_>,
     ) {
         let LayoutPresetEdit::<'_, '_> {
             mut presets,
@@ -76,10 +78,8 @@ impl WidgetSystem for LayoutPresetEdit<'static, 'static> {
             ui.horizontal(|ui| {
                 if *editing_entry == Some(index) {
                     ui.text_edit_singleline(key);
-                } else {
-                    if ui.button(&*key).clicked() {
-                        *editing_entry = Some(index);
-                    }
+                } else if ui.button(&*key).clicked() {
+                    *editing_entry = Some(index);
                 }
                 if ui.small_button("D").clicked() {
                     if *editing_entry == Some(index) {

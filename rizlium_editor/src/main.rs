@@ -89,7 +89,7 @@ fn setup_game_view(
     image.resize(size);
     let image_handle = images.add(image);
     egui_context.add_image(image_handle.clone());
-    commands.insert_resource(GameView(image_handle.clone()));
+    commands.insert_resource(GameView(image_handle));
 }
 
 fn setup_persistent(mut commands: Commands) {
@@ -113,7 +113,7 @@ fn setup_persistent(mut commands: Commands) {
             .default(RecentFiles::default())
             .build()
             .expect("failed to setup recent files"),
-    )
+    );
 }
 
 fn egui_font(mut egui_context: EguiContexts) {
@@ -139,8 +139,6 @@ fn egui_render(world: &mut World) {
     let mut egui_context = world.query::<(&mut EguiContext, With<PrimaryWindow>)>();
     let mut binding = egui_context.single_mut(world).0;
     let ctx = &binding.get_mut().clone();
-    drop(binding);
-    drop(egui_context);
     let mut editor_state = world
         .remove_resource::<EditorState>()
         .expect("EditorState does not exist");
@@ -214,9 +212,9 @@ fn egui_render(world: &mut World) {
                 egui::CentralPanel::default().show(ctx, |ui| {
                     ui_when_no_dock(
                         ui,
-                        &world.resource::<Persistent<RecentFiles>>(),
+                        world.resource::<Persistent<RecentFiles>>(),
                         &mut commands,
-                    )
+                    );
                 });
             }
         });

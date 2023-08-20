@@ -216,11 +216,8 @@ fn remove_failure_and_report(
     pending: Res<PendingGameChartHandle>,
     server: Res<AssetServer>,
 ) {
-    match server.get_load_state(&pending.handle) {
-        LoadState::Failed => {
-            error!("Loading chart failed");
-            commands.remove_resource::<PendingGameChartHandle>()
-        }
-        _ => (),
+    if server.get_load_state(&pending.handle) == LoadState::Failed {
+        error!("Loading chart failed");
+        commands.remove_resource::<PendingGameChartHandle>();
     }
 }
