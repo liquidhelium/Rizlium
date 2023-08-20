@@ -149,8 +149,8 @@ pub fn open_chart(mut dialog: ResMut<PendingDialog>, mut editor_command: Deferre
     }
 }
 
-#[derive(Resource, Serialize, Deserialize, Debug)]
-pub struct RecentFiles(IndexSet<String>, usize);
+#[derive(Resource, Serialize, Deserialize, Debug, Deref)]
+pub struct RecentFiles(#[deref] IndexSet<String>, usize);
 
 impl Default for RecentFiles {
     fn default() -> Self {

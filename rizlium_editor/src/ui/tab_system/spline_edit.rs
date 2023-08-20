@@ -58,7 +58,7 @@ impl<'w, 's> TabProvider for SplineWindow<'w, 's> {
             let response = spline_editor_horizontal(
                 ui,
                 spline,
-                &mut Some(0),
+                Some(0),
                 **time,
                 &mut scale,
                 show_first
