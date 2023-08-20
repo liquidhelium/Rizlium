@@ -18,7 +18,7 @@ use serde::{Serialize, Deserialize};
 macro_rules! tabs {
     ($($tab:path),*) => {
         vec![
-            $(Box::new(TabInstace::<$tab>::default()),)*
+            $(Box::<TabInstace::<$tab>>::default(),)*
         ]
     };
 }
@@ -75,8 +75,7 @@ impl TabViewer for RizTabViewer<'_> {
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         self.tabs
             .get(*tab)
-            .map(|tab| tab.name())
-            .unwrap_or("MISSINGNO".into())
+            .map_or("MISSINGNO".into(), |tab| tab.name())
             .into()
     }
 }
@@ -85,7 +84,7 @@ pub fn dock_window_menu_buttons(
     ui: &mut Ui,
     text: impl Into<egui::WidgetText>,
     tree: &mut Tree<usize>,
-    tabs: &Vec<Box<dyn CachedTab>>,
+    tabs: &[Box<dyn CachedTab>],
 ) {
     let opened: Vec<_> = tree.tabs().copied().collect();
     ui.menu_button(text, |ui| {

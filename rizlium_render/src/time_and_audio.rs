@@ -83,13 +83,12 @@ fn sync_audio(
 ) {
     let new_current = audio.play(source.0.clone()).handle();
     info!("Syncing audio...");
-    if let Some(mut game_audio) = game_audio{
+    if let Some(mut game_audio) = game_audio {
         if let Some(current) = game_audios.get_mut(&game_audio.0) {
             current.stop(default());
             game_audio.0 = new_current;
-        } 
-    }
-    else {
+        }
+    } else {
         commands.insert_resource(CurrentGameAudio(new_current));
     }
     time_control.send(TimeControlEvent::Pause);
@@ -167,7 +166,7 @@ impl TimeManager {
     }
     pub fn align_to_audio_time(&mut self, audio_time: f32) {
         let current = self.current();
-        self.seek(current+ (audio_time - current) * COMPENSATION_RATE)
+        self.seek((audio_time - current).mul_add(COMPENSATION_RATE, current));
     }
 }
 
@@ -180,21 +179,18 @@ fn align_audio(
         return;
     };
 
-    match audio.state() {
-        PlaybackState::Playing { position } => {
-            if time.paused() {
-                info!("Pausing audio");
-                audio.pause(AudioTween::default());
-            } else {
-                time.align_to_audio_time(position as f32);
-            }
+    if let PlaybackState::Playing { position } = audio.state() {
+        if time.paused() {
+            info!("Pausing audio");
+            audio.pause(AudioTween::default());
+        } else {
+            time.align_to_audio_time(position as f32);
         }
-        _ => {
-            audio.seek_to(time.current().into());
-            if !time.paused() {
-                info!("resuming audio");
-                audio.resume(AudioTween::default());
-            }
+    } else {
+        audio.seek_to(time.current().into());
+        if !time.paused() {
+            info!("resuming audio");
+            audio.resume(AudioTween::default());
         }
     }
 }

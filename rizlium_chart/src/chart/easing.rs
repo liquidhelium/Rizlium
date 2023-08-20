@@ -29,8 +29,14 @@ pub struct KeyPoint<T: Tween, R = ()> {
 }
 
 impl<T: Tween, R> KeyPoint<T, R> {
-    pub fn ease_to(&self, next: &KeyPoint<T, R>, t: f32) -> T {
+    pub fn ease_to(&self, next: &Self, t: f32) -> T {
         T::ease(self.value.clone(), next.value.clone(), t, self.ease_type)
+    }
+}
+
+impl<R> KeyPoint<f32, R> {
+    pub const fn as_slice(&self) -> [f32; 2] {
+        [self.time, self.value]
     }
 }
 
@@ -42,19 +48,19 @@ pub struct Spline<T: Tween, R = ()> {
 
 impl<T: Tween, R> Spline<T, R> {
     pub fn with_relevant<R2: Default>(self) -> Spline<T, R2> {
-        self.points.into_iter().map(|point| {
-            KeyPoint {
+        self.points
+            .into_iter()
+            .map(|point| KeyPoint {
                 relevent: R2::default(),
                 time: point.time,
                 value: point.value,
-                ease_type: point.ease_type
-            }
-        }).collect()
+                ease_type: point.ease_type,
+            })
+            .collect()
     }
 }
 
-
-impl<T: Tween,R> Spline<T,R> {
+impl<T: Tween, R> Spline<T, R> {
     /// 该 [`Spline`] 在 `time` 时间的值.
     ///
     /// 如果该 [`Spline`] 是空的, 返回 `None`.
@@ -64,7 +70,7 @@ impl<T: Tween,R> Spline<T,R> {
         match self.pair(time) {
             (Some(curr), Some(next)) => {
                 let t = invlerp(curr.time, next.time, time);
-                Some(curr.ease_to(&next, t))
+                Some(curr.ease_to(next, t))
             }
             (Some(last), None) => Some(last.value.clone()),
             (None, Some(first)) => Some(first.value.clone()),
@@ -76,12 +82,14 @@ impl<T: Tween,R> Spline<T,R> {
         match self.pair(time) {
             (Some(curr), Some(next)) => {
                 let t = invlerp(curr.time, next.time, time);
-                Some(curr.ease_to(&next, t))
+                Some(curr.ease_to(next, t))
             }
             _ => None,
         }
     }
 }
+
+type Type<'a, T, R> = (Option<&'a KeyPoint<T, R>>, Option<&'a KeyPoint<T, R>>);
 
 /// Find
 impl<T: Tween, R> Spline<T, R> {
@@ -125,7 +133,7 @@ impl<T: Tween, R> Spline<T, R> {
     /// assert!(matches!(spline.pair(1.0), (Some(_), Some(_))));
     /// assert!(matches!(spline.pair(2.2), (Some(_), None)));
     /// ```
-    pub fn pair(&self, time: f32) -> (Option<&KeyPoint<T, R>>, Option<&KeyPoint<T, R>>) {
+    pub fn pair(&self, time: f32) -> Type<T, R> {
         match self.keypoint_at(time) {
             Ok(index) => (self.points.get(index), self.points.get(index + 1)),
             Err(index) => {
@@ -160,11 +168,19 @@ impl<T: Tween, R> Spline<T, R> {
     }
     /// Start time of this [`Spline`], return `None` if this [`Spline`] is empty.
     pub fn start_time(&self) -> Option<f32> {
-        self.points.first().map(|p| p.time)
+        self.first().map(|p| p.time)
+    }
+
+    pub fn first(&self) -> Option<&KeyPoint<T, R>> {
+        self.points.first()
     }
     /// End time of this [`Spline`], return `None` if this [`Spline`] is empty.
     pub fn end_time(&self) -> Option<f32> {
-        self.points.last().map(|p| p.time)
+        self.last().map(|p| p.time)
+    }
+
+    pub fn last(&self) -> Option<&KeyPoint<T, R>> {
+        self.points.last()
     }
 }
 
@@ -176,11 +192,14 @@ impl<T: Tween, R> Default for Spline<T, R> {
 
 /// # Mutations
 impl<T: Tween, R> Spline<T, R> {
-    pub fn points(&self) -> &Vec<KeyPoint<T, R>> {
+    pub const fn points(&self) -> &Vec<KeyPoint<T, R>> {
         &self.points
     }
     pub fn len(&self) -> usize {
         self.points.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
     pub fn push(&mut self, keypoint: KeyPoint<T, R>) {
         self.points.push(keypoint);
@@ -188,11 +207,7 @@ impl<T: Tween, R> Spline<T, R> {
     }
 
     pub fn remove(&mut self, index: usize) -> Option<KeyPoint<T, R>> {
-        if index < self.points.len() {
-            Some(self.points.remove(index))
-        } else {
-            None
-        }
+        (index < self.points.len()).then_some(self.points.remove(index))
     }
 
     pub fn sort_unstable(&mut self) {
@@ -221,8 +236,8 @@ impl<T: Tween, R> From<Vec<KeyPoint<T, R>>> for Spline<T, R> {
     }
 }
 
-impl<T: Tween, R> AsRef<[KeyPoint<T,R>]> for Spline<T,R> {
-    fn as_ref(&self) -> &[KeyPoint<T,R>] {
+impl<T: Tween, R> AsRef<[KeyPoint<T, R>]> for Spline<T, R> {
+    fn as_ref(&self) -> &[KeyPoint<T, R>] {
         self.points.as_ref()
     }
 }
@@ -255,7 +270,7 @@ pub trait Tween: Clone {
 
 impl Tween for f32 {
     fn lerp(x1: Self, x2: Self, t: f32) -> Self {
-        t * (x2 - x1) + x1
+        t.mul_add(x2 - x1, x1)
     }
 }
 
@@ -315,13 +330,10 @@ pub enum EasingId {
 
 fn easef32(ease_type: EasingId, x: f32) -> f32 {
     let id_raw: u8 = ease_type.into();
-    match EASING_MAP.get(id_raw as usize) {
-        Some(func) => func(x),
-        None => {
-            error!("Unknown ease type {:?}", ease_type);
-            0.0
-        }
-    }
+    EASING_MAP.get(id_raw as usize).map_or_else(|| {
+        error!("Unknown ease type {:?}", ease_type);
+        0.0
+    }, |func| func(x))
 }
 
 #[cfg(test)]

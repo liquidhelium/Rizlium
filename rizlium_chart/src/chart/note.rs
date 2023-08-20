@@ -13,7 +13,7 @@ pub struct Note {
 }
 
 impl Note {
-    pub fn new(time: f32, kind: NoteKind) -> Self {
+    pub const fn new(time: f32, kind: NoteKind) -> Self {
         Self { time, kind }
     }
 }

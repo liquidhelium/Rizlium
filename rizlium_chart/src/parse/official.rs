@@ -62,7 +62,7 @@ impl Note {
                 2 => chart::NoteKind::Hold {
                     end: *self
                         .other_informations
-                        .get(0)
+                        .first()
                         .with_context(|| HoldNoEndSnafu { line_idx, note_idx })?,
                 },
                 otherwise => {
@@ -87,13 +87,13 @@ pub struct ColorRGBA {
     pub a: u8,
 }
 
-impl Into<chart::ColorRGBA> for ColorRGBA {
-    fn into(self) -> chart::ColorRGBA {
-        chart::ColorRGBA {
-            r: self.r as f32 / 255.0,
-            g: self.g as f32 / 255.0,
-            b: self.b as f32 / 255.0,
-            a: self.a as f32 / 255.0,
+impl From<ColorRGBA> for chart::ColorRGBA {
+    fn from(val: ColorRGBA) -> Self {
+        Self {
+            r: val.r as f32 / 255.0,
+            g: val.g as f32 / 255.0,
+            b: val.b as f32 / 255.0,
+            a: val.a as f32 / 255.0,
         }
     }
 }
@@ -156,11 +156,11 @@ pub struct ColorKeyPoint {
 
     pub time: f32,
 }
-impl Into<chart::KeyPoint<chart::ColorRGBA>> for ColorKeyPoint {
-    fn into(self) -> chart::KeyPoint<chart::ColorRGBA> {
-        chart::KeyPoint {
-            time: self.time,
-            value: self.start_color.into(),
+impl From<ColorKeyPoint> for chart::KeyPoint<chart::ColorRGBA> {
+    fn from(val: ColorKeyPoint) -> Self {
+        Self {
+            time: val.time,
+            value: val.start_color.into(),
             ease_type: chart::EasingId::Linear,
             relevent: (),
         }
@@ -180,7 +180,7 @@ pub struct Line {
 }
 impl Line {
     fn convert(self, line_index: usize) -> ConvertResult<chart::Line> {
-        let line_color: Spline<_> = self.line_color.into_iter().map(|k| k.into()).collect();
+        let line_color: Spline<_> = self.line_color.into_iter().map(Into::into).collect();
         let a = self
             .line_points
             .into_iter()
@@ -208,7 +208,7 @@ impl Line {
             ring_color: self
                 .judge_ring_color
                 .into_iter()
-                .map(|k| k.into())
+                .map(Into::into)
                 .collect(),
             line_color,
         })
@@ -219,7 +219,7 @@ fn scale_x(x: f32) -> f32 {
     (x + 0.5) * (VIEW_RECT[1][0] - VIEW_RECT[0][0])
 }
 fn scale_y(y: f32) -> f32 {
-    y * (VIEW_RECT[1][1] - VIEW_RECT[0][1]) *1.1
+    y * (VIEW_RECT[1][1] - VIEW_RECT[0][1]) * 1.1
 }
 
 #[derive(Serialize, Deserialize)]
@@ -238,7 +238,7 @@ impl CanvasMove {
             x_pos: self
                 .x_position_key_points
                 .into_iter()
-                .map(|p| p.try_into())
+                .map(TryInto::try_into)
                 .map(|p: Result<chart::KeyPoint<f32>, _>| {
                     let mut p = p?;
                     p.value = scale_x(p.value);
@@ -247,16 +247,15 @@ impl CanvasMove {
                 .collect::<Result<_, _>>()?,
 
             speed: self
-                    .speed_key_points
-                    .into_iter()
-                    .map(|p| p.try_into())
-                    .map(|p: Result<chart::KeyPoint<f32>, _>| {
-                        let mut p = p?;
-                        p.value = scale_y(p.value);
-                        Ok(p)
-                    })
-                    .collect::<Result<_, _>>()?,
-                
+                .speed_key_points
+                .into_iter()
+                .map(TryInto::try_into)
+                .map(|p: Result<chart::KeyPoint<f32>, _>| {
+                    let mut p = p?;
+                    p.value = scale_y(p.value);
+                    Ok(p)
+                })
+                .collect::<Result<_, _>>()?,
         })
     }
 }
@@ -343,36 +342,31 @@ impl TryInto<chart::Chart> for RizlineChart {
                 ..Default::default()
             })
             .into_iter()
-            .chain(
-                self.challenge_times
-                    .into_iter()
-                    .map(|c| {
-                        [
-                            chart::KeyPoint {
-                                time: c.start - c.trans_time,
-                                value: 0,
-                                ..Default::default()
-                            },
-                            chart::KeyPoint {
-                                time: c.start,
-                                value: 1,
-                                ..Default::default()
-                            },
-                            chart::KeyPoint {
-                                time: c.end,
-                                value: 1,
-                                ..Default::default()
-                            },
-                            chart::KeyPoint {
-                                time: c.end + c.trans_time,
-                                value: 0,
-                                ..Default::default()
-                            },
-                        ]
-                        .into_iter()
-                    })
-                    .flatten(),
-            )
+            .chain(self.challenge_times.into_iter().flat_map(|c| {
+                [
+                    chart::KeyPoint {
+                        time: c.start - c.trans_time,
+                        value: 0,
+                        ..Default::default()
+                    },
+                    chart::KeyPoint {
+                        time: c.start,
+                        value: 1,
+                        ..Default::default()
+                    },
+                    chart::KeyPoint {
+                        time: c.end,
+                        value: 1,
+                        ..Default::default()
+                    },
+                    chart::KeyPoint {
+                        time: c.end + c.trans_time,
+                        value: 0,
+                        ..Default::default()
+                    },
+                ]
+                .into_iter()
+            }))
             .collect(),
 
             lines: self
@@ -399,7 +393,7 @@ impl TryInto<chart::Chart> for RizlineChart {
                 .camera_move
                 .scale_key_points
                 .into_iter()
-                .map(|k| k.try_into())
+                .map(TryInto::try_into)
                 .collect::<ConvertResult<_>>()?,
             bpm,
         })

@@ -95,7 +95,7 @@ fn update_pos(
                 };
                 time = note.time;
             }
-            let chart_with_cache = chart.with_cache(&**cache);
+            let chart_with_cache = chart.with_cache(&cache);
             let pos:Vec2 = chart_with_cache.line_pos_at_clamped(note_id.line_idx, time, **game_time).unwrap().into();
             *transform = transform.with_translation(pos.extend(0.));
         });

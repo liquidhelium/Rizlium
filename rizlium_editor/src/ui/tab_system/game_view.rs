@@ -51,7 +51,7 @@ impl<'w> TabProvider for GameViewTab<'w> {
             // video_control(ui, &mut false, 0.0..=100.0, &mut 50.);
             keep_ratio(ui, 16. / 9., |ui, size| {
                 ui.centered_and_justified(|ui| ui.image(img, size));
-            })
+            });
         });
     }
     fn name() -> String {
@@ -87,10 +87,8 @@ fn video_control(
         let seekbar_main_rect = seekbar_rect.shrink2([20., 8.].into());
         ui.painter()
             .rect_filled(seekbar_main_rect, 0., Color32::GRAY);
-        let mut seekbar_current_rect = seekbar_rect.clone();
-        *seekbar_current_rect.right_mut() = seekbar_main_rect.width()
-            * egui::emath::inverse_lerp(time_range, *current).unwrap_or(0.)
-            + seekbar_main_rect.left();
+        let mut seekbar_current_rect = seekbar_rect;
+        *seekbar_current_rect.right_mut() = seekbar_main_rect.width().mul_add(egui::emath::inverse_lerp(time_range, *current).unwrap_or(0.), seekbar_main_rect.left());
         ui.painter()
             .rect_filled(seekbar_main_rect, 0., Color32::BLUE);
     });

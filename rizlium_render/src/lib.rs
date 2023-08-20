@@ -143,13 +143,13 @@ fn update_camera(
 ) {
     cams.par_iter_mut().for_each_mut(|mut cam| {
         let scale = chart.cam_scale.value_padding(**time).unwrap();
-        if !scale.is_nan() {
-            cam.scale = scale;
-        } else {
+        if scale.is_nan() {
             cam.scale = 0.;
+        } else {
+            cam.scale = scale;
         }
         // todo: still need test
         cam.viewport_origin.x =
             chart.cam_move.value_padding(**time).unwrap() / (VIEW_RECT[1][0] - VIEW_RECT[0][0]);
-    })
+    });
 }

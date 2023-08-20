@@ -10,7 +10,7 @@ use bevy::{
 use egui::Ui;
 pub trait WidgetSystem: SystemParam + 'static {
     type Extra<'a>;
-    fn system<'a>(world: &mut World, state: &mut SystemState<Self>, ui: &mut Ui, _extra: Self::Extra<'a>);
+    fn system(world: &mut World, state: &mut SystemState<Self>, ui: &mut Ui, _extra: Self::Extra<'_>);
 }
 
 pub fn widget<W>(world: &mut World, ui: &mut Ui)
@@ -19,7 +19,7 @@ where
 {
     widget_with::<W>(world, ui, ());
 }
-pub fn widget_with<'a,W: WidgetSystem>(world: &mut World, ui: &mut Ui, extra: W::Extra<'a>) {
+pub fn widget_with<W: WidgetSystem>(world: &mut World, ui: &mut Ui, extra: W::Extra<'_>) {
     if !world.contains_resource::<CachedWidgetState<W>>() {
         let value = CachedWidgetState(SystemState::<W>::new(world));
         world.insert_resource(value);

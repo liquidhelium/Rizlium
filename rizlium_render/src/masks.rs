@@ -101,13 +101,12 @@ pub(crate) fn update_mask_bottom(
             let mut linear =
                 LinearGradient::new_empty(Vec2::new(0., -gradient_height), Vec2::new(0., 0.));
             if let Some(color) = chart
-                .map(|chart| {
+                .and_then(|chart| {
                     chart
                         .theme_at(**time)
                         .ok()
                         .map(|t| colorrgba_to_color(t.this.color.background))
                 })
-                .flatten()
             {
                 linear.add_stop(0., color.with_a(1.));
                 linear.add_stop(1., color.with_a(0.));
@@ -160,13 +159,12 @@ pub(crate) fn update_mask_top(
                 Vec2::new(0., area.max.y - mask_height + gradient_height),
             );
             if let Some(color) = chart
-                .map(|chart| {
+                .and_then(|chart| {
                     chart
                         .theme_at(**time)
                         .ok()
                         .map(|t| colorrgba_to_color(t.this.color.background))
                 })
-                .flatten()
             {
                 linear.add_stop(0., color.with_a(0.));
                 linear.add_stop(1., color.with_a(1.));

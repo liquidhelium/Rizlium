@@ -25,21 +25,19 @@ impl TabProvider for ShowLineControl<'_, '_> {
         } = state.get_mut(world);
         let mut value = current_show.0.is_some();
         // if current_show.is_changed() {
-            if value {
-                commands
-                    .entity(game_cam.single_mut())
-                    .insert(RenderLayers::layer(1));
-            } else {
-                commands
-                    .entity(game_cam.single_mut())
-                    .insert(RenderLayers::layer(0));
-            }
+        if value {
+            commands
+                .entity(game_cam.single_mut())
+                .insert(RenderLayers::layer(1));
+        } else {
+            commands
+                .entity(game_cam.single_mut())
+                .insert(RenderLayers::layer(0));
+        }
         // }
         ui.checkbox(&mut value, "Show");
-        if value {
-            if !current_show.0.is_some() {
-                current_show.0 = Some(0);
-            }
+        if value && current_show.0.is_none() {
+            current_show.0 = Some(0);
         } else {
             current_show.0.take();
         }
