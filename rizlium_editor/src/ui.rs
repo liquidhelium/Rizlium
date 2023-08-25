@@ -35,7 +35,8 @@ impl Default for RizTabs {
                 CanvasWindow,
                 FileMenu,
                 ShowLineControl,
-                SplineWindow
+                SplineWindow,
+                NoteWindow
             ],
         }
     }

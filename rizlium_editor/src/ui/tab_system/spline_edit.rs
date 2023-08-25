@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use rizlium_render::{GameChart, GameTime};
 
 use crate::{
-    ui::editing::{spline_editor_horizontal, timeline_horizontal},
+    ui::editing::spline_editor_horizontal,
     TabProvider,
 };
 
@@ -33,7 +33,6 @@ impl<'w, 's> TabProvider for SplineWindow<'w, 's> {
         if *scale == [0.,0.] {
             *scale = [200.,200.];
         }
-        let view = ui.available_rect_before_wrap();
         let mut show_first = false;
         ui.scope(|ui| {
             ui.style_mut().spacing.slider_width = 500.;
@@ -47,13 +46,6 @@ impl<'w, 's> TabProvider for SplineWindow<'w, 's> {
         });
         show_first |= ui.button("view").clicked();
         ui.allocate_ui_at_rect(ui.available_rect_before_wrap(), |ui| {
-            timeline_horizontal(
-                ui,
-                **time,
-                &mut (cache_range.0..=cache_range.1),
-                &mut scale[0],
-                view,
-            );
             let spline = &chart.lines[*current].points;
             let response = spline_editor_horizontal(
                 ui,
@@ -63,6 +55,9 @@ impl<'w, 's> TabProvider for SplineWindow<'w, 's> {
                 &mut scale,
                 show_first
             );
+            if let Some(to) = response.seek_to {
+                info!("seek to {to}");
+            }
             let range = response.view_rect;
             cache_range.0 = *range.x_range().start();
             cache_range.1 = *range.y_range().end();
