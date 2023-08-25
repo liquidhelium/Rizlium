@@ -72,7 +72,7 @@ fn compute_fps(
     }
 }
 
-pub fn ui_when_no_dock(ui: &mut Ui, recents: &RecentFiles, commands: &mut EditorCommands) {
+pub fn ui_when_no_dock(ui: &mut Ui, recents: &RecentFiles, commands: &mut ManualEditorCommands) {
     let main_rect = ui.available_rect_before_wrap().shrink(50.);
     ui.allocate_ui_at_rect(main_rect, |ui| {
         let center_rect = if main_rect.width() >= 500. {
@@ -136,7 +136,7 @@ pub fn open_dialog(container: &mut PendingDialog) {
     }));
 }
 
-pub fn open_chart(mut dialog: ResMut<PendingDialog>, mut editor_command: Deferred<EditorCommands>) {
+pub fn open_chart(mut dialog: ResMut<PendingDialog>, mut editor_command: EditorCommands) {
     if let Some(chart) = dialog
         .0
         .as_mut()

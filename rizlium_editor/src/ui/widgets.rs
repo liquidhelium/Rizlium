@@ -29,6 +29,7 @@ pub fn widget_with<W: WidgetSystem>(world: &mut World, ui: &mut Ui, extra: W::Ex
     world.resource_scope(
         |world: &mut World, mut cache: Mut<'_, CachedWidgetState<W>>| {
             W::system(world, &mut cache.0, ui, extra);
+            cache.0.apply(world);
         },
     );
 }

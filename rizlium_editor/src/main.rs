@@ -14,7 +14,7 @@ use egui_dock::DockArea;
 use rizlium_editor::{
     open_chart, ui_when_no_dock, CountFpsPlugin,
     EditorCommands, EditorState, NowFps, PendingDialog, RecentFiles, RizDockTree, RizTabPresets,
-    RizTabViewer, RizTabs,
+    RizTabViewer, RizTabs, ManualEditorCommands,
 };
 use rizlium_render::{GameChart, GameTime, GameView, RizliumRenderingPlugin};
 
@@ -143,8 +143,7 @@ fn egui_render(world: &mut World) {
         .remove_resource::<EditorState>()
         .expect("EditorState does not exist");
     ctx.set_debug_on_hover(editor_state.debug_resources.show_cursor);
-    let mut commands = EditorCommands::default();
-
+    let mut commands = ManualEditorCommands::default();
     egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
         ui.horizontal_centered(|ui| {
             if world.contains_resource::<GameChart>() {
@@ -172,7 +171,7 @@ fn egui_render(world: &mut World) {
                 }
                 ui.separator();
                 ui.weak("Recent");
-                widget_with::<RecentButtons>(world, ui, &mut commands);
+                widget::<RecentButtons>(world, ui);
             });
             ui.menu_button("View", |ui| {
                 ui.menu_button("Presets", |ui| {
@@ -222,6 +221,6 @@ fn egui_render(world: &mut World) {
             }
         });
     });
-    commands.apply(world);
+    commands.apply_manual(world);
     world.insert_resource(editor_state);
 }

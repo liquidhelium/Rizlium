@@ -3,4 +3,7 @@
 
 mod spline;
 mod note;
+mod timeline;
 pub use spline::*;
+pub use note::note_editor_vertical;
+pub use timeline::*;

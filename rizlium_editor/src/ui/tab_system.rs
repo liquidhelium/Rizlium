@@ -9,6 +9,7 @@ pub(crate) mod information;
 pub(crate) mod show_line_control;
 
 pub(crate) mod spline_edit;
+mod note_edit;
 
 pub mod tabs {
     pub use super::canvas_window::CanvasWindow;
@@ -17,6 +18,7 @@ pub mod tabs {
     pub use super::information::information;
     pub use super::show_line_control::ShowLineControl;
     pub use super::spline_edit::SplineWindow;
+    pub use super::note_edit::NoteWindow;
 }
 
 use bevy::{

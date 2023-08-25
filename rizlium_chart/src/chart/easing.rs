@@ -305,7 +305,7 @@ const EASING_MAP: [Easing; 16] = [
     },
 ];
 
-// rust-analyzer会发癫
+
 #[derive(IntoPrimitive, TryFromPrimitive, Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(u8)]
 pub enum EasingId {

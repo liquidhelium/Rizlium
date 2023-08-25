@@ -1,4 +1,4 @@
-use bevy::ecs::system::{CommandQueue, SystemBuffer};
+use bevy::ecs::system::{CommandQueue, SystemBuffer, SystemParam, SystemMeta};
 use bevy::prelude::*;
 use bevy_persistent::Persistent;
 use rizlium_render::{TimeControlEvent, LoadChartEvent, ShowLines};
@@ -6,20 +6,24 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::{PendingDialog, open_dialog, RecentFiles};
+#[derive(SystemParam, Deref, DerefMut)]
+pub struct EditorCommands<'s>{
+    commands: Deferred<'s, ManualEditorCommands>,
+}
+
 #[derive(Default)]
-pub struct EditorCommands{
+pub struct ManualEditorCommands {
     commands: CommandQueue,
 }
 
-impl SystemBuffer for EditorCommands {
-    fn apply(&mut self, _system_meta: &bevy::ecs::system::SystemMeta, world: &mut World) {
-        self.apply(world);
+impl SystemBuffer for ManualEditorCommands {
+    fn apply(&mut self, _system_meta: &SystemMeta, world: &mut World) {
+        self.commands.apply(world);
     }
 }
 
 
-
-impl EditorCommands {
+impl ManualEditorCommands {
     pub fn time_control(&mut self,event: TimeControlEvent) {
         self.commands.push(|world: &mut World| {
             world.send_event(event);
@@ -38,9 +42,6 @@ impl EditorCommands {
             open_dialog(&mut res);
         });
     }
-    pub fn apply(&mut self, world: &mut World) {
-        self.commands.apply(world);
-    }
     pub fn update_recent(&mut self, path: String) {
         self.commands.push(move |world: &mut World| {
             let mut recent = world.resource_mut::<Persistent<RecentFiles>>();
@@ -53,10 +54,14 @@ impl EditorCommands {
             world.resource_mut::<Persistent<T>>().persist().unwrap();
         });
     }
+
+    pub fn apply_manual(&mut self, world: &mut World) {
+        self.commands.apply(world);
+    }
 }
 
-pub struct GameConfigure<'c> {
-    pub commands: &'c mut EditorCommands
+pub struct GameConfigure<'c,> {
+    pub commands: &'c mut ManualEditorCommands
 }
 
 impl GameConfigure<'_> {
