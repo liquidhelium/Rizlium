@@ -1,20 +1,22 @@
 
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use rizlium_render::{GameChart, GameTime};
+use rizlium_render::{GameChart, GameTime, TimeControlEvent, GameChartCache};
 
 use crate::{
     ui::editing::spline_editor_horizontal,
-    TabProvider,
+    TabProvider, EditorCommands,
 };
 
 #[derive(SystemParam)]
 pub struct SplineWindow<'w, 's> {
     chart: Res<'w, GameChart>,
+    cache: Res<'w, GameChartCache>,
     current: Local<'s, usize>,
     cache_range: Local<'s, (f32, f32)>,
     scale: Local<'s, [f32;2]>,
     time: Res<'w, GameTime>,
+    editor_commands: EditorCommands<'s>,
 }
 
 impl<'w, 's> TabProvider for SplineWindow<'w, 's> {
@@ -25,10 +27,12 @@ impl<'w, 's> TabProvider for SplineWindow<'w, 's> {
     ) {
         let SplineWindow {
             chart,
+            cache,
             mut current,
             mut cache_range,
             mut scale,
             time,
+            mut editor_commands
         } = state.get(world);
         if *scale == [0.,0.] {
             *scale = [200.,200.];
@@ -56,7 +60,7 @@ impl<'w, 's> TabProvider for SplineWindow<'w, 's> {
                 show_first
             );
             if let Some(to) = response.seek_to {
-                info!("seek to {to}");
+                editor_commands.time_control(TimeControlEvent::Seek(cache.remap_beat(to)));
             }
             let range = response.view_rect;
             cache_range.0 = *range.x_range().start();

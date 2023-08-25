@@ -178,6 +178,12 @@ impl ChartCache {
         })
         .collect();
     }
+    pub fn map_time(&self, time: f32) -> f32 {
+        self.beat.value_padding(time).expect("empty beat spline")
+    }
+    pub fn remap_beat(&self, game_time:f32) -> f32 {
+        self.beat_remap.value_padding(game_time).expect("empty beat spline (remap)")
+    }
 }
 
 pub struct ChartAndCache<'chart, 'cache> {

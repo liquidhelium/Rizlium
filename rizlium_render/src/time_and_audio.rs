@@ -39,16 +39,21 @@ impl Plugin for TimeAndAudioPlugin {
             .add_systems(
                 Update,
                 (
-                    dispatch_events,
+                    dispatch_events.run_if(resource_exists::<CurrentGameAudio>()),
                     update_timemgr,
                     sync_audio.run_if(resource_exists_and_changed::<GameAudioSource>()),
                     align_audio.run_if(resource_exists::<CurrentGameAudio>()),
-                    game_time.run_if(resource_exists::<GameChartCache>()),
+                    game_time.run_if(
+                        resource_exists::<GameChartCache>().and_then(
+                            resource_changed::<GameChartCache>()
+                                .or_else(resource_exists_and_changed::<TimeManager>()),
+                        ),
+                    ),
                 ),
             );
     }
 }
-#[derive(Event)]
+#[derive(Event, Debug)]
 pub enum TimeControlEvent {
     Pause,
     Resume,
@@ -61,12 +66,23 @@ fn update_timemgr(mut time: ResMut<TimeManager>, real_time: Res<Time>) {
     time.update(real_time.raw_elapsed_seconds());
 }
 
-fn dispatch_events(mut event: EventReader<TimeControlEvent>, mut time: ResMut<TimeManager>) {
+fn dispatch_events(
+    mut event: EventReader<TimeControlEvent>,
+    mut time: ResMut<TimeManager>,
+    audio: Res<CurrentGameAudio>,
+    mut audios: ResMut<Assets<AudioInstance>>,
+) {
+    let Some(audio) = audios.get_mut(&audio.0) else {
+            return;
+        };
     for ev in event.iter() {
         match ev {
             TimeControlEvent::Pause => time.pause(),
             TimeControlEvent::Resume => time.resume(),
-            TimeControlEvent::Seek(pos) => time.seek(*pos),
+            TimeControlEvent::Seek(pos) => {
+                time.seek(*pos);
+                audio.seek_to((*pos).into());
+            }
             TimeControlEvent::Toggle => time.toggle_paused(),
             TimeControlEvent::SetPaused(paused) => time.set_paused(*paused),
         }
@@ -103,17 +119,7 @@ fn init_time_manager(mut commands: Commands, time: Res<Time>) {
     });
 }
 fn game_time(cache: Res<GameChartCache>, time: Res<TimeManager>, mut game_time: ResMut<GameTime>) {
-    if time.paused() {
-        return;
-    }
-    let since_start = time.current();
-    *game_time = GameTime(
-        cache
-            .0
-            .beat
-            .value_padding(since_start)
-            .expect("cache is empty"),
-    );
+    *game_time = GameTime(cache.map_time(time.current()));
 }
 
 impl TimeManager {
