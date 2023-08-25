@@ -74,9 +74,10 @@ fn timeline_pos_iter(
     let gap_time = TIME_PIXEL_GAP / scale;
     let gap_time_count = gap_time / MIN_TIME_GAP;
     let power = f32_next_power_of_two(gap_time_count);
-    let total_gaps = time_range.end() / MIN_TIME_GAP;
+    let gaps_end = time_range.end() / MIN_TIME_GAP;
+    let gaps_start = (time_range.start() / MIN_TIME_GAP).floor() - 1.;
     let remap = move |i: f32| egui::emath::remap(i, time_range.clone(), pos_range.clone());
-    f32_range_step(0.0..=total_gaps, power)
+    f32_range_step(gaps_start..=gaps_end, power)
         .map(move |i| (i * MIN_TIME_GAP, remap(i * MIN_TIME_GAP)))
 }
 

@@ -108,10 +108,6 @@ pub fn spline_editor_horizontal<R>(
                     [editor_area.right(), editor_area.top() + 20.].into(),
                 ),
             );
-            ui.ctx().debug_painter().debug_rect(Rect::from_two_pos(
-                editor_area.left_top(),
-                [editor_area.right(), editor_area.top() + 20.].into(),
-            ), Color32::DARK_GRAY, "timeline");
             SplineEditorResponse {
                 edit: None,
                 to_focus,

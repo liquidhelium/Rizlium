@@ -22,15 +22,9 @@ impl GameChart {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Deref)]
 pub struct GameChartCache(pub ChartCache);
 
-impl Deref for GameChartCache {
-    type Target = ChartCache;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 pub struct ChartCachePlugin;
 
