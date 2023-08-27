@@ -50,7 +50,7 @@ impl<'w, 's> TabProvider for NoteWindow<'w, 's> {
             ui.add(egui::Slider::new(&mut *scale, 1.0..=2000.0).logarithmic(true));
             ui.add(egui::Slider::new(&mut *row_width, 10.0..=200.0));
         });
-        note_editor_vertical(ui, Some(0), chart.lines.iter().map(|l| l.notes.as_slice()).collect::<Vec<_>>().as_slice(), &mut scale, false, *row_width, 200.)
+        note_editor_vertical(ui, Some(0), chart.lines.iter().map(|l| l.notes.as_slice()).enumerate().collect::<Vec<_>>().as_slice(), **time,&mut scale, *row_width, 200.)
         
         
     }
