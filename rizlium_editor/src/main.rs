@@ -1,6 +1,8 @@
 
+use bevy::render::view::WindowRenderPlugin;
+use rizlium_editor::hotkeys::HotkeyPlugin;
 use rizlium_editor::widgets::{widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons, RecentButtons};
-
+use rizlium_editor::WindowUpdateControlPlugin;
 
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::window::{PresentMode, PrimaryWindow, RequestRedraw};
@@ -12,11 +14,10 @@ use bevy_persistent::prelude::*;
 use egui::{Align2, FontData, FontDefinitions, Layout};
 use egui_dock::DockArea;
 use rizlium_editor::{
-    open_chart, ui_when_no_dock, CountFpsPlugin,
-    EditorCommands, EditorState, NowFps, PendingDialog, RecentFiles, RizDockTree, RizTabPresets,
+    open_chart, ui_when_no_dock, CountFpsPlugin, EditorState, NowFps, PendingDialog, RecentFiles, RizDockTree, RizTabPresets,
     RizTabViewer, RizTabs, ManualEditorCommands,
 };
-use rizlium_render::{GameChart, GameTime, GameView, RizliumRenderingPlugin};
+use rizlium_render::{GameChart, GameView, RizliumRenderingPlugin};
 
 fn main() {
     App::new()
@@ -29,6 +30,8 @@ fn main() {
             },
             // WorldInspectorPlugin::default(),
             CountFpsPlugin,
+            HotkeyPlugin,
+            WindowUpdateControlPlugin
         ))
         .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
@@ -40,25 +43,15 @@ fn main() {
             PreStartup,
             (setup_game_view /* egui_font */,).after(bevy_egui::EguiStartupSet::InitContexts),
         )
-        .add_systems(Startup, (change_render_type, setup_persistent))
+        .add_systems(Startup, setup_persistent)
         .add_systems(Update, egui_render)
         .add_systems(
             PostUpdate,
-            (
-                update_type_changing.run_if(resource_changed::<GameTime>()),
                 open_chart,
-            ),
         )
-        .insert_resource(WinitSettings::desktop_app())
         .run();
 }
-fn change_render_type(mut window: Query<&mut Window, With<PrimaryWindow>>) {
-    window.single_mut().present_mode = PresentMode::AutoNoVsync;
-}
 
-fn update_type_changing(mut event: EventWriter<RequestRedraw>) {
-    event.send(RequestRedraw);
-}
 
 fn setup_game_view(
     mut commands: Commands,

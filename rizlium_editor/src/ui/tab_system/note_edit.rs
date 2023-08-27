@@ -38,8 +38,8 @@ impl<'w, 's> TabProvider for NoteWindow<'w, 's> {
         if *row_width == 0. {
             *row_width = 50.
         }
-        let view = ui.available_rect_before_wrap();
-        let mut show_first = false;
+        let _view = ui.available_rect_before_wrap();
+        let _show_first = false;
         ui.scope(|ui| {
             ui.style_mut().spacing.slider_width = 500.;
             

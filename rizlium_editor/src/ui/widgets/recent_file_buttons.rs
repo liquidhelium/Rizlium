@@ -20,7 +20,7 @@ impl WidgetSystem for RecentButtons<'static, 'static> {
         ui: &mut egui::Ui,
         _extra: Self::Extra<'_>,
     ) {
-        let RecentButtons { recent , mut editor_commands} = state.get(&world);
+        let RecentButtons { recent , mut editor_commands} = state.get(world);
         for entry in recent.get().iter() {
             if ui.button(entry).clicked() {
                 editor_commands.load_chart(entry.clone());

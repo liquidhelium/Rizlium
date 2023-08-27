@@ -3,17 +3,19 @@ use std::time::Duration;
 use bevy::{
     core::FrameCount,
     prelude::*,
-    tasks::{IoTaskPool, Task},
+    tasks::{IoTaskPool, Task}, window::{RequestRedraw, PresentMode, PrimaryWindow}, winit::WinitSettings,
 };
 use egui::{Color32, Rect, RichText, Ui};
 use egui_dock::Tree;
 use futures_lite::future;
 use indexmap::IndexSet;
 use rfd::AsyncFileDialog;
+use rizlium_render::GameTime;
 use serde::{Deserialize, Serialize};
 
 pub use ui::*;
 mod editor_commands;
+pub mod hotkeys;
 pub use editor_commands::*;
 mod ui;
 #[derive(Debug, Resource, Default)]
@@ -195,4 +197,24 @@ mod test {
             format!("{:?}", rec)
         );
     }
+}
+
+pub struct WindowUpdateControlPlugin;
+
+impl Plugin for WindowUpdateControlPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, change_render_type).add_systems(
+            PostUpdate,
+            update_type_changing.run_if(resource_changed::<GameTime>()),
+        )
+        .insert_resource(WinitSettings::desktop_app());
+    }
+}
+
+fn change_render_type(mut window: Query<&mut Window, With<PrimaryWindow>>) {
+    window.single_mut().present_mode = PresentMode::AutoNoVsync;
+}
+
+fn update_type_changing(mut event: EventWriter<RequestRedraw>) {
+    event.send(RequestRedraw);
 }

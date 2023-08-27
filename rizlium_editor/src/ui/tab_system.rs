@@ -26,6 +26,9 @@ use bevy::{
     prelude::*,
 };
 use egui::Ui;
+use leafwing_input_manager::user_input::UserInput;
+
+use crate::hotkeys::ToDynAction;
 pub trait TabProvider: SystemParam + Send + Sync {
     fn system(world: &mut World, state: &mut SystemState<Self>, ui: &mut Ui);
     fn name() -> String {
@@ -34,6 +37,12 @@ pub trait TabProvider: SystemParam + Send + Sync {
     }
     fn avaliable(_world: &World) -> bool {
         true
+    }
+    fn hotkeys() -> Box<dyn Iterator<Item = (UserInput, Box<dyn ToDynAction>)>> {
+        Box::new(None.into_iter()) as _
+    }
+    fn register_actions(_app: &mut App) {
+
     }
 }
 
@@ -51,6 +60,8 @@ pub trait CachedTab: Send + Sync {
     fn ui(&mut self, world: &mut World, ui: &mut Ui);
     fn name(&self) -> String;
     fn avaliable(&self, world: &World) -> bool;
+    fn hotkeys(&self) -> Box<dyn Iterator<Item = (UserInput, Box<dyn ToDynAction>)>>;
+    fn register_actions(&self, app:&mut App);
 }
 
 impl<T: TabProvider> CachedTab for TabInstace<T> {
@@ -70,5 +81,11 @@ impl<T: TabProvider> CachedTab for TabInstace<T> {
     }
     fn avaliable(&self, world: &World) -> bool {
         T::avaliable(world)
+    }
+    fn hotkeys(&self) -> Box<dyn Iterator<Item = (UserInput, Box<dyn ToDynAction>)>> {
+        T::hotkeys()
+    }
+    fn register_actions(&self, app:&mut App) {
+        T::register_actions(app);
     }
 }

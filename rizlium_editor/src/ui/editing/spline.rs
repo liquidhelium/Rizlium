@@ -1,7 +1,7 @@
-use std::ops::RangeInclusive;
+
 
 use bevy::prelude::info;
-use egui::{epaint::PathShape, Color32, Pos2, Rect, Sense, Stroke, Ui};
+use egui::{epaint::PathShape, Color32, Pos2, Rect, Stroke, Ui};
 use rizlium_chart::prelude::{Spline, Tween};
 
 use crate::ui::editing::timeline_horizontal;
@@ -9,7 +9,7 @@ use crate::ui::editing::timeline_horizontal;
 pub fn spline_editor_horizontal<R>(
     ui: &mut Ui,
     spline: &Spline<f32, R>,
-    focus: Option<usize>,
+    _focus: Option<usize>,
     cursor: f32,
     scale: &mut [f32; 2],
     scroll_to_first: bool,
