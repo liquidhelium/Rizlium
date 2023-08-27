@@ -14,23 +14,21 @@ pub fn timeline_horizontal(
     timeline_zone: egui::Rect,
 ) -> TimeLineResponse {
     let range_x = timeline_zone.x_range();
-    let range_y = timeline_zone.y_range();
     let anoter_time = time_range.clone();
     let another_range = range_x.clone();
     let remap = |i| egui::remap(i, anoter_time.clone(), another_range.clone());
     let remap_reversed = |i| egui::remap(i, another_range.clone(), anoter_time.clone());
     cursor_v(ui, remap(cursor), view);
-    ui.allocate_ui_at_rect(timeline_zone, |ui| {
-        for (time, x) in timeline_pos_iter(*scale, time_range.clone(), range_x) {
-            line_v(ui, remap(time), view, Stroke::new(1., Color32::DARK_GRAY));
-            ui.allocate_ui_at_rect(
-                egui::Rect::from_x_y_ranges(x..=x + 100., range_y.clone()),
-                |ui| {
-                    ui.label(format!("{time}"));
-                },
-            );
-        }
-    });
+    for (time, x) in timeline_pos_iter(*scale, time_range.clone(), range_x) {
+        line_v(ui, remap(time), view, Stroke::new(1., Color32::DARK_GRAY));
+        ui.painter().text(
+            [x, timeline_zone.center().y].into(),
+            Align2::LEFT_BOTTOM,
+            time,
+            FontId::default(),
+            Color32::WHITE,
+        );
+    }
     let res = ui.interact(
         timeline_zone,
         Id::new("timeline_interact"),
@@ -61,7 +59,6 @@ pub fn timeline_vertical(
     let remap = |i| egui::remap(i, another_time.clone(), another_range.clone());
     let remap_reversed = |i| egui::remap(i, another_range.clone(), another_time.clone());
     cursor_h(ui, remap(cursor), view);
-    let base_y = remap_reversed(0.);
     for (time, y) in timeline_pos_iter(*scale, time_range.clone(), range_y) {
         line_h(ui, remap(time), view, Stroke::new(1., Color32::DARK_GRAY));
         ui.painter().text(
