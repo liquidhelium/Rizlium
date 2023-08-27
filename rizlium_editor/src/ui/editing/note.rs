@@ -5,7 +5,7 @@ use crate::ui::editing::timeline_vertical;
 
 pub fn note_editor_vertical(
     ui: &mut Ui,
-    focus: Option<usize>,
+    _focus: Option<usize>,
     lanes: &[(impl ToString,&[Note])],
     cursor: f32,
     scale: &mut f32,

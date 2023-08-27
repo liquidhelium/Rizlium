@@ -3,7 +3,7 @@ use std::ops::RangeInclusive;
 use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_egui::EguiUserTextures;
 use egui::{Button, Color32, Layout, RichText, Ui};
-use rizlium_render::{GameView, TimeManager, GameTime};
+use rizlium_render::{GameTime, GameView, TimeManager};
 
 use crate::TabProvider;
 
@@ -12,20 +12,16 @@ pub struct GameViewTab<'w> {
     gameview: Res<'w, GameView>,
     textures: Res<'w, EguiUserTextures>,
     time: ResMut<'w, TimeManager>,
-    game_time: Res<'w, GameTime>
+    game_time: Res<'w, GameTime>,
 }
 
 impl<'w> TabProvider for GameViewTab<'w> {
-    fn system(
-        world: &mut World,
-        state: &mut bevy::ecs::system::SystemState<Self>,
-        ui: &mut Ui,
-    ) {
+    fn system(world: &mut World, state: &mut bevy::ecs::system::SystemState<Self>, ui: &mut Ui) {
         let GameViewTab::<'_> {
             gameview,
             textures,
             mut time,
-            game_time
+            game_time,
         } = state.get_mut(world);
         let img = textures
             .image_id(&gameview.0)
@@ -41,17 +37,9 @@ impl<'w> TabProvider for GameViewTab<'w> {
                 });
             });
         });
-
-        ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
-            // TODO: i18n
-            let button = &ui.button("Pause");
-            if button.clicked() {
-                time.toggle_paused();
-            }
-            // video_control(ui, &mut false, 0.0..=100.0, &mut 50.);
-            keep_ratio(ui, 16. / 9., |ui, size| {
-                ui.centered_and_justified(|ui| ui.image(img, size));
-            });
+        // video_control(ui, &mut false, 0.0..=100.0, &mut 50.);
+        keep_ratio(ui, 16. / 9., |ui, size| {
+            ui.centered_and_justified(|ui| ui.image(img, size));
         });
     }
     fn name() -> String {
@@ -71,25 +59,4 @@ fn keep_ratio(ui: &mut Ui, ratio: f32, mut add_fn: impl FnMut(&mut Ui, egui::Vec
         new_size.y = current_size.y;
     }
     add_fn(ui, new_size);
-}
-
-// todo: control game view time
-fn video_control(
-    ui: &mut Ui,
-    paused: &mut bool,
-    time_range: RangeInclusive<f32>,
-    current: &mut f32,
-) {
-    ui.with_layout(Layout::bottom_up(egui::Align::Center), |ui| {
-        let pause_icon = if *paused { "▶" } else { "⏸" };
-        ui.add(Button::new(RichText::from(pause_icon).size(18.)).frame(false));
-        let (_seekbar_id, seekbar_rect) = ui.allocate_space([ui.available_width(), 20.].into());
-        let seekbar_main_rect = seekbar_rect.shrink2([20., 8.].into());
-        ui.painter()
-            .rect_filled(seekbar_main_rect, 0., Color32::GRAY);
-        let mut seekbar_current_rect = seekbar_rect;
-        *seekbar_current_rect.right_mut() = seekbar_main_rect.width().mul_add(egui::emath::inverse_lerp(time_range, *current).unwrap_or(0.), seekbar_main_rect.left());
-        ui.painter()
-            .rect_filled(seekbar_main_rect, 0., Color32::BLUE);
-    });
 }
