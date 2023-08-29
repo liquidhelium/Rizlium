@@ -39,7 +39,8 @@ impl Plugin for ChartLoadingPlugin {
 pub struct GameChartAsset {
     music: AudioSource,
     chart: Chart,
-    info: ChartInfo,
+    // todo: handle chart info
+    _info: ChartInfo,
 }
 
 #[derive(Default)]
@@ -120,7 +121,7 @@ impl AssetLoader for GameChartLoader {
             drop(_enter1);
             #[cfg(feature = "trace")]
             drop(_enter);
-            load_context.set_default_asset(LoadedAsset::new(GameChartAsset { music, chart, info }));
+            load_context.set_default_asset(LoadedAsset::new(GameChartAsset { music, chart, _info:info }));
 
             //     }
             //     _ => unreachable!("Bevy should guarantee the extension"),
@@ -134,7 +135,7 @@ impl AssetLoader for GameChartLoader {
 }
 
 #[derive(Deserialize, Default)]
-struct ChartInfo {
+pub struct ChartInfo {
     pub name: String,
     pub format: ChartFormat,
     pub chart_path: String,
@@ -142,7 +143,7 @@ struct ChartInfo {
 }
 
 #[derive(Deserialize, Default)]
-enum ChartFormat {
+pub enum ChartFormat {
     #[default]
     Rizline,
 }

@@ -3,7 +3,7 @@ use rizlium_editor::hotkeys::HotkeyPlugin;
 use rizlium_editor::widgets::{
     widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons, RecentButtons,
 };
-use rizlium_editor::{WindowUpdateControlPlugin, InitRizTabsExt};
+use rizlium_editor::{WindowUpdateControlPlugin, InitRizTabsExt, FilePlugin};
 
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::window::PrimaryWindow;
@@ -12,11 +12,11 @@ use bevy::{prelude::*, render::render_resource::TextureDescriptor};
 use bevy_egui::EguiContexts;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
-use egui::{Align2, FontData, FontDefinitions, Layout};
+use egui::{Align2, Layout};
 use egui_dock::DockArea;
 use rizlium_editor::{
-    open_chart, ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps,
-    PendingDialog, RecentFiles, RizDockTree, RizTabPresets, RizTabViewer, RizTabs,
+    ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps,
+    RizDockTree, RizTabPresets, RizTabViewer, RizTabs, RecentFiles
 };
 use rizlium_render::{GameChart, GameView, RizliumRenderingPlugin};
 
@@ -32,21 +32,19 @@ fn main() {
             // WorldInspectorPlugin::default(),
             CountFpsPlugin,
             WindowUpdateControlPlugin,
-            HotkeyPlugin
+            HotkeyPlugin,
+            FilePlugin
         ))
         .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
         .init_resource::<RizDockTree>()
         .init_riztabs()
-        .init_resource::<PendingDialog>()
-        .init_resource::<RecentFiles>()
         .add_systems(
             PreStartup,
             (setup_game_view /* egui_font */,).after(bevy_egui::EguiStartupSet::InitContexts),
         )
         .add_systems(Startup, setup_persistent)
         .add_systems(Update, egui_render)
-        .add_systems(PostUpdate, open_chart)
         .run();
 }
 fn setup_game_view(
@@ -103,26 +101,6 @@ fn setup_persistent(mut commands: Commands) {
             .build()
             .expect("failed to setup recent files"),
     );
-}
-
-fn egui_font(mut egui_context: EguiContexts) {
-    // TODO: this font name is hard coded
-    let data = font_kit::source::SystemSource::new()
-        .select_by_postscript_name("SourceHanSansCN-Normal")
-        .unwrap()
-        .load()
-        .unwrap()
-        .copy_font_data()
-        .unwrap();
-    let mut def = FontDefinitions::default();
-    def.font_data
-        .insert("cn".into(), FontData::from_owned(Vec::clone(&data)));
-    def.families
-        .entry(egui::FontFamily::Proportional)
-        .or_default()
-        .insert(0, "cn".to_owned());
-    let ctx = egui_context.ctx_mut();
-    ctx.set_fonts(def);
 }
 fn egui_render(world: &mut World) {
     let mut egui_context = world.query::<(&mut EguiContext, With<PrimaryWindow>)>();

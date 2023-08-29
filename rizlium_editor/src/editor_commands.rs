@@ -5,7 +5,7 @@ use rizlium_render::{LoadChartEvent, ShowLines, TimeControlEvent};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use crate::{open_dialog, PendingDialog, RecentFiles};
+use crate::{files::open_dialog, files::PendingDialog, RecentFiles};
 #[derive(SystemParam, Deref, DerefMut)]
 pub struct EditorCommands<'s> {
     commands: Deferred<'s, ManualEditorCommands>,
