@@ -1,5 +1,5 @@
 use crate::EditorState;
-use bevy::prelude::{info, App, Deref, DerefMut, Resource, World};
+use bevy::prelude::{App, Deref, DerefMut, Resource, World};
 
 use egui::{Color32, RichText, Ui};
 use egui_dock::{TabViewer, Tree};

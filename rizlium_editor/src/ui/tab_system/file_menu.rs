@@ -15,7 +15,7 @@ impl TabProvider for FileMenu<'_, '_> {
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,
         ui: &mut egui::Ui,
-        has_focus: bool,
+        _has_focus: bool,
     ) {
         let FileMenu::<'_, '_> {
             mut events,

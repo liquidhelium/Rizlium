@@ -1,4 +1,4 @@
-use bevy::render::view::WindowRenderPlugin;
+
 use rizlium_editor::hotkeys::HotkeyPlugin;
 use rizlium_editor::widgets::{
     widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons, RecentButtons,
@@ -6,8 +6,8 @@ use rizlium_editor::widgets::{
 use rizlium_editor::{WindowUpdateControlPlugin, InitRizTabsExt};
 
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
-use bevy::window::{PresentMode, PrimaryWindow, RequestRedraw};
-use bevy::winit::WinitSettings;
+use bevy::window::PrimaryWindow;
+
 use bevy::{prelude::*, render::render_resource::TextureDescriptor};
 use bevy_egui::EguiContexts;
 use bevy_egui::{EguiContext, EguiPlugin};
