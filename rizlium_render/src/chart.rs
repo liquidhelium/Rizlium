@@ -14,7 +14,7 @@ impl GameChart {
             .enumerate()
             .flat_map(|(i, l)| std::iter::repeat(i).zip(0..l.points.points().len() - 1))
     }
-    pub fn iter_note(&self) -> impl Iterator<Item = (usize, usize)> + '_  {
+    pub fn iter_note(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
         self.lines
             .iter()
             .enumerate()
@@ -24,7 +24,6 @@ impl GameChart {
 
 #[derive(Resource, Default, Deref)]
 pub struct GameChartCache(pub ChartCache);
-
 
 pub struct ChartCachePlugin;
 

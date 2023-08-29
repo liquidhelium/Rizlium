@@ -1,14 +1,8 @@
-
-
-
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use rizlium_render::{GameChart, GameTime};
 
-use crate::{
-    ui::editing::note_editor_vertical,
-    TabProvider,
-};
+use crate::{hotkeys::NoAction, ui::editing::note_editor_vertical, TabProvider};
 
 #[derive(SystemParam)]
 pub struct NoteWindow<'w, 's> {
@@ -20,10 +14,12 @@ pub struct NoteWindow<'w, 's> {
 }
 
 impl<'w, 's> TabProvider for NoteWindow<'w, 's> {
-    fn system(
+    type Hotkey = NoAction;
+    fn ui(
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,
         ui: &mut egui::Ui,
+        has_focus: bool,
     ) {
         let NoteWindow {
             chart,
@@ -42,7 +38,7 @@ impl<'w, 's> TabProvider for NoteWindow<'w, 's> {
         let _show_first = false;
         ui.scope(|ui| {
             ui.style_mut().spacing.slider_width = 500.;
-            
+
             ui.add(egui::Slider::new(
                 &mut *focused,
                 0..=(chart.lines.len() - 1),
@@ -50,9 +46,21 @@ impl<'w, 's> TabProvider for NoteWindow<'w, 's> {
             ui.add(egui::Slider::new(&mut *scale, 1.0..=2000.0).logarithmic(true));
             ui.add(egui::Slider::new(&mut *row_width, 10.0..=200.0));
         });
-        note_editor_vertical(ui, Some(0), chart.lines.iter().map(|l| l.notes.as_slice()).enumerate().collect::<Vec<_>>().as_slice(), **time,&mut scale, *row_width, 200.)
-        
-        
+        note_editor_vertical(
+            ui,
+            Some(0),
+            chart
+                .lines
+                .iter()
+                .map(|l| l.notes.as_slice())
+                .enumerate()
+                .collect::<Vec<_>>()
+                .as_slice(),
+            **time,
+            &mut scale,
+            *row_width,
+            200.,
+        )
     }
     fn name() -> String {
         "Notes".into()

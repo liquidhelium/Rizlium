@@ -60,6 +60,7 @@ pub enum TimeControlEvent {
     Toggle,
     Seek(f32),
     SetPaused(bool),
+    Advance(f32),
 }
 
 fn update_timemgr(mut time: ResMut<TimeManager>, real_time: Res<Time>) {
@@ -85,6 +86,7 @@ fn dispatch_events(
             }
             TimeControlEvent::Toggle => time.toggle_paused(),
             TimeControlEvent::SetPaused(paused) => time.set_paused(*paused),
+            TimeControlEvent::Advance(duration) => time.advance(*duration),
         }
     }
 }
@@ -173,6 +175,11 @@ impl TimeManager {
     pub fn align_to_audio_time(&mut self, audio_time: f32) {
         let current = self.current();
         self.seek((audio_time - current).mul_add(COMPENSATION_RATE, current));
+    }
+    /// Advance [`TimeManager`] by `duration`.
+    /// `duration` can be negative to rewind.
+    fn advance(&mut self, duration: f32) {
+        self.seek(self.current() + duration);
     }
 }
 

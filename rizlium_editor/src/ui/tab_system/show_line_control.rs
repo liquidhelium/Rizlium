@@ -1,7 +1,7 @@
 use bevy::{ecs::system::SystemParam, prelude::*, render::view::RenderLayers};
 use rizlium_render::{GameCamera, GameChart, ShowLines};
 
-use crate::TabProvider;
+use crate::{hotkeys::NoAction, TabProvider};
 
 #[derive(SystemParam)]
 pub struct ShowLineControl<'w, 's> {
@@ -12,10 +12,12 @@ pub struct ShowLineControl<'w, 's> {
 }
 
 impl TabProvider for ShowLineControl<'_, '_> {
-    fn system(
+    type Hotkey = NoAction;
+    fn ui(
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,
         ui: &mut egui::Ui,
+        has_focus: bool,
     ) {
         let ShowLineControl::<'_, '_> {
             mut commands,

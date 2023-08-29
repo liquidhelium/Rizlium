@@ -17,7 +17,7 @@ impl WidgetSystem for DockButtons<'static> {
         world: &mut bevy::prelude::World,
         state: &mut bevy::ecs::system::SystemState<Self>,
         ui: &mut egui::Ui,
-        _extra: Self::Extra<'_>
+        _extra: Self::Extra<'_>,
     ) {
         let DockButtons::<'_> { tabs, mut tree } = state.get_mut(world);
         let tree = &mut tree.tree;

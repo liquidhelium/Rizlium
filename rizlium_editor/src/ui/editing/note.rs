@@ -1,4 +1,4 @@
-use egui::{scroll_area::ScrollAreaOutput, Color32, NumExt, Ui, FontId};
+use egui::{scroll_area::ScrollAreaOutput, Color32, FontId, NumExt, Ui};
 use rizlium_chart::prelude::*;
 
 use crate::ui::editing::timeline_vertical;
@@ -6,7 +6,7 @@ use crate::ui::editing::timeline_vertical;
 pub fn note_editor_vertical(
     ui: &mut Ui,
     _focus: Option<usize>,
-    lanes: &[(impl ToString,&[Note])],
+    lanes: &[(impl ToString, &[Note])],
     cursor: f32,
     scale: &mut f32,
     row_width: f32,
@@ -32,7 +32,7 @@ pub fn note_editor_vertical(
             let range_y = view.y_range();
             let time_start = (max_y - range_y.end()) / *scale;
             let time_end = (max_y - range_y.start()) / *scale;
-            for (label,lane) in &lanes[range] {
+            for (label, lane) in &lanes[range] {
                 let (_, rect) = ui.allocate_space([row_width, max_y].into());
                 ui.painter().rect_filled(rect, 0., Color32::BLACK);
                 ui.painter().text(

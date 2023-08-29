@@ -1,83 +1,51 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 use leafwing_input_manager::{
     action_state::ActionData,
-    dynamic_action::{DynAction, DynActionMarker, DynActionRegistry},
-    prelude::{ActionState, InputManagerPlugin},
+    prelude::{ActionState, InputManagerPlugin, InputMap},
+    user_input::UserInput,
+    Actionlike, InputManagerBundle,
 };
 
+use crate::global_actions::{self, GlobalEditorAction};
 
 pub struct HotkeyPlugin;
 
 impl Plugin for HotkeyPlugin {
     fn build(&self, app: &mut App) {
-        app
-        .add_plugins(InputManagerPlugin::<DynAction>::default())
-        .insert_resource(DynActionRegistry::get().unwrap());
-    }
-    fn finish(&self, app: &mut App) {
-        app.world.remove_resource::<DynActionRegistry>().unwrap().finish();
-    }
-}
-
-pub trait ToDynAction {
-    fn to_dyn_action(&self) -> DynAction;
-}
-
-impl<T: DynActionMarker> ToDynAction for T {
-    fn to_dyn_action(&self) -> DynAction {
-        Self::get_action()
+        app.add_plugins(InputManagerPlugin::<GlobalEditorAction>::default())
+            .add_systems(Update, global_actions::dispatch);
+        app.world.spawn(InputManagerBundle::<GlobalEditorAction> {
+            input_map: GlobalEditorAction::default_map(),
+            ..default()
+        });
     }
 }
 
-impl From<Box<dyn ToDynAction>> for DynAction {
-    fn from(value: Box<dyn ToDynAction>) -> Self {
-        value.to_dyn_action()
-    }
-}
-
-#[macro_export]
-macro_rules! as_dyn_actions {
-    ($vis:vis enum $name:ident {
-        $($single_action:ident),+
-    }) => {
-        #[allow(non_snake_case)]
-        $vis mod $name {
-            use leafwing_input_manager::dynamic_action::DynActionMarker;
-            use crate::hotkeys::ToDynAction;
-            $(#[derive(DynActionMarker, Default)]
-            pub struct $single_action;)+
-            pub fn varients() -> impl Iterator<Item = Box<dyn ToDynAction>>{
-                [
-                    $(Box::<$single_action>::default() as Box<dyn ToDynAction>),+
-                ].into_iter()
-            }
-            pub fn register_varients(app: &mut bevy::prelude::App) {
-                use leafwing_input_manager::dynamic_action::RegisterActionToAppExt;
-                $(app.register_action::<$single_action>();)+
-            }
-        }
-
-    };
-}
-
-as_dyn_actions! {
-    pub enum GlobalEditorAction {
-        OpenChartDialog,
-        TogglePause,
-        SaveDocument
-    }
-}
-
-#[derive(Component)]
-struct EditorHotkey;
+#[derive(Actionlike, Reflect, Clone)]
+pub enum NoAction {}
 
 #[derive(SystemParam)]
-pub struct HotkeyContext<'w, 's> {
-    query: Query<'w, 's, &'static ActionState<DynAction>, With<EditorHotkey>>,
+pub struct HotkeyContext<'w, 's, T: Actionlike> {
+    query: Query<'w, 's, (&'static ActionState<T>, &'static InputMap<T>)>,
+}
+use std::ops::Deref;
+impl<T: Actionlike> Deref for HotkeyContext<'_, '_, T> {
+    type Target = ActionState<T>;
+    fn deref(&self) -> &Self::Target {
+        self.single().0
+    }
 }
 
-impl HotkeyContext<'_, '_> {
-    pub fn action(&self, action: impl Into<DynAction>) -> &ActionData {
-        self.query.single().action_data(action.into())
+impl<T: Actionlike> HotkeyContext<'_, '_, T> {
+    fn single(&self) -> (&ActionState<T>, &InputMap<T>) {
+        self.query
+            .get_single()
+            .expect("possible calling for T = NoAction, or no action manager found")
+    }
+}
+
+impl<T: Actionlike> HotkeyContext<'_, '_, T> {
+    pub fn iter_inputs(&self) -> impl Iterator<Item = &UserInput> {
+        self.single().1.iter_inputs().map(|i| i.iter()).flatten()
     }
 }

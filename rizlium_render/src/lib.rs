@@ -1,7 +1,4 @@
-use bevy::{
-    prelude::*,
-    render::camera::RenderTarget,
-};
+use bevy::{prelude::*, render::camera::RenderTarget};
 
 use bevy_prototype_lyon::prelude::*;
 use chart_loader::ChartLoadingPlugin;
@@ -76,7 +73,7 @@ impl Plugin for RizliumRenderingPlugin {
                 ChartLoadingPlugin,
                 ChartNotePlugin,
                 RingPlugin,
-                MaskPlugin
+                MaskPlugin,
             ))
             .add_systems(Startup, spawn_game_camera)
             .add_systems(PostUpdate, bind_gameview);

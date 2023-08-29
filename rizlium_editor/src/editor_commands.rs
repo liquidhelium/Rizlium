@@ -1,13 +1,13 @@
-use bevy::ecs::system::{CommandQueue, SystemBuffer, SystemParam, SystemMeta};
+use bevy::ecs::system::{CommandQueue, SystemBuffer, SystemMeta, SystemParam};
 use bevy::prelude::*;
 use bevy_persistent::Persistent;
-use rizlium_render::{TimeControlEvent, LoadChartEvent, ShowLines};
-use serde::Serialize;
+use rizlium_render::{LoadChartEvent, ShowLines, TimeControlEvent};
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 
-use crate::{PendingDialog, open_dialog, RecentFiles};
+use crate::{open_dialog, PendingDialog, RecentFiles};
 #[derive(SystemParam, Deref, DerefMut)]
-pub struct EditorCommands<'s>{
+pub struct EditorCommands<'s> {
     commands: Deferred<'s, ManualEditorCommands>,
 }
 
@@ -22,9 +22,8 @@ impl SystemBuffer for ManualEditorCommands {
     }
 }
 
-
 impl ManualEditorCommands {
-    pub fn time_control(&mut self,event: TimeControlEvent) {
+    pub fn time_control(&mut self, event: TimeControlEvent) {
         self.commands.push(|world: &mut World| {
             world.send_event(event);
         });
@@ -49,7 +48,7 @@ impl ManualEditorCommands {
             recent.persist().unwrap();
         });
     }
-    pub fn persist_resource<T: Resource+ Serialize + DeserializeOwned>(&mut self) {
+    pub fn persist_resource<T: Resource + Serialize + DeserializeOwned>(&mut self) {
         self.commands.push(|world: &mut World| {
             world.resource_mut::<Persistent<T>>().persist().unwrap();
         });
@@ -60,17 +59,16 @@ impl ManualEditorCommands {
     }
 }
 
-pub struct GameConfigure<'c,> {
-    pub commands: &'c mut ManualEditorCommands
+pub struct GameConfigure<'c> {
+    pub commands: &'c mut ManualEditorCommands,
 }
 
 impl GameConfigure<'_> {
-    pub fn show_line(self, show: Option<usize>)-> Self {
-        self.commands.commands.push(move |world:&mut World | {
+    pub fn show_line(self, show: Option<usize>) -> Self {
+        self.commands.commands.push(move |world: &mut World| {
             if let Some(mut res) = world.get_resource_mut::<ShowLines>() {
                 res.0 = show
-            }
-            else {
+            } else {
                 error!("failed to get resource!")
             }
         });

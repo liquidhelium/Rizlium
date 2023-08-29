@@ -1,5 +1,5 @@
 use crate::EditorState;
-use bevy::prelude::{Deref, DerefMut, Resource, World, App};
+use bevy::prelude::{info, App, Deref, DerefMut, Resource, World};
 
 use egui::{Color32, RichText, Ui};
 use egui_dock::{TabViewer, Tree};
@@ -7,8 +7,6 @@ use egui_dock::{TabViewer, Tree};
 mod editing;
 pub mod tab_system;
 pub mod widgets;
-use leafwing_input_manager::dynamic_action::DynAction;
-use leafwing_input_manager::prelude::InputMap;
 use serde::{Deserialize, Serialize};
 pub use tab_system::tabs::*;
 pub use tab_system::{CachedTab, TabInstace, TabProvider};
@@ -45,19 +43,23 @@ impl Default for RizTabs {
 }
 
 impl RizTabs {
-    pub fn tab_input_maps(&self) -> InputMap<DynAction> {
-        let iter = self
-            .tabs
-            .iter()
-            .map(|tab| tab.hotkeys())
-            .flatten()
-            .map(|i| (i.0, i.1.to_dyn_action()));
-        InputMap::new(iter)
-    }
-    pub fn register_tab_actions(&self, app: &mut App) {
-        for t in &self.tabs {
-            t.register_actions(app);
+    pub fn init_hotkey(&self, app: &mut App) {
+        for tab in &self.tabs {
+            tab.init_hotkey(app);
         }
+    }
+}
+
+pub trait InitRizTabsExt {
+    fn init_riztabs(&mut self) -> &mut Self;
+}
+
+impl InitRizTabsExt for App {
+    fn init_riztabs(&mut self) -> &mut Self {
+        let tabs = RizTabs::default();
+        tabs.init_hotkey(self);
+        self.insert_resource(tabs);
+        self
     }
 }
 
@@ -65,14 +67,20 @@ pub struct RizTabViewer<'a> {
     pub world: &'a mut World,
     pub editor_state: &'a mut EditorState,
     pub tabs: &'a mut Vec<Box<dyn CachedTab>>,
+    pub focused_tab: Option<usize>,
 }
 
 impl TabViewer for RizTabViewer<'_> {
     type Tab = usize;
-    fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
-        if let Some(tab) = self.tabs.get_mut(*tab) {
+    fn ui(&mut self, ui: &mut egui::Ui, this_index: &mut Self::Tab) {
+        if let Some(tab) = self.tabs.get_mut(*this_index) {
             if tab.avaliable(self.world) {
-                tab.ui(self.world, ui);
+                tab.ui(
+                    self.world,
+                    ui,
+                    self.focused_tab
+                        .is_some_and(|focused| focused == *this_index),
+                );
             } else {
                 ui.colored_label(Color32::GRAY, RichText::new("Not avalible").italics());
             }
@@ -80,7 +88,7 @@ impl TabViewer for RizTabViewer<'_> {
             ui.colored_label(
                 Color32::LIGHT_RED,
                 format!(
-                    "UNRESOLVED TAB: tab index {tab} does not exist. There are {} tabs avalible",
+                    "UNRESOLVED TAB: tab index {this_index} does not exist. There are {} tabs avalible",
                     self.tabs.len()
                 ),
             );
