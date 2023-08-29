@@ -1,10 +1,10 @@
-use std::ops::RangeInclusive;
+
 
 use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_egui::EguiUserTextures;
-use egui::{Button, Color32, Layout, RichText, Ui};
-use leafwing_input_manager::{prelude::InputMap, user_input::UserInput, Actionlike};
-use rizlium_render::{GameTime, GameView, TimeControlEvent, TimeManager};
+use egui::{Button, Layout, Ui};
+
+use rizlium_render::{GameTime, GameView, TimeManager};
 
 use crate::{
     hotkeys::NoAction, 
@@ -26,14 +26,14 @@ impl<'w, 's> TabProvider for GameViewTab<'w, 's> {
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,
         ui: &mut Ui,
-        has_focus: bool,
+        _has_focus: bool,
     ) {
         let GameViewTab::<'_, '_> {
             gameview,
             textures,
             time,
             game_time,
-            mut commands
+            commands: _
         } = state.get(world);
         let img = textures
             .image_id(&gameview.0)

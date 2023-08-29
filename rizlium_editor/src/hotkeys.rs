@@ -1,6 +1,5 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 use leafwing_input_manager::{
-    action_state::ActionData,
     prelude::{ActionState, InputManagerPlugin, InputMap},
     user_input::UserInput,
     Actionlike, InputManagerBundle,

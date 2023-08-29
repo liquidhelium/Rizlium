@@ -17,7 +17,7 @@ impl TabProvider for ShowLineControl<'_, '_> {
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,
         ui: &mut egui::Ui,
-        has_focus: bool,
+        _has_focus: bool,
     ) {
         let ShowLineControl::<'_, '_> {
             mut commands,

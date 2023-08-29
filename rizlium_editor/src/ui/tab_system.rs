@@ -21,7 +21,7 @@ pub mod tabs {
     pub use super::spline_edit::SplineWindow;
 }
 
-use std::marker::PhantomData;
+
 
 use bevy::{
     ecs::system::{SystemParam, SystemState},
@@ -29,7 +29,7 @@ use bevy::{
 };
 use egui::Ui;
 use leafwing_input_manager::{
-    prelude::{InputMap, InputManagerPlugin}, user_input::UserInput, Actionlike, InputManagerBundle,
+    prelude::{InputMap, InputManagerPlugin}, Actionlike, InputManagerBundle,
 };
 
 pub trait TabProvider: SystemParam + Send + Sync {

@@ -1,9 +1,8 @@
 use bevy::{input::mouse::MouseWheel, prelude::*};
-use egui::scroll_area;
+
 use leafwing_input_manager::{
-    axislike::{AxisType, VirtualAxis},
-    prelude::{InputMap, MouseWheelAxisType, SingleAxis},
-    user_input::{InputKind, Modifier, UserInput},
+    prelude::InputMap,
+    user_input::UserInput,
     Actionlike,
 };
 
