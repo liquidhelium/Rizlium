@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use rizlium_chart::prelude::*;
-use std::ops::Deref;
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 pub struct GameChart(Chart);
 
 impl GameChart {
@@ -33,12 +32,6 @@ impl Plugin for ChartCachePlugin {
             PreUpdate,
             chart_cache.run_if(resource_exists_and_changed::<GameChart>()),
         );
-    }
-}
-impl Deref for GameChart {
-    type Target = Chart;
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 fn chart_cache(

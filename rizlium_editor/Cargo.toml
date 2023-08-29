@@ -42,6 +42,9 @@ rfd = "*"
 futures-lite = "1"
 indexmap = {version = "*", features = ["serde"]}
 leafwing-input-manager = "0.10.0"
-inventory = "*"
-enum_dispatch = "0.3"
-kinded = "*"
+enum_dispatch = "*"
+snafu = "*"
+static_init = "1"
+
+[dev-dependencies]
+serde_json = "*"
