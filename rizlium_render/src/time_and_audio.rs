@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_egui::egui::NumExt;
 use bevy_kira_audio::{Audio, AudioControl, AudioInstance, AudioSource, AudioTween, PlaybackState};
 use std::ops::Deref;
 
@@ -6,7 +7,7 @@ use crate::chart::GameChartCache;
 
 #[derive(Resource, Debug)]
 pub struct CurrentGameAudio(pub Handle<AudioInstance>);
-#[derive(Resource)]
+#[derive(Resource, Deref)]
 pub struct GameAudioSource(pub Handle<AudioSource>);
 
 #[derive(Resource, Reflect, Default)]
@@ -19,7 +20,7 @@ impl Deref for GameTime {
     }
 }
 
-const COMPENSATION_RATE: f32 = 0.001;
+const COMPENSATION_RATE: f32 = 0.01;
 
 #[derive(Resource, Debug, Default)]
 pub struct TimeManager {
@@ -42,7 +43,7 @@ impl Plugin for TimeAndAudioPlugin {
                     dispatch_events.run_if(resource_exists::<CurrentGameAudio>()),
                     update_timemgr,
                     sync_audio.run_if(resource_exists_and_changed::<GameAudioSource>()),
-                    align_audio.run_if(resource_exists::<CurrentGameAudio>()),
+                    align_or_restart_audio.run_if(resource_exists::<CurrentGameAudio>()),
                     game_time.run_if(
                         resource_exists::<GameChartCache>().and_then(
                             resource_changed::<GameChartCache>()
@@ -72,21 +73,39 @@ fn dispatch_events(
     mut time: ResMut<TimeManager>,
     audio: Res<CurrentGameAudio>,
     mut audios: ResMut<Assets<AudioInstance>>,
+    audio_datas: Res<Assets<AudioSource>>,
+    audio_data: Res<GameAudioSource>,
 ) {
     let Some(audio) = audios.get_mut(&audio.0) else {
-            return;
-        };
+        return;
+    };
+    let Some(audio_data) = audio_datas.get(&audio_data) else {
+        warn!("invalid audio source");
+        return;
+    };
     for ev in event.iter() {
         match ev {
             TimeControlEvent::Pause => time.pause(),
             TimeControlEvent::Resume => time.resume(),
             TimeControlEvent::Seek(pos) => {
-                time.seek(*pos);
-                audio.seek_to((*pos).into());
+                let pos = pos.clamp(0., audio_data.sound.duration().as_secs_f32() - 0.01);
+                time.seek(pos);
+                audio.seek_to(pos.into()).map(|e| {
+                    warn!("error when seeking: {}", e);
+                });
             }
             TimeControlEvent::Toggle => time.toggle_paused(),
             TimeControlEvent::SetPaused(paused) => time.set_paused(*paused),
-            TimeControlEvent::Advance(duration) => time.advance(*duration),
+            TimeControlEvent::Advance(duration) => {
+                let duration = duration.clamp(
+                    0.01 - time.current(),
+                    audio_data.sound.duration().as_secs_f32() - 0.01 - time.current(),
+                );
+                time.advance(duration);
+                audio.seek_by(duration.into()).map(|e| {
+                    warn!("error when seeking: {}", e);
+                });
+            }
         }
     }
 }
@@ -100,7 +119,6 @@ fn sync_audio(
     audio: Res<Audio>,
 ) {
     let new_current = audio.play(source.0.clone()).handle();
-    info!("Syncing audio...");
     if let Some(mut game_audio) = game_audio {
         if let Some(current) = game_audios.get_mut(&game_audio.0) {
             current.stop(default());
@@ -110,7 +128,7 @@ fn sync_audio(
         commands.insert_resource(CurrentGameAudio(new_current));
     }
     time_control.send(TimeControlEvent::Pause);
-    time_control.send(TimeControlEvent::Seek(0.1));
+    time_control.send(TimeControlEvent::Seek(0.01));
 }
 
 fn init_time_manager(mut commands: Commands, time: Res<Time>) {
@@ -183,27 +201,38 @@ impl TimeManager {
     }
 }
 
-fn align_audio(
+fn align_or_restart_audio(
     mut time: ResMut<TimeManager>,
-    audio: Res<CurrentGameAudio>,
+    mut audio: ResMut<CurrentGameAudio>,
     mut audios: ResMut<Assets<AudioInstance>>,
+    player: Res<Audio>,
+    source: Res<GameAudioSource>
 ) {
-    let Some(audio) = audios.get_mut(&audio.0) else {
+    let Some(current_audio) = audios.get_mut(&audio.0) else {
+        info!("Restarting audio");
+        let new_handle = player.play(source.0.clone()).handle();
+        audios.remove(&audio.0);
+        audio.0 = new_handle;
+        time.seek(0.);
+        time.pause();
         return;
     };
 
-    if let PlaybackState::Playing { position } = audio.state() {
-        if time.paused() {
-            info!("Pausing audio");
-            audio.pause(AudioTween::default());
-        } else {
-            time.align_to_audio_time(position as f32);
+    match current_audio.state() {
+        PlaybackState::Playing { position } => {
+            if time.paused() {
+                info!("Pausing audio");
+                current_audio.pause(AudioTween::default());
+            } else {
+                time.align_to_audio_time(position as f32);
+            }
         }
-    } else {
-        audio.seek_to(time.current().into());
-        if !time.paused() {
-            info!("resuming audio");
-            audio.resume(AudioTween::default());
+        _ => {
+            current_audio.seek_to(time.current().into());
+            if !time.paused() {
+                info!("Resuming audio");
+                current_audio.resume(AudioTween::default());
+            }
         }
     }
 }
