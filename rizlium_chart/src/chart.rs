@@ -63,10 +63,7 @@ impl Chart {
         self.lines.iter().map(|l| l.notes.len()).sum()
     }
     pub const fn with_cache<'a: 'b, 'b>(&'a self, cache: &'b ChartCache) -> ChartAndCache<'a, 'b> {
-        ChartAndCache {
-            chart: self,
-            cache,
-        }
+        ChartAndCache { chart: self, cache }
     }
 }
 
@@ -125,19 +122,20 @@ impl ChartCache {
                     },
                 );
 
-                points.into_iter().map(|k| {
-                    KeyPoint{
-                        time:k.time,
+                points
+                    .into_iter()
+                    .map(|k| KeyPoint {
+                        time: k.time,
                         value: k.value,
                         ease_type: k.ease_type,
-                        relevent:()
-                    }
-                }).collect()
+                        relevent: (),
+                    })
+                    .collect()
             })
             .collect();
     }
 
-    pub fn canvas_y_at(&self, index: usize,time: f32) ->Option<f32> {
+    pub fn canvas_y_at(&self, index: usize, time: f32) -> Option<f32> {
         let canvas = self.canvas_y_by_real.get(index)?;
         let real_time = self.beat_remap.value_padding(time).unwrap();
         canvas.value_padding(real_time)
@@ -181,8 +179,10 @@ impl ChartCache {
     pub fn map_time(&self, time: f32) -> f32 {
         self.beat.value_padding(time).expect("empty beat spline")
     }
-    pub fn remap_beat(&self, game_time:f32) -> f32 {
-        self.beat_remap.value_padding(game_time).expect("empty beat spline (remap)")
+    pub fn remap_beat(&self, game_time: f32) -> f32 {
+        self.beat_remap
+            .value_padding(game_time)
+            .expect("empty beat spline (remap)")
     }
 }
 
@@ -205,7 +205,11 @@ impl ChartAndCache<'_, '_> {
             .points
             .points()
             .get(point_idx)?;
-        Some([self.keypoint_releated_x(point, game_time)?, self.cache.canvas_y_at(point.relevent, point.time)? - self.cache.canvas_y_at(point.relevent, game_time)?])
+        Some([
+            self.keypoint_releated_x(point, game_time)?,
+            self.cache.canvas_y_at(point.relevent, point.time)?
+                - self.cache.canvas_y_at(point.relevent, game_time)?,
+        ])
     }
     pub fn line_pos_at(&self, line_idx: usize, time: f32, game_time: f32) -> Option<[f32; 2]> {
         let line = self.chart.lines.get(line_idx)?;
@@ -227,7 +231,8 @@ impl ChartAndCache<'_, '_> {
                 point1.ease_type,
             ),
             // f32::lerp(pos1[1], pos2[1], invlerp(point1.time, point2.time, time)),
-            self.cache.canvas_y_at(point1.relevent, time)? - self.cache.canvas_y_at(point1.relevent, game_time)?,
+            self.cache.canvas_y_at(point1.relevent, time)?
+                - self.cache.canvas_y_at(point1.relevent, game_time)?,
         ])
     }
     pub fn line_pos_at_clamped(

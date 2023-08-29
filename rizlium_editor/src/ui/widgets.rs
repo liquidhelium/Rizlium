@@ -2,7 +2,7 @@ mod dock_buttons;
 mod preset;
 mod recent_file_buttons;
 pub use dock_buttons::DockButtons;
-pub use preset::{PresetButtons, LayoutPresetEdit};
+pub use preset::{LayoutPresetEdit, PresetButtons};
 pub use recent_file_buttons::RecentButtons;
 
 use bevy::{
@@ -12,7 +12,12 @@ use bevy::{
 use egui::Ui;
 pub trait WidgetSystem: SystemParam + 'static {
     type Extra<'a>;
-    fn system(world: &mut World, state: &mut SystemState<Self>, ui: &mut Ui, _extra: Self::Extra<'_>);
+    fn system(
+        world: &mut World,
+        state: &mut SystemState<Self>,
+        ui: &mut Ui,
+        _extra: Self::Extra<'_>,
+    );
 }
 
 pub fn widget<W>(world: &mut World, ui: &mut Ui)

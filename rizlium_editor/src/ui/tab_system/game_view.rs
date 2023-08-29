@@ -3,26 +3,38 @@ use std::ops::RangeInclusive;
 use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_egui::EguiUserTextures;
 use egui::{Button, Color32, Layout, RichText, Ui};
-use rizlium_render::{GameTime, GameView, TimeManager};
+use leafwing_input_manager::{prelude::InputMap, user_input::UserInput, Actionlike};
+use rizlium_render::{GameTime, GameView, TimeControlEvent, TimeManager};
 
-use crate::TabProvider;
+use crate::{
+    hotkeys::NoAction, 
+    EditorCommands, TabProvider,
+};
 
 #[derive(SystemParam)]
-pub struct GameViewTab<'w> {
+pub struct GameViewTab<'w, 's> {
     gameview: Res<'w, GameView>,
     textures: Res<'w, EguiUserTextures>,
-    time: ResMut<'w, TimeManager>,
+    time: Res<'w, TimeManager>,
     game_time: Res<'w, GameTime>,
+    commands: EditorCommands<'s>,
 }
 
-impl<'w> TabProvider for GameViewTab<'w> {
-    fn system(world: &mut World, state: &mut bevy::ecs::system::SystemState<Self>, ui: &mut Ui) {
-        let GameViewTab::<'_> {
+impl<'w, 's> TabProvider for GameViewTab<'w, 's> {
+    type Hotkey = NoAction;
+    fn ui(
+        world: &mut World,
+        state: &mut bevy::ecs::system::SystemState<Self>,
+        ui: &mut Ui,
+        has_focus: bool,
+    ) {
+        let GameViewTab::<'_, '_> {
             gameview,
             textures,
-            mut time,
+            time,
             game_time,
-        } = state.get_mut(world);
+            mut commands
+        } = state.get(world);
         let img = textures
             .image_id(&gameview.0)
             .expect("no gameview image found!");
@@ -38,8 +50,21 @@ impl<'w> TabProvider for GameViewTab<'w> {
             });
         });
         // video_control(ui, &mut false, 0.0..=100.0, &mut 50.);
-        keep_ratio(ui, 16. / 9., |ui, size| {
-            ui.centered_and_justified(|ui| ui.image(img, size));
+        ui.with_layout(Layout::bottom_up(egui::Align::Center), |ui| {
+            ui.allocate_ui_with_layout([90., 30.].into(), Layout::left_to_right(egui::Align::Center), |ui| {
+                if ui.add(Button::new("⏪").frame(false).min_size([30.;2].into())).clicked() {
+
+                }
+                if ui.add(Button::new("⏸").frame(false).min_size([30.;2].into())).clicked() {
+                    
+                }
+                if ui.add(Button::new("⏩").frame(false).min_size([30.;2].into())).clicked() {
+
+                }
+            });
+            keep_ratio(ui, 16. / 9., |ui, size| {
+                ui.centered_and_justified(|ui| ui.image(img, size));
+            });
         });
     }
     fn name() -> String {

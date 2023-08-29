@@ -305,7 +305,6 @@ const EASING_MAP: [Easing; 16] = [
     },
 ];
 
-
 #[derive(IntoPrimitive, TryFromPrimitive, Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(u8)]
 pub enum EasingId {
@@ -330,10 +329,13 @@ pub enum EasingId {
 
 fn easef32(ease_type: EasingId, x: f32) -> f32 {
     let id_raw: u8 = ease_type.into();
-    EASING_MAP.get(id_raw as usize).map_or_else(|| {
-        error!("Unknown ease type {:?}", ease_type);
-        0.0
-    }, |func| func(x))
+    EASING_MAP.get(id_raw as usize).map_or_else(
+        || {
+            error!("Unknown ease type {:?}", ease_type);
+            0.0
+        },
+        |func| func(x),
+    )
 }
 
 #[cfg(test)]

@@ -3,7 +3,9 @@ use std::time::Duration;
 use bevy::{
     core::FrameCount,
     prelude::*,
-    tasks::{IoTaskPool, Task}, window::{RequestRedraw, PresentMode, PrimaryWindow}, winit::WinitSettings,
+    tasks::{IoTaskPool, Task},
+    window::{PresentMode, PrimaryWindow, RequestRedraw},
+    winit::WinitSettings,
 };
 use egui::{Color32, Rect, RichText, Ui};
 use egui_dock::Tree;
@@ -16,6 +18,7 @@ use serde::{Deserialize, Serialize};
 pub use ui::*;
 mod editor_commands;
 pub mod hotkeys;
+pub mod global_actions;
 pub use editor_commands::*;
 mod ui;
 #[derive(Debug, Resource, Default)]
@@ -203,11 +206,12 @@ pub struct WindowUpdateControlPlugin;
 
 impl Plugin for WindowUpdateControlPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, change_render_type).add_systems(
-            PostUpdate,
-            update_type_changing.run_if(resource_changed::<GameTime>()),
-        )
-        .insert_resource(WinitSettings::desktop_app());
+        app.add_systems(Startup, change_render_type)
+            .add_systems(
+                PostUpdate,
+                update_type_changing.run_if(resource_changed::<GameTime>()),
+            )
+            .insert_resource(WinitSettings::desktop_app());
     }
 }
 

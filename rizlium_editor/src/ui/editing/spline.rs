@@ -1,5 +1,3 @@
-
-
 use bevy::prelude::info;
 use egui::{epaint::PathShape, Color32, Pos2, Rect, Stroke, Ui};
 use rizlium_chart::prelude::{Spline, Tween};
@@ -34,7 +32,7 @@ pub fn spline_editor_horizontal<R>(
             let remap_point = |pos: Pos2| Pos2::new(remap_x(pos.x), remap_y(pos.y));
             if let Some(point) = spline.last() {
                 ui.set_width(point.time * scale_x);
-                ui.set_height(point.value *scale_y);
+                ui.set_height(point.value * scale_y);
             }
             let mut to_focus = None;
             ui.scope(|ui| {

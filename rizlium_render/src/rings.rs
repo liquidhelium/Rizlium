@@ -24,7 +24,7 @@ pub fn rings(
     chart: Res<GameChart>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
-    mut rings: Query<(&mut Stroke,&mut Transform, &mut Visibility, &Ring)>,
+    mut rings: Query<(&mut Stroke, &mut Transform, &mut Visibility, &Ring)>,
 ) {
     #[cfg(feature = "trace")]
     let span = info_span!("Ring updates");
@@ -32,7 +32,7 @@ pub fn rings(
     let _enter = span.enter();
     rings
         .par_iter_mut()
-        .for_each_mut(|(mut stroke,mut transform, mut vis, ring)| {
+        .for_each_mut(|(mut stroke, mut transform, mut vis, ring)| {
             #[cfg(feature = "trace")]
             let span = info_span!("single ring");
             #[cfg(feature = "trace")]

@@ -6,9 +6,14 @@ pub struct BackgroundThemePlugin;
 
 impl Plugin for BackgroundThemePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, change_bg.run_if(resource_exists::<GameChart>()
-        .and_then(resource_changed::<GameChart>().or_else(resource_changed::<GameTime>()))
-));
+        app.add_systems(
+            Update,
+            change_bg.run_if(
+                resource_exists::<GameChart>().and_then(
+                    resource_changed::<GameChart>().or_else(resource_changed::<GameTime>()),
+                ),
+            ),
+        );
     }
 }
 

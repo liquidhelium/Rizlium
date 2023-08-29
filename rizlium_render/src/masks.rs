@@ -9,8 +9,8 @@ use super::GameCamera;
 
 use bevy::math::Vec3A;
 
-use bevy::render::primitives::Aabb;
 use bevy::prelude::*;
+use bevy::render::primitives::Aabb;
 use bevy_prototype_lyon::prelude::*;
 
 pub struct MaskPlugin;
@@ -21,7 +21,6 @@ impl Plugin for MaskPlugin {
             .add_systems(PostUpdate, (update_mask_bottom, update_mask_top));
     }
 }
-
 
 #[derive(Component)]
 pub(crate) struct MaskBottom;
@@ -100,14 +99,12 @@ pub(crate) fn update_mask_bottom(
         let gradient: Gradient = {
             let mut linear =
                 LinearGradient::new_empty(Vec2::new(0., -gradient_height), Vec2::new(0., 0.));
-            if let Some(color) = chart
-                .and_then(|chart| {
-                    chart
-                        .theme_at(**time)
-                        .ok()
-                        .map(|t| colorrgba_to_color(t.this.color.background))
-                })
-            {
+            if let Some(color) = chart.and_then(|chart| {
+                chart
+                    .theme_at(**time)
+                    .ok()
+                    .map(|t| colorrgba_to_color(t.this.color.background))
+            }) {
                 linear.add_stop(0., color.with_a(1.));
                 linear.add_stop(1., color.with_a(0.));
             }
@@ -158,14 +155,12 @@ pub(crate) fn update_mask_top(
                 Vec2::new(0., area.max.y - mask_height),
                 Vec2::new(0., area.max.y - mask_height + gradient_height),
             );
-            if let Some(color) = chart
-                .and_then(|chart| {
-                    chart
-                        .theme_at(**time)
-                        .ok()
-                        .map(|t| colorrgba_to_color(t.this.color.background))
-                })
-            {
+            if let Some(color) = chart.and_then(|chart| {
+                chart
+                    .theme_at(**time)
+                    .ok()
+                    .map(|t| colorrgba_to_color(t.this.color.background))
+            }) {
                 linear.add_stop(0., color.with_a(0.));
                 linear.add_stop(1., color.with_a(1.));
             }

@@ -205,11 +205,7 @@ impl Line {
             points,
             point_color: colors,
             notes,
-            ring_color: self
-                .judge_ring_color
-                .into_iter()
-                .map(Into::into)
-                .collect(),
+            ring_color: self.judge_ring_color.into_iter().map(Into::into).collect(),
             line_color,
         })
     }

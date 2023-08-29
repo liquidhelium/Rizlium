@@ -1,8 +1,9 @@
-
 use bevy::render::view::WindowRenderPlugin;
 use rizlium_editor::hotkeys::HotkeyPlugin;
-use rizlium_editor::widgets::{widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons, RecentButtons};
-use rizlium_editor::WindowUpdateControlPlugin;
+use rizlium_editor::widgets::{
+    widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons, RecentButtons,
+};
+use rizlium_editor::{WindowUpdateControlPlugin, InitRizTabsExt};
 
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::window::{PresentMode, PrimaryWindow, RequestRedraw};
@@ -14,8 +15,8 @@ use bevy_persistent::prelude::*;
 use egui::{Align2, FontData, FontDefinitions, Layout};
 use egui_dock::DockArea;
 use rizlium_editor::{
-    open_chart, ui_when_no_dock, CountFpsPlugin, EditorState, NowFps, PendingDialog, RecentFiles, RizDockTree, RizTabPresets,
-    RizTabViewer, RizTabs, ManualEditorCommands,
+    open_chart, ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps,
+    PendingDialog, RecentFiles, RizDockTree, RizTabPresets, RizTabViewer, RizTabs,
 };
 use rizlium_render::{GameChart, GameView, RizliumRenderingPlugin};
 
@@ -30,13 +31,13 @@ fn main() {
             },
             // WorldInspectorPlugin::default(),
             CountFpsPlugin,
-            HotkeyPlugin,
-            WindowUpdateControlPlugin
+            WindowUpdateControlPlugin,
+            HotkeyPlugin
         ))
         .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
         .init_resource::<RizDockTree>()
-        .init_resource::<RizTabs>()
+        .init_riztabs()
         .init_resource::<PendingDialog>()
         .init_resource::<RecentFiles>()
         .add_systems(
@@ -45,14 +46,9 @@ fn main() {
         )
         .add_systems(Startup, setup_persistent)
         .add_systems(Update, egui_render)
-        .add_systems(
-            PostUpdate,
-                open_chart,
-        )
+        .add_systems(PostUpdate, open_chart)
         .run();
 }
-
-
 fn setup_game_view(
     mut commands: Commands,
     mut egui_context: EguiContexts,
@@ -192,6 +188,7 @@ fn egui_render(world: &mut World) {
     }
     world.resource_scope(|world: &mut World, mut tab: Mut<'_, RizTabs>| {
         world.resource_scope(|world: &mut World, mut tree: Mut<'_, RizDockTree>| {
+            let focused_tab = tree.tree.find_active_focused().unzip().1.copied();
             DockArea::new(&mut tree.tree)
                 .scroll_area_in_tabs(false)
                 .show(
@@ -200,6 +197,7 @@ fn egui_render(world: &mut World) {
                         world,
                         editor_state: &mut editor_state,
                         tabs: &mut tab.tabs,
+                        focused_tab,
                     },
                 );
 
