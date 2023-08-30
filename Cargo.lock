@@ -3996,12 +3996,15 @@ dependencies = [
 name = "rizlium_chart"
 version = "0.1.0"
 dependencies = [
+ "enum_dispatch",
  "log",
  "num_enum 0.6.1",
  "serde",
  "serde_derive",
+ "serde_json",
  "simple-easing",
  "snafu",
+ "static_init",
 ]
 
 [[package]]

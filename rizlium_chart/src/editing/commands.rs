@@ -1,6 +1,6 @@
 use super::Result;
 use enum_dispatch::enum_dispatch;
-use rizlium_chart::prelude::Chart;
+use crate::prelude::Chart;
 mod note;
 use note::*;
 

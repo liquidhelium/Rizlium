@@ -1,6 +1,6 @@
-use rizlium_chart::prelude::{Note, Chart};
+use crate::prelude::{Note, Chart};
 
-use crate::chart_edit::{chart_path::NotePath, Result, ChartConflictError, commands::{ChartCommands, ChartCommand}};
+use crate::editing::{chart_path::NotePath, Result, ChartConflictError, commands::{ChartCommands, ChartCommand}};
 
 
 pub struct ChangeNoteTime {
@@ -76,7 +76,7 @@ impl ChartCommand for RemoveNote {
 }
 #[cfg(test)]
 mod test {
-    use crate::chart_edit::{test_resources::CHART, chart_path::NotePath, commands::ChartCommand};
+    use crate::editing::{test_resources::CHART, chart_path::NotePath, commands::ChartCommand};
 
     use super::{ChangeNoteTime, RemoveNote, InsertNote};
     #[test]
