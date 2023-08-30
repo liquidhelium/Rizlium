@@ -4,10 +4,10 @@ use log::{error, warn};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use simple_easing::*;
 
-#[cfg(feature = "serialize")]
-use serde::Serialize;
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;
+#[cfg(feature = "serialize")]
+use serde::Serialize;
 
 #[macro_export]
 macro_rules! tween {
@@ -33,7 +33,15 @@ pub struct KeyPoint<T: Tween, R = ()> {
     pub time: f32,
     pub value: T,
     pub ease_type: EasingId,
+    #[cfg_attr(
+        any(feature = "serialize", feature = "deserialize"),
+        serde(skip_serializing_if = "is_empty", default)
+    )]
     pub relevent: R,
+}
+
+fn is_empty<T>(_: &T) -> bool {
+    std::mem::size_of::<T>() == 0
 }
 
 impl<T: Tween, R> KeyPoint<T, R> {
@@ -53,6 +61,13 @@ impl<R> KeyPoint<f32, R> {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Spline<T: Tween, R = ()> {
+    #[cfg_attr(
+        any(feature = "serialize", feature = "deserialize"),
+        serde(bound(
+            deserialize = "Vec<KeyPoint<T, R>>: Deserialize<'de>",
+            serialize = "R: Serialize, T: Serialize"
+        ))
+    )]
     pub(crate) points: Vec<KeyPoint<T, R>>,
 }
 
