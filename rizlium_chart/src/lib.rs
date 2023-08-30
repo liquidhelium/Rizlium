@@ -40,10 +40,13 @@ mod test_resources {
 mod test {
     use std::fs;
 
+    use crate::prelude::Chart;
+
     use super::test_resources::CHART;
 
     #[test]
     fn serde_chart() {
         serde_json::to_writer_pretty(fs::File::create("./chart-out.json").unwrap(), &*CHART).unwrap();
+        let _chart:Chart = serde_json::from_reader(fs::File::open("./chart-out.json").unwrap()).unwrap();
     }
 }
