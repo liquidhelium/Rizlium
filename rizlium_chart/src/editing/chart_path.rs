@@ -1,4 +1,4 @@
-use rizlium_chart::prelude::{Chart, Note};
+use crate::prelude::{Chart, Note};
 
 use super::{ChartConflictError, Result};
 

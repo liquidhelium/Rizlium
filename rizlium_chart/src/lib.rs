@@ -10,6 +10,9 @@ pub mod parse;
 #[cfg(feature = "runtime")]
 pub mod runtime;
 
+#[cfg(feature = "editing")]
+pub mod editing;
+
 /// 正常情况下游戏画面截取的部分.
 pub const VIEW_RECT: [[f32; 2]; 2] = [[-450., 0.], [450., 1600.]];
 
