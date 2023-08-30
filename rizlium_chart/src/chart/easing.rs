@@ -3,6 +3,12 @@ use std::mem::swap;
 use log::{error, warn};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use simple_easing::*;
+
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+#[cfg(feature = "deserialize")]
+use serde::Deserialize;
+
 #[macro_export]
 macro_rules! tween {
     (($($var:ident),*),$x1:ident,$x2:ident, $t:ident) => {
@@ -21,6 +27,8 @@ pub fn invlerp(y1: f32, y2: f32, y0: f32) -> f32 {
 }
 
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct KeyPoint<T: Tween, R = ()> {
     pub time: f32,
     pub value: T,
@@ -42,6 +50,8 @@ impl<R> KeyPoint<f32, R> {
 
 /// 用于平缓地更改一个值.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Spline<T: Tween, R = ()> {
     pub(crate) points: Vec<KeyPoint<T, R>>,
 }
@@ -306,6 +316,8 @@ const EASING_MAP: [Easing; 16] = [
 ];
 
 #[derive(IntoPrimitive, TryFromPrimitive, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[repr(u8)]
 pub enum EasingId {
     #[default]

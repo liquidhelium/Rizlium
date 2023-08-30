@@ -1,4 +1,6 @@
 use crate::prelude::Chart;
+#[cfg(test)]
+use crate::test_resources;
 use snafu::Snafu;
 
 use self::{
@@ -39,14 +41,4 @@ impl EditHistory {
     }
 }
 
-#[cfg(test)]
-mod test_resources {
-    use crate::prelude::{Chart, RizlineChart};
-    use serde_json::from_str;
-    const CHART_TEXT: &str = include_str!("../../assets/take.json");
-    #[static_init::dynamic]
-    pub static CHART: Chart = from_str::<RizlineChart>(CHART_TEXT)
-        .unwrap()
-        .try_into()
-        .unwrap();
-}
+

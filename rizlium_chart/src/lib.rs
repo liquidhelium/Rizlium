@@ -18,7 +18,20 @@ pub const VIEW_RECT: [[f32; 2]; 2] = [[-450., 0.], [450., 1600.]];
 
 pub mod prelude {
     pub use super::chart::*;
-    pub use super::parse::official::RizlineChart;
+    #[cfg(feature = "rizline")]
+    pub use super::parse::rizline::RizlineChart;
     #[cfg(feature = "runtime")]
     pub use super::runtime::*;
+}
+
+#[cfg(test)]
+mod test_resources {
+    use crate::prelude::{Chart, RizlineChart};
+    use serde_json::from_str;
+    const CHART_TEXT: &str = include_str!("../../assets/take.json");
+    #[static_init::dynamic]
+    pub static CHART: Chart = from_str::<RizlineChart>(CHART_TEXT)
+        .unwrap()
+        .try_into()
+        .unwrap();
 }

@@ -12,9 +12,15 @@ pub use note::*;
 use snafu::{OptionExt, Whatever};
 pub use theme::*;
 pub use time::*;
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+#[cfg(feature = "deserialize")]
+use serde::Deserialize;
 
 /// Rizlium谱面格式.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Chart {
     pub themes: Vec<ThemeData>,
     pub theme_control: Spline<usize>,
@@ -71,6 +77,8 @@ impl Chart {
 ///
 /// 所有 [`Line`] 上的点可以附着到 [`Canvas`] 上, 并随 [`Canvas`] 移动改变位置, 从而改变线的形状.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Canvas {
     pub x_pos: Spline<f32>,
     pub speed: Spline<f32>,
@@ -78,6 +86,8 @@ pub struct Canvas {
 
 /// 一些可以从谱面计算出且只在对应 [`Chart`] 的数据更改时过期的数据.
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct ChartCache {
     /// 缓存的从实际时间转换为beat的数据.
     pub beat: Spline<f32>,

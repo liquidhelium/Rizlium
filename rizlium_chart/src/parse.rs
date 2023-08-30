@@ -1,6 +1,7 @@
 use snafu::prelude::*;
 
-pub mod official;
+#[cfg(feature = "rizline")]
+pub mod rizline;
 
 #[derive(Debug, Snafu, Clone)]
 pub enum ConvertError {
@@ -13,5 +14,5 @@ pub enum ConvertError {
     #[snafu(display("Unknown ease kind: {raw_kind}"))]
     UnknownEaseKind { raw_kind: u8 },
 }
-
+#[allow(unused)]
 type ConvertResult<T, E = ConvertError> = std::result::Result<T, E>;

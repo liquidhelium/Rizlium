@@ -4000,7 +4000,6 @@ dependencies = [
  "log",
  "num_enum 0.6.1",
  "serde",
- "serde_derive",
  "serde_json",
  "simple-easing",
  "snafu",

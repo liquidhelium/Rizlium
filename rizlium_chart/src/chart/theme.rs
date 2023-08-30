@@ -1,6 +1,10 @@
 use crate::tween;
 
 use super::{ColorRGBA, Tween};
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+#[cfg(feature = "deserialize")]
+use serde::Deserialize;
 
 macro_rules! fields_str {
     ($this:ident, $match:ident,$($str:ident),+) => {
@@ -12,12 +16,16 @@ macro_rules! fields_str {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct ThemeData {
     pub color: ThemeColor,
     pub is_challenge: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct ThemeColor {
     pub background: ColorRGBA,
     pub note: ColorRGBA,
