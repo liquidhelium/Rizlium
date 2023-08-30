@@ -2675,6 +2675,7 @@ checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
  "hashbrown 0.12.3",
+ "serde",
 ]
 
 [[package]]
@@ -2685,7 +2686,6 @@ checksum = "d5477fe2230a79769d8dc68e0eabf5437907c0457a5614a9e8dddb67f65eb65d"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.0",
- "serde",
 ]
 
 [[package]]
@@ -4008,7 +4008,7 @@ dependencies = [
 
 [[package]]
 name = "rizlium_editor"
-version = "0.1.0-alpha.3"
+version = "0.1.1"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
@@ -4020,7 +4020,7 @@ dependencies = [
  "enum_dispatch",
  "font-kit",
  "futures-lite",
- "indexmap 2.0.0",
+ "indexmap 1.9.3",
  "leafwing-input-manager",
  "rfd",
  "rizlium_chart",
