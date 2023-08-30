@@ -16,4 +16,5 @@ You're right, but this is an editor. (?)
  - [x] recent files
 
  ## 已知问题
- linux wayland 桌面录屏会导致音频状态异常，进而使谱面时间异常，原因未知
+ ~~linux wayland 桌面录屏会导致音频状态异常，进而使谱面时间异常，原因未知~~
+ 使用`pipeware`可以解决.
