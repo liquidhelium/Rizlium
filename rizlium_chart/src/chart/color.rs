@@ -3,8 +3,15 @@ use crate::tween;
 use super::Tween;
 use std::ops::Add;
 
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+#[cfg(feature = "deserialize")]
+use serde::Deserialize;
+
 /// 线性 srgba, 每个值都在 `0.0..=1.0` 内.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct ColorRGBA {
     pub r: f32,
     pub g: f32,

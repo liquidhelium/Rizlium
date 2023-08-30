@@ -1,4 +1,11 @@
+#[cfg(feature = "serialize")]
+use serde::Serialize;
+#[cfg(feature = "deserialize")]
+use serde::Deserialize;
+
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub enum NoteKind {
     Tap,
     Hold { end: f32 },
@@ -7,6 +14,8 @@ pub enum NoteKind {
 
 /// 单个的Note.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Note {
     pub time: f32,
     pub kind: NoteKind,
