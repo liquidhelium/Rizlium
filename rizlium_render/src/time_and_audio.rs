@@ -20,7 +20,7 @@ impl Deref for GameTime {
     }
 }
 
-const COMPENSATION_RATE: f32 = 0.01;
+const COMPENSATION_RATE: f32 = 0.003;
 
 #[derive(Resource, Debug, Default)]
 pub struct TimeManager {

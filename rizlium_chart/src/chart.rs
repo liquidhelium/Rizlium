@@ -9,13 +9,13 @@ pub use color::*;
 pub use easing::*;
 pub use line::*;
 pub use note::*;
+#[cfg(feature = "deserialize")]
+use serde::Deserialize;
+#[cfg(feature = "serialize")]
+use serde::Serialize;
 use snafu::{OptionExt, Whatever};
 pub use theme::*;
 pub use time::*;
-#[cfg(feature = "serialize")]
-use serde::Serialize;
-#[cfg(feature = "deserialize")]
-use serde::Deserialize;
 
 /// Rizlium谱面格式.
 #[derive(Debug, Clone)]
@@ -261,5 +261,23 @@ impl ChartAndCache<'_, '_> {
 
     fn keypoint_releated_x(&self, point: &KeyPoint<f32, usize>, time: f32) -> Option<f32> {
         Some(point.value + self.chart.canvas_x(point.relevent, time)?)
+    }
+    pub fn has_speed_mutation(&self, line_index: usize, segment_start: usize) -> Option<bool> {
+        let (this, next) = self.chart.lines.get(line_index).and_then(|l| {
+            l.points
+                .points
+                .get(segment_start)
+                .zip(l.points.points.get(segment_start + 1))
+        })?;
+        if this.relevent != next.relevent {
+            Some(true)
+        } else {
+            let canvas = self.cache.canvas_y_by_real.get(this.relevent)?;
+            if canvas.keypoint_at(this.time) != canvas.keypoint_at(next.time) {
+                Some(true)
+            } else {
+                Some(false)
+            }
+        }
     }
 }

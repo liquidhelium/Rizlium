@@ -123,6 +123,9 @@ fn update_shape(
 ) {
     lines.par_iter_mut().for_each_mut(|(mut path, vis, id)| {
         if !vis.is_visible() {
+            if !path.0.as_slice().is_empty() {
+                *path = Path(tess::path::Path::new());
+            }
             return;
         }
         let line_idx = id.line_idx;
@@ -155,27 +158,35 @@ fn update_shape(
             || pos1[1].approx_eq(&pos2[1])
             || k.abs() >= 1400.0)
         {
-            let point_count = ((pos2[1] - pos1[1]) / 1.).floor();
+            let point_count = ((pos2[1] - pos1[1]) / 5.).floor();
             if point_count > 10000. {
                 warn!(
                     "long segment found, line = {}, point = {} (k= {k})",
                     id.line_idx, id.keypoint_idx
                 );
             }
+            let has_mutation = chart
+                .with_cache(&cache)
+                .has_speed_mutation(line_idx, keypoint_idx)
+                .unwrap();
             // 0...>1...>2...>3..0'
-            (1..point_count as usize)
-                .map(|i| i as f32 / point_count)
-                .map(|t| {
+            for t in (1..point_count as usize).map(|i| i as f32 / point_count) {
+                let point = if has_mutation {
+                    // percise method
                     let thistime = f32::lerp(keypoint1.time, keypoint2.time, t);
                     [
                         f32::ease(pos1[0], pos2[0], t, keypoint1.ease_type),
                         cache.canvas_y_at(keypoint1.relevent, thistime).unwrap()
                             - cache.canvas_y_at(keypoint1.relevent, **time).unwrap(),
                     ]
-                })
-                .for_each(|p| {
-                    builder.line_to(p.into());
-                });
+                } else {
+                    [
+                        f32::ease(pos1[0], pos2[0], t, keypoint1.ease_type),
+                        f32::lerp(pos1[1], pos2[1], t),
+                    ]
+                };
+                builder.line_to(point.into());
+            }
         }
         builder.line_to(pos2.into());
         // connect next segment

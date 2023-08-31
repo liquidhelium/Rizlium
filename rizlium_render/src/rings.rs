@@ -39,10 +39,14 @@ pub fn rings(
             let _enter = span.enter();
             let chart_with_cache = chart.with_cache(&cache);
             let Some(pos) = chart_with_cache.line_pos_at(ring.0, **time, **time) else {
-                *vis = Visibility::Hidden;
+                if *vis != Visibility::Hidden {
+                    *vis = Visibility::Hidden;
+                }
                 return;
             };
-            *vis = Visibility::Visible;
+            if *vis != Visibility::Visible {
+                *vis = Visibility::Visible;
+            }
             transform.translation = Vec2::from(pos).extend(20.);
             let Some(line) = chart.lines.get(ring.0)else {
                 return;
