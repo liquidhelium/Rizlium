@@ -114,7 +114,7 @@ impl<T: Tween, R> Spline<T, R> {
     }
 }
 
-type Type<'a, T, R> = (Option<&'a KeyPoint<T, R>>, Option<&'a KeyPoint<T, R>>);
+type Pair<'a, T, R> = (Option<&'a KeyPoint<T, R>>, Option<&'a KeyPoint<T, R>>);
 
 /// Find
 impl<T: Tween, R> Spline<T, R> {
@@ -158,7 +158,7 @@ impl<T: Tween, R> Spline<T, R> {
     /// assert!(matches!(spline.pair(1.0), (Some(_), Some(_))));
     /// assert!(matches!(spline.pair(2.2), (Some(_), None)));
     /// ```
-    pub fn pair(&self, time: f32) -> Type<T, R> {
+    pub fn pair(&self, time: f32) -> Pair<T, R> {
         match self.keypoint_at(time) {
             Ok(index) => (self.points.get(index), self.points.get(index + 1)),
             Err(index) => {

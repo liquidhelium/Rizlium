@@ -26,7 +26,7 @@ impl WidgetSystem for DockButtons<'static> {
             let is_opened = opened.contains(&i);
             if ui.selectable_label(is_opened, tab.name()).clicked() {
                 if is_opened {
-                    tree.remove_leaf(i.into());
+                    tree.remove_leaf(tree.find_tab(&i).expect("i is opened but then not found?").0);
                     ui.close_menu();
                 } else {
                     tree.push_to_first_leaf(i);
