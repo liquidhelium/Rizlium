@@ -36,6 +36,7 @@ mouse_tracking = {package = "bevy_mouse_tracking_plugin", version = "0.6.0"}
 zip = "*"
 serde = {version = "*", features = ["derive"]}
 serde_yaml = "*"
+rayon = "*"
 
 [features]
 trace = ["bevy/trace_tracy"]

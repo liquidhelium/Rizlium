@@ -1,4 +1,5 @@
 
+use rizlium_editor::extensions::{ExtensionsPlugin, EditorMenuEntrys};
 use rizlium_editor::hotkeys::HotkeyPlugin;
 use rizlium_editor::widgets::{
     widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons, RecentButtons,
@@ -33,7 +34,8 @@ fn main() {
             CountFpsPlugin,
             WindowUpdateControlPlugin,
             HotkeyPlugin,
-            FilePlugin
+            FilePlugin,
+            ExtensionsPlugin,
         ))
         .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
@@ -127,25 +129,28 @@ fn egui_render(world: &mut World) {
     });
     egui::TopBottomPanel::top("menu").show(ctx, |ui| {
         ui.horizontal(|ui| {
-            ui.label("Rizlium");
-            ui.toggle_value(
-                &mut editor_state.debug_resources.show_cursor,
-                "Show cursor (Debug)",
-            );
-            ui.menu_button("File", |ui| {
-                if ui.button("Open..").clicked() {
-                    commands.open_dialog_and_load_chart();
-                }
-                ui.separator();
-                ui.weak("Recent");
-                widget::<RecentButtons>(world, ui);
+            world.resource_scope(|world: &mut World, entries: Mut<EditorMenuEntrys>| {
+                entries.foreach_ui(ui, world);
             });
-            ui.menu_button("View", |ui| {
-                ui.menu_button("Presets", |ui| {
-                    widget_with::<PresetButtons>(world, ui, &mut editor_state.editing_presets);
-                });
-                widget::<DockButtons>(world, ui);
-            });
+            // ui.label("Rizlium");
+            // ui.toggle_value(
+            //     &mut editor_state.debug_resources.show_cursor,
+            //     "Show cursor (Debug)",
+            // );
+            // ui.menu_button("File", |ui| {
+            //     if ui.button("Open..").clicked() {
+            //         commands.open_dialog_and_load_chart();
+            //     }
+            //     ui.separator();
+            //     ui.weak("Recent");
+            //     widget::<RecentButtons>(world, ui);
+            // });
+            // ui.menu_button("View", |ui| {
+            //     ui.menu_button("Presets", |ui| {
+            //         widget_with::<PresetButtons>(world, ui, &mut editor_state.editing_presets);
+            //     });
+            //     widget::<DockButtons>(world, ui);
+            // });
             ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
                 world.resource_scope(|_world, fps: Mut<'_, NowFps>| {
                     ui.label(format!("fps: {}", fps.0));

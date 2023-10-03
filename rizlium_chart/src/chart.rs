@@ -233,16 +233,16 @@ impl ChartAndCache<'_, '_> {
         let pos2 = self
             .pos_for_linepoint_at(line_idx, index + 1, game_time)
             .unwrap();
+        let point_y = self.cache.canvas_y_at(point1.relevent, time)?
+        - self.cache.canvas_y_at(point1.relevent, game_time)?;
         Some([
             f32::ease(
                 pos1[0],
                 pos2[0],
-                invlerp(point1.time, point2.time, time),
+                invlerp(pos1[1], pos2[1], point_y),
                 point1.ease_type,
             ),
-            // f32::lerp(pos1[1], pos2[1], invlerp(point1.time, point2.time, time)),
-            self.cache.canvas_y_at(point1.relevent, time)?
-                - self.cache.canvas_y_at(point1.relevent, game_time)?,
+            point_y
         ])
     }
     pub fn line_pos_at_clamped(
@@ -270,10 +270,12 @@ impl ChartAndCache<'_, '_> {
                 .zip(l.points.points.get(segment_start + 1))
         })?;
         if this.relevent != next.relevent {
-            Some(true)
+            Some(false)
         } else {
             let canvas = self.cache.canvas_y_by_real.get(this.relevent)?;
             if canvas.keypoint_at(this.time) != canvas.keypoint_at(next.time) {
+                use log::info;
+                info!("return true");
                 Some(true)
             } else {
                 Some(false)

@@ -7,6 +7,7 @@ use egui_dock::{TabViewer, Tree};
 mod editing;
 pub mod tab_system;
 pub mod widgets;
+pub mod menu;
 use serde::{Deserialize, Serialize};
 pub use tab_system::tabs::*;
 pub use tab_system::{CachedTab, TabInstace, TabProvider};

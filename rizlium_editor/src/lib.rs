@@ -16,6 +16,7 @@ mod editor_commands;
 pub mod hotkeys;
 pub mod global_actions;
 mod files;
+pub mod extensions;
 pub use files::*;
 pub use editor_commands::*;
 mod ui;

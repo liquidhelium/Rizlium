@@ -45,6 +45,8 @@ leafwing-input-manager = "0.10.0"
 enum_dispatch = "*"
 snafu = "*"
 static_init = "1"
+dyn-clone = "1"
+smallvec = "1"
 
 [dev-dependencies]
 serde_json = "*"
