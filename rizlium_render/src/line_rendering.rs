@@ -151,42 +151,28 @@ fn update_shape(
             );
         }
         // k = 1600意味着1个像素内就经过了一个屏幕
-        let k = (pos2[1] - pos1[1]) / (pos2[0] - pos1[0]);
         // skip straight line
         if !(keypoint1.ease_type == EasingId::Linear
             || pos1[0].approx_eq(&pos2[0])
             || pos1[1].approx_eq(&pos2[1])
-            || k.abs() >= 1400.0)
+        /*|| k.abs() >= 1400.0*/)
         {
-            let point_count = ((pos2[1] - pos1[1]) / 5.).floor();
-            if point_count > 10000. {
-                warn!(
-                    "long segment found, line = {}, point = {} (k= {k})",
-                    id.line_idx, id.keypoint_idx
-                );
+            let mut point_count = ((pos2[1] - pos1[1]) / 5.).floor();
+            if point_count >= 10000. {
+                point_count = 5000.
             }
-            let has_mutation = chart
-                .with_cache(&cache)
-                .has_speed_mutation(line_idx, keypoint_idx)
-                .unwrap();
             // 0...>1...>2...>3..0'
-            for t in (1..point_count as usize).map(|i| i as f32 / point_count) {
-                let point = if has_mutation {
-                    // percise method
-                    let thistime = f32::lerp(keypoint1.time, keypoint2.time, t);
-                    [
-                        f32::ease(pos1[0], pos2[0], t, keypoint1.ease_type),
-                        cache.canvas_y_at(keypoint1.relevent, thistime).unwrap()
-                            - cache.canvas_y_at(keypoint1.relevent, **time).unwrap(),
-                    ]
-                } else {
+            (1..point_count as usize)
+                .map(|i| i as f32 / point_count)
+                .map(|t| {
                     [
                         f32::ease(pos1[0], pos2[0], t, keypoint1.ease_type),
                         f32::lerp(pos1[1], pos2[1], t),
                     ]
-                };
-                builder.line_to(point.into());
-            }
+                })
+                .for_each(|p| {
+                    builder.line_to(p.into());
+                });
         }
         builder.line_to(pos2.into());
         // connect next segment
