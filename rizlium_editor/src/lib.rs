@@ -12,13 +12,13 @@ use egui_dock::Tree;
 use rizlium_render::GameTime;
 
 pub use ui::*;
-mod editor_commands;
+mod editor_actions;
 pub mod hotkeys;
 pub mod global_actions;
 mod files;
 pub mod extensions;
 pub use files::*;
-pub use editor_commands::*;
+pub use editor_actions::*;
 mod ui;
 #[derive(Debug, Resource, Default)]
 pub struct EditorState {
