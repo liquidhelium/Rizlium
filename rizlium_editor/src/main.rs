@@ -4,7 +4,7 @@ use rizlium_editor::hotkeys::HotkeyPlugin;
 use rizlium_editor::widgets::{
     widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons, RecentButtons,
 };
-use rizlium_editor::{WindowUpdateControlPlugin, InitRizTabsExt, FilePlugin};
+use rizlium_editor::{WindowUpdateControlPlugin, InitRizTabsExt, FilePlugin, ActionPlugin};
 
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::window::PrimaryWindow;
@@ -33,6 +33,7 @@ fn main() {
             // WorldInspectorPlugin::default(),
             CountFpsPlugin,
             WindowUpdateControlPlugin,
+            ActionPlugin,
             HotkeyPlugin,
             FilePlugin,
             ExtensionsPlugin,
