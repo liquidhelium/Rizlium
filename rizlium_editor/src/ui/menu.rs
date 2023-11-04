@@ -1,11 +1,11 @@
 use std::fmt::Debug;
 
-use bevy::prelude::World;
+use bevy::prelude::{World, Mut};
 use egui::Ui;
 use enum_dispatch::enum_dispatch;
 use indexmap::IndexMap;
 
-use crate::hotkeys::Action;
+use crate::{hotkeys::Action, ActionId, ActionStorages};
 
 #[enum_dispatch(MenuItemProvider)]
 #[derive(Debug, Clone)]
@@ -76,13 +76,13 @@ impl ItemAsContainer<'_> {
 
 #[derive(Clone)]
 pub struct Button {
-    action: Box<dyn Action>,
+    action: ActionId,
 }
 
 impl Button {
-    pub fn new(action: impl Action) -> Self {
+    pub fn new(action: ActionId) -> Self {
         Self {
-            action: Box::new(action),
+            action,
         }
     }
 }
@@ -96,7 +96,9 @@ impl Debug for Button {
 impl MenuItemProvider for Button {
     fn ui(&self, ui: &mut Ui, world: &mut World, name: &str) {
         if ui.button(name).clicked() {
-            self.action.run(world);
+            world.resource_scope(|world: &mut World, mut actions: Mut<ActionStorages>| {
+                let _ = actions.run_instant(&self.action, (), world).map_err(|err| bevy::prelude::error!("encountered error when running action: {}", err));
+            });
             ui.close_menu();
         }
     }
@@ -232,7 +234,7 @@ mod test {
         MenuItem {
             name,
             source: Button {
-                action: Box::new(|_world: &mut World| ()),
+                action: "play_genshin".into(),
             }
             .into(),
             piority: 0,

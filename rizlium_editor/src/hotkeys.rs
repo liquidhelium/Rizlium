@@ -87,7 +87,7 @@ impl HotkeyListener {
     }
     pub fn trigger<'a>(&'a self, world: &mut World) -> Result<(), crate::ActionError> { // todo: error handling
         world.resource_scope(|world: &mut World, mut actions: Mut<'_, ActionStorages>| {
-            actions.run_instantly(&self.action, (), world)
+            actions.run_instant(&self.action, (), world)
         })
     }
     pub fn is_triggered_by_keyboard(&self, world: &World) -> bool {

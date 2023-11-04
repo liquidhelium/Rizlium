@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use bevy::ecs::system::{CommandQueue, SystemBuffer, SystemMeta, SystemParam};
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use bevy_persistent::Persistent;
+use egui::mutex::Mutex;
 use rizlium_render::{LoadChartEvent, ShowLines, TimeControlEvent};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -9,19 +12,46 @@ use snafu::Snafu;
 
 use crate::{files::open_dialog, files::PendingDialog, RecentFiles};
 
-type BoxedIn = Box<dyn Reflect>;
-
-pub type BoxedAction = Box<dyn System<In = BoxedIn, Out = ()>>;
+pub type BoxedStorage = Box<dyn DynActionStorage>;
 
 pub type ActionId = String;
 
-#[derive(Resource, DerefMut, Deref, Default)]
-pub struct ActionStorages(HashMap<ActionId, BoxedAction>);
+#[derive(Resource, Default)]
+pub struct ActionStorages(HashMap<ActionId, BoxedStorage>);
 
 impl ActionStorages {
-    pub fn run_instantly(&mut self, id: &str, input: impl Reflect, world: &mut World) -> Result<(), ActionError> {
-        self.get_mut(id).ok_or(ActionError::NotFound { id: id.to_string() })?.run(Box::new(input), world);
+    pub fn run_instant(
+        &mut self,
+        id: &str,
+        input: impl Reflect,
+        world: &mut World,
+    ) -> Result<(), ActionError> {
+        self.0.get(id).ok_or(ActionError::NotFound { id: id.into() })?.get_command(Box::new(input)).expect("input type mismatch")(world);
         Ok(())
+    }
+}
+
+pub trait DynActionStorage: Send + Sync {
+    fn get_command(
+        &self,
+        input: Box<dyn Reflect>,
+    ) -> Option<Box<dyn FnOnce(&mut World) + Send + Sync + 'static>>;
+}
+
+pub struct ActionStorage<Input: Reflect> {
+    action: Arc<Mutex<Box<dyn System<In = Input, Out = ()>>>>,
+}
+
+impl<Input: Reflect> DynActionStorage for ActionStorage<Input> {
+    fn get_command(
+        &self,
+        input: Box<dyn Reflect>,
+    ) -> Option<Box<dyn FnOnce(&mut World) + Send + Sync + 'static>> {
+        let owned_action = Arc::clone(&self.action);
+        let input = *input.into_any().downcast::<Input>().ok()?;
+        Some(Box::new(move |world| {
+            owned_action.lock().run(input, world);
+        }))
     }
 }
 
@@ -32,20 +62,22 @@ pub struct Actions<'w, 's> {
 }
 
 impl Actions<'_, '_> {
-    pub fn run_action<'id>(&mut self, id: &'id str, input: impl Reflect) -> Result<(), ActionError> {
-        if self.storages.contains_key(id) {
+    pub fn run_action<'id>(
+        &mut self,
+        id: &'id str,
+        input: impl Reflect,
+    ) -> Result<(), ActionError> {
+        if self.storages.0.contains_key(id) {
             let owned_id = id.to_owned();
-            self.commands.add(move |world: &mut World| {
-                world.resource_scope(|world: &mut World, mut actions: Mut<'_, ActionStorages>| {
-                    actions
-                        .get_mut(&owned_id)
-                        .unwrap()
-                        .run(Box::new(input), world);
-                });
-            });
+            self.commands.add(
+                self.storages
+                    .0.get(id)
+                    .unwrap()
+                    .get_command(Box::new(input))
+                    .expect("input type mismatch"),
+            );
             Ok(())
-        }
-        else {
+        } else {
             Err(ActionError::NotFound { id: id.to_string() })
         }
     }
@@ -70,17 +102,17 @@ impl ActionsExt for App {
         &mut self,
         id: &str,
         action: impl IntoSystem<SystemInput, (), M>,
-    ) -> &mut Self{
+    ) -> &mut Self {
         self.world
             .resource_scope(|world, mut actions: Mut<'_, ActionStorages>| {
                 let mut system = IntoSystem::into_system(action);
                 system.initialize(world);
-                let wrapped_system = move |input: In<Box<dyn Reflect>>, world: &mut World| {
-                    system.run(SystemInput::from_reflect(&*input.0).unwrap(), world) // todo: impl a way that can directly know if input matches
-                };
-                let mut wrapped_system = IntoSystem::into_system(wrapped_system);
-                wrapped_system.initialize(world);
-                actions.insert(id.to_string(), Box::new(wrapped_system));
+                actions.0.insert(
+                    id.to_string(),
+                    Box::new(ActionStorage {
+                        action: Arc::new(Mutex::new(Box::new(system))),
+                    }),
+                );
             });
         self
     }
