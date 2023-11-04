@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rizlium_render::LoadChartEvent;
 
-use crate::{hotkeys::{HotkeysExt, HotkeyListener}, ActionsExt, PendingDialog, open_dialog, extensions::MenuExt};
+use crate::{hotkeys::{HotkeysExt, HotkeyListener}, ActionsExt, PendingDialog, open_dialog, extensions::MenuExt, menu::{Button, self}};
 pub struct Game;
 
 impl Plugin for Game {
@@ -11,8 +11,9 @@ impl Plugin for Game {
             .register_action("game.open_dialog", open_dialog_and_load_chart)
             .register_hotkey(HotkeyListener::new_global("game.open_dialog".into(), [ControlLeft, O]))
             .menu_context(|mut ctx| {
-                ctx.with_sub_menu("file", "File".into(), 0, |ctx| {
-                    // ctx.add(id, name, item, piority)
+                ctx.with_sub_menu("file", "File".into(), 0, |mut ctx| {
+                    ctx.add("open_chart", "Open".into(), menu::Button::new("game.open_dialog".into()), 0);
+                    // ctx.add("id", name, item, piority)
                 });
             });
     }

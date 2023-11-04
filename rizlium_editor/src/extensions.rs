@@ -1,4 +1,5 @@
 mod game;
+pub mod docking;
 
 use bevy::prelude::{App, Deref, DerefMut, Plugin, Resource};
 use snafu::Snafu;

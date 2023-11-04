@@ -1,10 +1,10 @@
-
-use rizlium_editor::extensions::{ExtensionsPlugin, EditorMenuEntrys};
-use rizlium_editor::hotkeys::HotkeyPlugin;
-use rizlium_editor::widgets::{
-    widget, widget_with, DockButtons, LayoutPresetEdit, PresetButtons, RecentButtons,
+use rizlium_editor::extensions::{EditorMenuEntrys, ExtensionsPlugin};
+use rizlium_editor::extra_window_control::{
+    DragWindowRequested, MaximizeRequested, MinimizeRequested, ExtraWindowControlPlugin,
 };
-use rizlium_editor::{WindowUpdateControlPlugin, InitRizTabsExt, FilePlugin, ActionPlugin};
+use rizlium_editor::hotkeys::HotkeyPlugin;
+use rizlium_editor::widgets::{widget, LayoutPresetEdit};
+use rizlium_editor::{ActionPlugin, FilePlugin, InitRizTabsExt, WindowUpdateControlPlugin};
 
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::window::PrimaryWindow;
@@ -13,11 +13,11 @@ use bevy::{prelude::*, render::render_resource::TextureDescriptor};
 use bevy_egui::EguiContexts;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
-use egui::{Align2, Layout};
+use egui::{Align2, Layout, Sense};
 use egui_dock::DockArea;
 use rizlium_editor::{
-    ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps,
-    RizDockTree, RizTabPresets, RizTabViewer, RizTabs, RecentFiles
+    ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
+    RizDockTree, RizTabPresets, RizTabViewer, RizTabs,
 };
 use rizlium_render::{GameChart, GameView, RizliumRenderingPlugin};
 
@@ -37,14 +37,16 @@ fn main() {
             HotkeyPlugin,
             FilePlugin,
             ExtensionsPlugin,
+            ExtraWindowControlPlugin
         ))
         .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
         .init_resource::<RizDockTree>()
+        .add_event::<DragWindowRequested>()
         .init_riztabs()
         .add_systems(
             PreStartup,
-            (setup_game_view /* egui_font */,).after(bevy_egui::EguiStartupSet::InitContexts),
+            (setup_game_view, setup_window).after(bevy_egui::EguiStartupSet::InitContexts),
         )
         .add_systems(Startup, setup_persistent)
         .add_systems(Update, egui_render)
@@ -82,6 +84,10 @@ fn setup_game_view(
     commands.insert_resource(GameView(image_handle));
 }
 
+fn setup_window(mut windows: Query<&mut Window>) {
+    // windows.single_mut().decorations = false;
+}
+
 fn setup_persistent(mut commands: Commands) {
     let config_dir = dirs::config_dir()
         .expect("Config dir is None")
@@ -114,6 +120,7 @@ fn egui_render(world: &mut World) {
         .expect("EditorState does not exist");
     ctx.set_debug_on_hover(editor_state.debug_resources.show_cursor);
     let mut commands = ManualEditorCommands::default();
+    let window = world.query_filtered::<Entity, With<Window>>().single(world);
     egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
         ui.horizontal_centered(|ui| {
             if world.contains_resource::<GameChart>() {
@@ -133,27 +140,8 @@ fn egui_render(world: &mut World) {
             world.resource_scope(|world: &mut World, entries: Mut<EditorMenuEntrys>| {
                 entries.foreach_ui(ui, world);
             });
-            // ui.label("Rizlium");
-            // ui.toggle_value(
-            //     &mut editor_state.debug_resources.show_cursor,
-            //     "Show cursor (Debug)",
-            // );
-            // ui.menu_button("File", |ui| {
-            //     if ui.button("Open..").clicked() {
-            //         commands.open_dialog_and_load_chart();
-            //     }
-            //     ui.separator();
-            //     ui.weak("Recent");
-            //     widget::<RecentButtons>(world, ui);
-            // });
-            // ui.menu_button("View", |ui| {
-            //     ui.menu_button("Presets", |ui| {
-            //         widget_with::<PresetButtons>(world, ui, &mut editor_state.editing_presets);
-            //     });
-            //     widget::<DockButtons>(world, ui);
-            // });
             ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                world.resource_scope(|_world, fps: Mut<'_, NowFps>| {
+                world.resource_scope(|world, fps: Mut<'_, NowFps>| {
                     ui.label(format!("fps: {}", fps.0));
                 });
             });

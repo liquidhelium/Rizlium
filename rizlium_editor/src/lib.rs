@@ -20,6 +20,7 @@ pub mod extensions;
 pub use files::*;
 pub use editor_actions::*;
 mod ui;
+pub mod extra_window_control;
 #[derive(Debug, Resource, Default)]
 pub struct EditorState {
     pub debug_resources: DebugResources,
