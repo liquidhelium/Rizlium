@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{ecs::query::BatchingStrategy, prelude::*};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 
 use crate::{colorrgba_to_color, GameChart, GameChartCache, GameTime};
@@ -32,6 +32,7 @@ pub fn rings(
     let _enter = span.enter();
     rings
         .par_iter_mut()
+        .batching_strategy(BatchingStrategy::new().batches_per_thread(40))
         .for_each_mut(|(mut stroke, mut transform, mut vis, ring)| {
             #[cfg(feature = "trace")]
             let span = info_span!("single ring");
