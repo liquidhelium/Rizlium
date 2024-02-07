@@ -883,7 +883,7 @@ dependencies = [
 [[package]]
 name = "bevy_prototype_lyon"
 version = "0.9.0"
-source = "git+https://github.com/liquidhelium/bevy_prototype_lyon_rizlium#7a939ee247d1ed655205317ca257d8fcf5e73048"
+source = "git+https://github.com/liquidhelium/bevy_prototype_lyon_rizlium#d9f385cff863a36fa900eac890a76f48c52d8305"
 dependencies = [
  "bevy",
  "lyon_algorithms",
