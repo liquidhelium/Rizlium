@@ -2,14 +2,14 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_persistent::Persistent;
 use egui::{Color32, RichText};
 
-use crate::{RizDockTree, RizTabPresets};
+use crate::{RizDockState, RizTabPresets};
 
 use super::WidgetSystem;
 
 #[derive(SystemParam)]
 pub struct PresetButtons<'w> {
     presets: ResMut<'w, Persistent<RizTabPresets>>,
-    tree: ResMut<'w, RizDockTree>,
+    tree: ResMut<'w, RizDockState>,
 }
 
 impl WidgetSystem for PresetButtons<'static> {
@@ -26,7 +26,7 @@ impl WidgetSystem for PresetButtons<'static> {
         } = state.get_mut(world);
         for (key, preset_tree) in presets.get_mut().iter_mut() {
             if ui.button(&*key).clicked() {
-                tree.tree = preset_tree.clone();
+                tree.state = preset_tree.clone();
                 ui.close_menu();
             }
         }
@@ -47,7 +47,7 @@ impl WidgetSystem for PresetButtons<'static> {
         {
             presets
                 .update(|presets| {
-                    presets.push(("New".into(), tree.tree.clone()));
+                    presets.push(("New".into(), tree.state.clone()));
                 })
                 .unwrap();
             ui.close_menu();

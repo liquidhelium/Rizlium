@@ -19,7 +19,7 @@ pub fn timeline_horizontal(
     let remap = |i| egui::remap(i, anoter_time.clone(), another_range.clone());
     let remap_reversed = |i| egui::remap(i, another_range.clone(), anoter_time.clone());
     cursor_v(ui, remap(cursor), view);
-    for (time, x) in timeline_pos_iter(*scale, time_range.clone(), range_x) {
+    for (time, x) in timeline_pos_iter(*scale, time_range.clone(), range_x.into()) {
         line_v(ui, remap(time), view, Stroke::new(1., Color32::DARK_GRAY));
         ui.painter().text(
             [x, timeline_zone.center().y].into(),
@@ -59,10 +59,10 @@ pub fn timeline_vertical(
     let remap = |i| egui::remap(i, another_time.clone(), another_range.clone());
     let remap_reversed = |i| egui::remap(i, another_range.clone(), another_time.clone());
     cursor_h(ui, remap(cursor), view);
-    for (time, y) in timeline_pos_iter(*scale, time_range.clone(), range_y) {
+    for (time, y) in timeline_pos_iter(*scale, time_range.clone(), range_y.into()) {
         line_h(ui, remap(time), view, Stroke::new(1., Color32::DARK_GRAY));
         ui.painter().text(
-            [*range_x.start(), y].into(),
+            [range_x.min, y].into(),
             Align2::LEFT_BOTTOM,
             time,
             FontId::default(),

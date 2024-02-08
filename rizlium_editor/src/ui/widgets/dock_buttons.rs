@@ -1,13 +1,13 @@
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 
-use crate::{RizDockTree, RizTabs};
+use crate::{RizDockState, RizTabs};
 
 use super::WidgetSystem;
 
 #[derive(SystemParam)]
 pub struct DockButtons<'w> {
-    tree: ResMut<'w, RizDockTree>,
+    tree: ResMut<'w, RizDockState>,
     tabs: Res<'w, RizTabs>,
 }
 
@@ -20,7 +20,7 @@ impl WidgetSystem for DockButtons<'static> {
         _extra: Self::Extra<'_>,
     ) {
         let DockButtons::<'_> { tabs, mut tree } = state.get_mut(world);
-        let tree = &mut tree.tree;
+        let tree = tree.state.main_surface_mut();
         let opened: Vec<_> = tree.tabs().copied().collect();
         for (i, tab) in tabs.tabs.iter().enumerate() {
             let is_opened = opened.contains(&i);

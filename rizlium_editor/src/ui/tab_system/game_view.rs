@@ -67,8 +67,7 @@ impl<'w, 's> TabProvider for GameViewTab<'w, 's> {
                 }
             });
             keep_ratio(ui, 16. / 9., |ui, size| {
-                let a: egui::TextureId = img;
-                ui.centered_and_justified(|ui| ui.image(img, size));
+                ui.centered_and_justified(|ui| ui.add(egui::Image::new((img, size)).fit_to_exact_size(size)));
             });
         });
     }

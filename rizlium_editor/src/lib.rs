@@ -8,7 +8,7 @@ use bevy::{
     winit::WinitSettings,
 };
 use egui::{Color32, Rect, RichText, Ui};
-use egui_dock::Tree;
+use egui_dock::{DockState, Tree};
 use rizlium_render::GameTime;
 
 pub use ui::*;
@@ -32,14 +32,14 @@ pub struct DebugResources {
 }
 
 #[derive(Debug, Resource)]
-pub struct RizDockTree {
-    pub tree: Tree<usize>,
+pub struct RizDockState {
+    pub state: DockState<usize>,
 }
 
-impl Default for RizDockTree {
+impl Default for RizDockState {
     fn default() -> Self {
         Self {
-            tree: Tree::new(vec![0]),
+            state: DockState::new(vec![0]),
         }
     }
 }
