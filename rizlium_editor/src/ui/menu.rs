@@ -5,7 +5,7 @@ use egui::Ui;
 use enum_dispatch::enum_dispatch;
 use indexmap::IndexMap;
 
-use crate::{hotkeys::Action, ActionId, ActionStorages};
+use crate::{ActionId, ActionStorages};
 
 #[enum_dispatch(MenuItemProvider)]
 #[derive(Debug, Clone)]
@@ -16,7 +16,7 @@ pub enum MenuItemVariant {
 }
 
 impl MenuItemVariant {
-    pub fn kind_eq(&self, other: &Self) -> bool {
+    pub fn kind_eq(&self, _other: &Self) -> bool {
         todo!()
     }
 }

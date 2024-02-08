@@ -8,7 +8,6 @@ use rings::RingPlugin;
 use rizlium_chart::{chart::Chart, prelude::ColorRGBA};
 
 use theme::BackgroundThemePlugin;
-use time_and_audio::TimeAndAudioPlugin;
 pub use time_and_audio::TimeManager;
 
 // 长类型让我抓狂
