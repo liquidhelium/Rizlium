@@ -28,8 +28,7 @@ bevy = { version = "0.11", default-features = false, features = [
     "wayland"
 ] }
 bevy_kira_audio = { version = "0.16" }
-bevy_egui = "0.20"
-egui = "0.22"
+bevy_egui = {git = "https://github.com/liquidhelium/bevy_egui_0.11-0.26"}
 bevy_prototype_lyon = {git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium"}
 # bevy_prototype_lyon = {path = "../../bevy_prototype_lyon_rizlium"}
 rizlium_chart = {path="../rizlium_chart"}

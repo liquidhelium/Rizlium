@@ -17,7 +17,7 @@ use egui::{Align2, Layout};
 use egui_dock::DockArea;
 use rizlium_editor::{
     ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
-    RizDockTree, RizTabPresets, RizTabViewer, RizTabs,
+    RizDockState, RizTabPresets, RizTabViewer, RizTabs,
 };
 use rizlium_render::{GameChart, GameView, RizliumRenderingPlugin};
 
@@ -41,7 +41,7 @@ fn main() {
         ))
         .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
-        .init_resource::<RizDockTree>()
+        .init_resource::<RizDockState>()
         .add_event::<DragWindowRequested>()
         .init_riztabs()
         .add_systems(
@@ -118,7 +118,7 @@ fn egui_render(world: &mut World) {
     let mut editor_state = world
         .remove_resource::<EditorState>()
         .expect("EditorState does not exist");
-    ctx.set_debug_on_hover(editor_state.debug_resources.show_cursor);
+    // ctx.set_debug_on_hover(editor_state.debug_resources.show_cursor);
     let mut commands = ManualEditorCommands::default();
     let _window = world.query_filtered::<Entity, With<Window>>().single(world);
     egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
@@ -159,10 +159,9 @@ fn egui_render(world: &mut World) {
         commands.persist_resource::<RizTabPresets>();
     }
     world.resource_scope(|world: &mut World, mut tab: Mut<'_, RizTabs>| {
-        world.resource_scope(|world: &mut World, mut tree: Mut<'_, RizDockTree>| {
-            let focused_tab = tree.tree.find_active_focused().unzip().1.copied();
-            DockArea::new(&mut tree.tree)
-                .scroll_area_in_tabs(false)
+        world.resource_scope(|world: &mut World, mut state: Mut<'_, RizDockState>| {
+            let focused_tab = state.state.find_active_focused().unzip().1.copied();
+            DockArea::new(&mut state.state)
                 .show(
                     ctx,
                     &mut RizTabViewer {
@@ -173,7 +172,7 @@ fn egui_render(world: &mut World) {
                     },
                 );
 
-            if tree.tree.is_empty() {
+            if state.state.main_surface().is_empty() {
                 egui::CentralPanel::default().show(ctx, |ui| {
                     ui_when_no_dock(
                         ui,

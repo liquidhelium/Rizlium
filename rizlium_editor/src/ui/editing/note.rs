@@ -15,7 +15,7 @@ pub fn note_editor_vertical(
     assert_ne!(*scale, 0.);
     let editor_area = {
         let mut r = ui.available_rect_before_wrap();
-        r.max -= egui::Vec2::splat(ui.spacing().scroll_bar_width);
+        r.max -= egui::Vec2::splat(ui.spacing().scroll.bar_width);
         r
     };
     let timeline_area = egui::Rect::from_x_y_ranges(
@@ -30,8 +30,8 @@ pub fn note_editor_vertical(
         .stick_to_bottom(true)
         .show_cols_with_viewport(ui, row_width, lanes.len(), |ui, range, view| {
             let range_y = view.y_range();
-            let time_start = (max_y - range_y.end()) / *scale;
-            let time_end = (max_y - range_y.start()) / *scale;
+            let time_start = (max_y - range_y.max) / *scale;
+            let time_end = (max_y - range_y.min) / *scale;
             for (label, lane) in &lanes[range] {
                 let (_, rect) = ui.allocate_space([row_width, max_y].into());
                 ui.painter().rect_filled(rect, 0., Color32::BLACK);

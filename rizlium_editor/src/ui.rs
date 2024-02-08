@@ -1,8 +1,8 @@
-use crate::EditorState;
+use crate::{EditorState, RizDockState};
 use bevy::prelude::{App, Deref, DerefMut, Resource, World};
 
 use egui::{Color32, RichText, Ui};
-use egui_dock::{TabViewer, Tree};
+use egui_dock::{DockState, TabViewer, Tree};
 
 mod editing;
 pub mod tab_system;
@@ -26,7 +26,7 @@ pub struct RizTabs {
 }
 
 #[derive(Resource, Serialize, Deserialize, Default, DerefMut, Deref)]
-pub struct RizTabPresets(Vec<(String, Tree<usize>)>);
+pub struct RizTabPresets(Vec<(String, DockState<usize>)>);
 
 impl Default for RizTabs {
     fn default() -> Self {

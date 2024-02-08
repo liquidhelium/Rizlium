@@ -57,8 +57,8 @@ impl<'w, 's> TabProvider for SplineWindow<'w, 's> {
                 editor_commands.time_control(TimeControlEvent::Seek(cache.remap_beat(to)));
             }
             let range = response.view_rect;
-            cache_range.0 = *range.x_range().start();
-            cache_range.1 = *range.y_range().end();
+            cache_range.0 = range.x_range().min;
+            cache_range.1 = range.y_range().max;
         });
     }
     fn name() -> String {
