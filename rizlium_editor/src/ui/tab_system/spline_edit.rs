@@ -2,8 +2,7 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use rizlium_render::{GameChart, GameChartCache, GameTime, TimeControlEvent};
 
-use crate::{
-    hotkeys::NoAction, ui::editing::spline_editor_horizontal, EditorCommands, TabProvider,
+use crate::{ui::editing::spline_editor_horizontal, EditorCommands, TabProvider,
 };
 
 #[derive(SystemParam)]
@@ -18,7 +17,6 @@ pub struct SplineWindow<'w, 's> {
 }
 
 impl<'w, 's> TabProvider for SplineWindow<'w, 's> {
-    type Hotkey = NoAction;
     fn ui(
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,

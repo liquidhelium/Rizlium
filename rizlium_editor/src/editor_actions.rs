@@ -27,7 +27,11 @@ impl ActionStorages {
         input: impl Reflect,
         world: &mut World,
     ) -> Result<(), ActionError> {
-        self.0.get(id).ok_or(ActionError::NotFound { id: id.to_string() })?.get_command(Box::new(input)).expect("input type mismatch")(world);
+        self.0
+            .get(id)
+            .ok_or(ActionError::NotFound { id: id.to_string() })?
+            .get_command(Box::new(input))
+            .expect("input type mismatch")(world);
         Ok(())
     }
 }
@@ -51,7 +55,9 @@ impl<Input: Reflect> DynActionStorage for ActionStorage<Input> {
         let owned_action = Arc::clone(&self.action);
         let input = *input.into_any().downcast::<Input>().ok()?;
         Some(Box::new(move |world| {
-            owned_action.lock().run(input, world);
+            let lock = &mut owned_action.lock();
+            lock.run(input, world);
+            lock.apply_deferred(world);
         }))
     }
 }
@@ -72,7 +78,8 @@ impl Actions<'_, '_> {
             let _owned_id = id.to_owned();
             self.commands.add(
                 self.storages
-                    .0.get(id)
+                    .0
+                    .get(id)
                     .unwrap()
                     .get_command(Box::new(input))
                     .expect("input type mismatch"),

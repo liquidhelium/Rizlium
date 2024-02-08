@@ -14,7 +14,6 @@ use rizlium_render::GameTime;
 pub use ui::*;
 mod editor_actions;
 pub mod hotkeys;
-pub mod global_actions;
 mod files;
 pub mod extensions;
 pub mod utils;

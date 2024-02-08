@@ -2,7 +2,7 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use rizlium_render::{GameChart, GameTime};
 
-use crate::{hotkeys::NoAction, ui::editing::note_editor_vertical, TabProvider};
+use crate::{ui::editing::note_editor_vertical, TabProvider};
 
 #[derive(SystemParam)]
 pub struct NoteWindow<'w, 's> {
@@ -14,7 +14,6 @@ pub struct NoteWindow<'w, 's> {
 }
 
 impl<'w, 's> TabProvider for NoteWindow<'w, 's> {
-    type Hotkey = NoAction;
     fn ui(
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,

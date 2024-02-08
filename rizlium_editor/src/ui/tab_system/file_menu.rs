@@ -1,7 +1,7 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 use rizlium_render::LoadChartEvent;
 
-use crate::{hotkeys::NoAction, TabProvider};
+use crate::TabProvider;
 
 #[derive(SystemParam)]
 pub struct FileMenu<'w, 's> {
@@ -10,7 +10,6 @@ pub struct FileMenu<'w, 's> {
 }
 
 impl TabProvider for FileMenu<'_, '_> {
-    type Hotkey = NoAction;
     fn ui(
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,

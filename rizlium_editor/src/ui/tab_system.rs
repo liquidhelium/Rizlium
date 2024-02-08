@@ -28,12 +28,7 @@ use bevy::{
     prelude::*,
 };
 use egui::Ui;
-use leafwing_input_manager::{
-    prelude::{InputMap, InputManagerPlugin}, Actionlike, InputManagerBundle,
-};
-
 pub trait TabProvider: SystemParam + Send + Sync {
-    type Hotkey: Actionlike;
     fn ui(world: &mut World, state: &mut SystemState<Self>, ui: &mut Ui, has_focus: bool);
     fn name() -> String {
         // TODO: i18n
@@ -41,9 +36,6 @@ pub trait TabProvider: SystemParam + Send + Sync {
     }
     fn avaliable(_world: &World) -> bool {
         true
-    }
-    fn default_map() -> InputMap<Self::Hotkey> {
-        default()
     }
 }
 
@@ -61,7 +53,6 @@ pub trait CachedTab: Send + Sync {
     fn ui(&mut self, world: &mut World, ui: &mut Ui, has_focus: bool);
     fn name(&self) -> String;
     fn avaliable(&self, world: &World) -> bool;
-    fn init_hotkey(&self, app: &mut App);
 }
 
 impl<T: TabProvider> CachedTab for TabInstace<T> {
@@ -81,14 +72,5 @@ impl<T: TabProvider> CachedTab for TabInstace<T> {
     }
     fn avaliable(&self, world: &World) -> bool {
         T::avaliable(world)
-    }
-    fn init_hotkey(&self, app: &mut App) {
-        app.world.spawn(InputManagerBundle::<T::Hotkey> {
-            input_map: T::default_map(),
-            ..default()
-        });
-        if !app.is_plugin_added::<InputManagerPlugin<T::Hotkey>>() {
-            app.add_plugins(InputManagerPlugin::<T::Hotkey>::default());
-        }
     }
 }
