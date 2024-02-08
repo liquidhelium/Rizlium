@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rizlium_render::LoadChartEvent;
 
-use crate::{hotkeys::{HotkeysExt, HotkeyListener}, ActionsExt, PendingDialog, open_dialog, extensions::MenuExt, menu::{Button, self}};
+use crate::{hotkeys::{HotkeysExt, HotkeyListener}, ActionsExt, PendingDialog, open_dialog, extensions::MenuExt, menu::{self}};
 pub struct Game;
 
 impl Plugin for Game {

@@ -1,6 +1,6 @@
 use rizlium_editor::extensions::{EditorMenuEntrys, ExtensionsPlugin};
 use rizlium_editor::extra_window_control::{
-    DragWindowRequested, MaximizeRequested, MinimizeRequested, ExtraWindowControlPlugin,
+    DragWindowRequested, ExtraWindowControlPlugin,
 };
 use rizlium_editor::hotkeys::HotkeyPlugin;
 use rizlium_editor::widgets::{widget, LayoutPresetEdit};
@@ -13,7 +13,7 @@ use bevy::{prelude::*, render::render_resource::TextureDescriptor};
 use bevy_egui::EguiContexts;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
-use egui::{Align2, Layout, Sense};
+use egui::{Align2, Layout};
 use egui_dock::DockArea;
 use rizlium_editor::{
     ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
@@ -84,7 +84,7 @@ fn setup_game_view(
     commands.insert_resource(GameView(image_handle));
 }
 
-fn setup_window(mut windows: Query<&mut Window>) {
+fn setup_window(_windows: Query<&mut Window>) {
     // windows.single_mut().decorations = false;
 }
 
@@ -120,7 +120,7 @@ fn egui_render(world: &mut World) {
         .expect("EditorState does not exist");
     ctx.set_debug_on_hover(editor_state.debug_resources.show_cursor);
     let mut commands = ManualEditorCommands::default();
-    let window = world.query_filtered::<Entity, With<Window>>().single(world);
+    let _window = world.query_filtered::<Entity, With<Window>>().single(world);
     egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
         ui.horizontal_centered(|ui| {
             if world.contains_resource::<GameChart>() {
@@ -141,7 +141,7 @@ fn egui_render(world: &mut World) {
                 entries.foreach_ui(ui, world);
             });
             ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                world.resource_scope(|world, fps: Mut<'_, NowFps>| {
+                world.resource_scope(|_world, fps: Mut<'_, NowFps>| {
                     ui.label(format!("fps: {}", fps.0));
                 });
             });

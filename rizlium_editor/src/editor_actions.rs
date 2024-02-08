@@ -68,7 +68,7 @@ impl Actions<'_, '_> {
         input: impl Reflect,
     ) -> Result<(), ActionError> {
         if self.storages.0.contains_key(id) {
-            let owned_id = id.to_owned();
+            let _owned_id = id.to_owned();
             self.commands.add(
                 self.storages
                     .0.get(id)
