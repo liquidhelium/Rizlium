@@ -133,7 +133,7 @@ fn update_shape(
     lines: &mut Query<(&mut Stroke, &mut Path, &ComputedVisibility, &ChartLineId)>,
 ) {
     lines
-        // .par_iter_mut()
+        .par_iter_mut()
         // .batching_strategy(BatchingStrategy::new().batches_per_thread(40))
         .for_each_mut(|(_, mut path, vis, id)| {
             if !vis.is_visible() {

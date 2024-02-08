@@ -6,14 +6,9 @@ use bevy::{
     prelude::*,
 };
 use dyn_clone::DynClone;
-use leafwing_input_manager::{
-    prelude::{ActionState, InputManagerPlugin, InputMap},
-    user_input::UserInput,
-    Actionlike, InputManagerBundle,
-};
 use smallvec::SmallVec;
 
-use crate::{global_actions::{self, GlobalEditorAction}, ActionId, ActionStorages};
+use crate::{ActionId, ActionStorages};
 
 pub trait Action: DynClone + Sync + Send + 'static {
     fn run(&self, world: &mut World);
@@ -116,12 +111,12 @@ pub struct HotkeyPlugin;
 
 impl Plugin for HotkeyPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(InputManagerPlugin::<GlobalEditorAction>::default())
-            .add_systems(Update, global_actions::dispatch);
-        app.world.spawn(InputManagerBundle::<GlobalEditorAction> {
-            input_map: GlobalEditorAction::default_map(),
-            ..default()
-        });
+        // app.add_plugins(InputManagerPlugin::<GlobalEditorAction>::default())
+        //     .add_systems(Update, global_actions::dispatch);
+        // app.world.spawn(InputManagerBundle::<GlobalEditorAction> {
+        //     input_map: GlobalEditorAction::default_map(),
+        //     ..default()
+        // });
         ////
         app.init_resource::<HotkeyListeners>();
         app.add_systems(PreUpdate, dispatch_hotkey);
@@ -152,31 +147,4 @@ impl HotkeysExt for App {
     }
 }
 
-#[derive(Actionlike, Reflect, Clone)]
-pub enum NoAction {}
 
-#[derive(SystemParam)]
-pub struct HotkeyContext<'w, 's, T: Actionlike> {
-    query: Query<'w, 's, (&'static ActionState<T>, &'static InputMap<T>)>,
-}
-use std::ops::Deref;
-impl<T: Actionlike> Deref for HotkeyContext<'_, '_, T> {
-    type Target = ActionState<T>;
-    fn deref(&self) -> &Self::Target {
-        self.single().0
-    }
-}
-
-impl<T: Actionlike> HotkeyContext<'_, '_, T> {
-    fn single(&self) -> (&ActionState<T>, &InputMap<T>) {
-        self.query
-            .get_single()
-            .expect("possible calling for T = NoAction, or no action manager found")
-    }
-}
-
-impl<T: Actionlike> HotkeyContext<'_, '_, T> {
-    pub fn iter_inputs(&self) -> impl Iterator<Item = &UserInput> {
-        self.single().1.iter_inputs().map(|i| i.iter()).flatten()
-    }
-}

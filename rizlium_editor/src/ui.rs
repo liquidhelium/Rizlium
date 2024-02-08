@@ -43,13 +43,6 @@ impl Default for RizTabs {
     }
 }
 
-impl RizTabs {
-    pub fn init_hotkey(&self, app: &mut App) {
-        for tab in &self.tabs {
-            tab.init_hotkey(app);
-        }
-    }
-}
 
 pub trait InitRizTabsExt {
     fn init_riztabs(&mut self) -> &mut Self;
@@ -58,7 +51,6 @@ pub trait InitRizTabsExt {
 impl InitRizTabsExt for App {
     fn init_riztabs(&mut self) -> &mut Self {
         let tabs = RizTabs::default();
-        tabs.init_hotkey(self);
         self.insert_resource(tabs);
         self
     }

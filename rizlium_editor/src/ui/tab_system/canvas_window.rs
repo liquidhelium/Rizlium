@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use egui::{Layout, Slider};
 use rizlium_render::{GameChart, GameChartCache};
 
-use crate::{hotkeys::NoAction, TabProvider};
+use crate:: TabProvider;
 
 #[derive(SystemParam)]
 pub struct CanvasWindow<'w, 's> {
@@ -13,7 +13,6 @@ pub struct CanvasWindow<'w, 's> {
 }
 
 impl TabProvider for CanvasWindow<'_, '_> {
-    type Hotkey = NoAction;
     fn ui(
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,

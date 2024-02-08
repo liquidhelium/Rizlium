@@ -7,7 +7,6 @@ use egui::{Button, Layout, Ui};
 use rizlium_render::{GameTime, GameView, TimeManager};
 
 use crate::{
-    hotkeys::NoAction, 
     EditorCommands, TabProvider,
 };
 
@@ -21,7 +20,6 @@ pub struct GameViewTab<'w, 's> {
 }
 
 impl<'w, 's> TabProvider for GameViewTab<'w, 's> {
-    type Hotkey = NoAction;
     fn ui(
         world: &mut World,
         state: &mut bevy::ecs::system::SystemState<Self>,
@@ -69,6 +67,7 @@ impl<'w, 's> TabProvider for GameViewTab<'w, 's> {
                 }
             });
             keep_ratio(ui, 16. / 9., |ui, size| {
+                let a: egui::TextureId = img;
                 ui.centered_and_justified(|ui| ui.image(img, size));
             });
         });
