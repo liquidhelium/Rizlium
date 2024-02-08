@@ -17,6 +17,7 @@ pub mod hotkeys;
 pub mod global_actions;
 mod files;
 pub mod extensions;
+pub mod utils;
 pub use files::*;
 pub use editor_actions::*;
 mod ui;
