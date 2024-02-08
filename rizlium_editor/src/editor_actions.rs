@@ -10,11 +10,12 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use snafu::Snafu;
 
+use crate::utils::dot_path::DotPath;
 use crate::{files::open_dialog, files::PendingDialog, RecentFiles};
 
 pub type BoxedStorage = Box<dyn DynActionStorage>;
 
-pub type ActionId = String;
+pub type ActionId = DotPath;
 
 #[derive(Resource, Default)]
 pub struct ActionStorages(HashMap<ActionId, BoxedStorage>);
@@ -22,11 +23,11 @@ pub struct ActionStorages(HashMap<ActionId, BoxedStorage>);
 impl ActionStorages {
     pub fn run_instant(
         &mut self,
-        id: &str,
+        id: &ActionId,
         input: impl Reflect,
         world: &mut World,
     ) -> Result<(), ActionError> {
-        self.0.get(id).ok_or(ActionError::NotFound { id: id.into() })?.get_command(Box::new(input)).expect("input type mismatch")(world);
+        self.0.get(id).ok_or(ActionError::NotFound { id: id.to_string() })?.get_command(Box::new(input)).expect("input type mismatch")(world);
         Ok(())
     }
 }
@@ -64,7 +65,7 @@ pub struct Actions<'w, 's> {
 impl Actions<'_, '_> {
     pub fn run_action<'id>(
         &mut self,
-        id: &'id str,
+        id: &'id ActionId,
         input: impl Reflect,
     ) -> Result<(), ActionError> {
         if self.storages.0.contains_key(id) {
@@ -92,7 +93,7 @@ pub enum ActionError {
 pub trait ActionsExt {
     fn register_action<M, In: FromReflect>(
         &mut self,
-        id: &str,
+        id: impl Into<ActionId>,
         action: impl IntoSystem<In, (), M>,
     ) -> &mut Self;
 }
@@ -100,7 +101,7 @@ pub trait ActionsExt {
 impl ActionsExt for App {
     fn register_action<M, SystemInput: FromReflect>(
         &mut self,
-        id: &str,
+        id: impl Into<ActionId>,
         action: impl IntoSystem<SystemInput, (), M>,
     ) -> &mut Self {
         self.world
@@ -108,7 +109,7 @@ impl ActionsExt for App {
                 let mut system = IntoSystem::into_system(action);
                 system.initialize(world);
                 actions.0.insert(
-                    id.to_string(),
+                    id.into(),
                     Box::new(ActionStorage {
                         action: Arc::new(Mutex::new(Box::new(system))),
                     }),
