@@ -17,22 +17,16 @@ impl Plugin for Game {
             .register_action("game.time.advance", advance_time)
             .register_action("game.time.rewind", rewind_time)
             .register_action("game.time.toggle_pause", toggle_pause)
-            .register_hotkey(HotkeyListener::new_global(
+            .register_hotkey(
                 "game.open_dialog",
-                [ControlLeft, O],
-            ))
-            .register_hotkey(HotkeyListener::new_global(
-                "game.time.advance",
-                [Right],
-            ))
-            .register_hotkey(HotkeyListener::new_global(
-                "game.time.rewind",
-                [Left],
-            ))
-            .register_hotkey(HotkeyListener::new_global(
+                HotkeyListener::new_global([ControlLeft, O]),
+            )
+            .register_hotkey("game.time.advance", HotkeyListener::new_global([Right]))
+            .register_hotkey("game.time.rewind", HotkeyListener::new_global([Left]))
+            .register_hotkey(
                 "game.time.toggle_pause",
-                [Space],
-            ))
+                HotkeyListener::new_global([Space]),
+            )
             .menu_context(|mut ctx| {
                 ctx.with_sub_menu("file", "File".into(), 0, |mut ctx| {
                     ctx.add(

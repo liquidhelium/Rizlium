@@ -2,11 +2,9 @@
 //! 工作方式：多个键时，最后一个键使用 [`TriggerType`] 定义的触发方式，其他键要保持按下。
 
 use bevy::{
-    ecs::{
-        schedule::BoxedCondition,
-        system::Command,
-    },
+    ecs::{schedule::BoxedCondition, system::Command},
     prelude::*,
+    utils::HashMap,
 };
 use dyn_clone::DynClone;
 use smallvec::SmallVec;
@@ -35,7 +33,7 @@ pub enum TriggerType {
 impl TriggerType {
     fn check_trigger(&self, code: KeyCode, input: &mut Input<KeyCode>) -> bool {
         use TriggerType::*;
-        let triggered =  match self {
+        let triggered = match self {
             Pressed => input.just_pressed(code),
             Released => input.just_released(code),
             PressAndRelease => input.just_pressed(code) || input.just_released(code),
@@ -51,7 +49,6 @@ pub struct HotkeyListener {
     pub trigger_type: TriggerType,
     pub trigger_when: BoxedCondition,
     pub key: SmallVec<[KeyCode; 6]>,
-    pub action: ActionId
 }
 
 fn new_condition<M>(condition: impl Condition<M>) -> BoxedCondition {
@@ -68,30 +65,21 @@ const fn always() -> bool {
     true
 }
 impl HotkeyListener {
-    pub fn new<M>(
-        action: impl Into<ActionId>,
-        key: impl IntoIterator<Item = KeyCode>,
-        trigger_when: impl Condition<M>,
-    ) -> Self {
+    pub fn new<M>(key: impl IntoIterator<Item = KeyCode>, trigger_when: impl Condition<M>) -> Self {
         Self {
             trigger_type: TriggerType::Pressed,
             trigger_when: new_condition(trigger_when),
-            action: action.into(),
             key: key.into_iter().collect(),
         }
     }
-    pub fn new_global(action: impl Into<ActionId>, key: impl IntoIterator<Item = KeyCode>) -> Self {
-        Self::new(action.into(),key, always)
+    pub fn new_global(key: impl IntoIterator<Item = KeyCode>) -> Self {
+        Self::new(key, always)
     }
     /// 在应用于 `world` 前一定要先 `initialize`.
     pub fn initialize(&mut self, world: &mut World) {
         self.trigger_when.initialize(world);
     }
-    pub fn trigger<'a>(&'a self, world: &mut World) -> Result<(), crate::ActionError> { // todo: error handling
-        world.resource_scope(|world: &mut World, mut actions: Mut<'_, ActionStorages>| {
-            actions.run_instant(&self.action, (), world)
-        })
-    }
+
     pub fn is_triggered_by_keyboard(&self, world: &mut World) -> bool {
         if self.key.is_empty() {
             return false;
@@ -112,7 +100,7 @@ impl HotkeyListener {
 }
 
 #[derive(Resource, Default, Deref)]
-pub struct HotkeyListeners(Vec<HotkeyListener>);
+pub struct HotkeyListeners(HashMap<ActionId, HotkeyListener>);
 
 pub struct HotkeyPlugin;
 
@@ -125,26 +113,28 @@ impl Plugin for HotkeyPlugin {
 
 fn dispatch_hotkey(world: &mut World) {
     world.resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyListeners>| {
-        for i in hotkeys.0.iter_mut() {
-            if i.should_trigger(world) {
-                i.trigger(world).expect("action not found (todo: handle this error) ");
+        for (id, listener) in hotkeys.0.iter_mut() {
+            if listener.should_trigger(world) {
+                // todo: error handling
+                world.resource_scope(|world: &mut World, mut actions: Mut<'_, ActionStorages>| {
+                    actions.run_instant(id, (), world)
+                }).expect("encountered err (todo handle this)");
             }
         }
     });
 }
 
 pub trait HotkeysExt {
-    fn register_hotkey(&mut self, listener: HotkeyListener) -> &mut Self;
+    fn register_hotkey(&mut self, id: impl Into<ActionId>, listener: HotkeyListener) -> &mut Self;
 }
 
 impl HotkeysExt for App {
-    fn register_hotkey(&mut self, mut listener: HotkeyListener) -> &mut Self{
-        self.world.resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyListeners>| {
-            listener.initialize(world);
-            hotkeys.0.push(listener);
-        });
+    fn register_hotkey(&mut self, id: impl Into<ActionId>, mut listener: HotkeyListener) -> &mut Self {
+        self.world
+            .resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyListeners>| {
+                listener.initialize(world);
+                hotkeys.0.insert(id.into(), listener);
+            });
         self
     }
 }
-
-
