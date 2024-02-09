@@ -1,5 +1,4 @@
 
-use bevy::ecs::query::BatchingStrategy;
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
 use rizlium_chart::chart::{EasingId, Tween};
 
@@ -56,10 +55,11 @@ impl Plugin for ChartLinePlugin {
         app.init_resource::<ShowLines>()
             .add_systems(
                 First,
-                (add_lines, assocate_segment)
-                    .in_set(LineRenderingSystemSet::SyncChart)
-                    .run_if(resource_exists_and_changed::<GameChart>()),
+                add_segments.in_set(LineRenderingSystemSet::SyncChart)
+                    .run_if(resource_exists_and_changed::<GameChart>())
+                    
             )
+            .add_systems(PreUpdate, associate_segment.run_if(resource_exists_and_changed::<GameChart>()))
             .add_systems(
                 Update,
                 (change_bounding, update_shape, update_color, update_layer)
@@ -69,8 +69,12 @@ impl Plugin for ChartLinePlugin {
     }
 }
 
-fn add_lines(mut commands: Commands, chart: Res<GameChart>, lines: Query<&ChartLine>) {
-    for _ in lines.iter().count()..chart.segment_count() {
+fn add_segments(mut commands: Commands, chart: Res<GameChart>, lines: Query<&ChartLine>) {
+    let segment_count = chart.segment_count();
+    let now_count = lines.iter().count();
+    let delta = segment_count - now_count;
+    debug!("attempting to add {delta} segments");
+    for _ in now_count..segment_count {
         commands.spawn(ChartLineBundle::default());
     }
 }
@@ -103,11 +107,12 @@ fn change_bounding(
     });
 }
 
-fn assocate_segment(
+fn associate_segment(
     mut commands: Commands,
     chart: Res<GameChart>,
     lines: Query<Entity, With<ChartLine>>,
 ) {
+    debug!("running system assocate_segment");
     // return_nothing_change!(chart);
     for (entity, (line_idx, keypoint_idx)) in lines.iter().zip(chart.iter_segment()) {
         commands.entity(entity).insert(ChartLineId {
@@ -134,7 +139,7 @@ fn update_shape(
     mut lines: Query<(&mut Stroke, &mut Path, &ComputedVisibility, &ChartLineId)>,
 ) {
     lines
-        // .par_iter_mut()
+        .par_iter_mut()
         // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
         .for_each_mut(|(_, mut path, vis, id)| {
             if !vis.is_visible() {
@@ -209,7 +214,7 @@ fn update_color(
     mut lines: Query<(&mut Stroke, &mut Path, &ComputedVisibility, &ChartLineId)>,
 ) {
     lines
-        .par_iter_mut()
+        // .par_iter_mut()
         .for_each_mut(|(mut stroke, _, vis, id)| {
             if !vis.is_visible() {
                 return;

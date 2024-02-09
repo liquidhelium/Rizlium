@@ -1,3 +1,4 @@
+use bevy::log::LogPlugin;
 use rizlium_editor::extensions::{EditorMenuEntrys, ExtensionsPlugin};
 use rizlium_editor::extra_window_control::{
     DragWindowRequested, ExtraWindowControlPlugin,
@@ -24,7 +25,10 @@ use rizlium_render::{GameChart, GameView, RizliumRenderingPlugin};
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins,
+            DefaultPlugins.set(LogPlugin {
+                level: bevy::log::Level::DEBUG,
+                ..Default::default()
+            }),
             EguiPlugin,
             RizliumRenderingPlugin {
                 config: (),
