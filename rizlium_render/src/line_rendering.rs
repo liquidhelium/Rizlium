@@ -1,4 +1,5 @@
 
+use bevy::ecs::query::BatchingStrategy;
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
 use rizlium_chart::chart::{EasingId, Tween};
 
@@ -57,11 +58,11 @@ impl Plugin for ChartLinePlugin {
                 First,
                 (add_lines, assocate_segment)
                     .in_set(LineRenderingSystemSet::SyncChart)
-                    .run_if(chart_update!()),
+                    .run_if(resource_exists_and_changed::<GameChart>()),
             )
             .add_systems(
                 Update,
-                (change_bounding, update_visual, update_layer)
+                (change_bounding, update_shape, update_color, update_layer)
                     .in_set(LineRenderingSystemSet::Rendering)
                     .run_if(chart_update!()),
             );
@@ -116,25 +117,25 @@ fn assocate_segment(
     }
 }
 
-fn update_visual(
+// fn update_visual(
+//     chart: Res<GameChart>,
+//     cache: Res<GameChartCache>,
+//     time: Res<GameTime>,
+//     mut lines: Query<(&mut Stroke, &mut Path, &ComputedVisibility, &ChartLineId)>,
+// ) {
+//     update_shape(&chart, &cache, &time, &mut lines);
+//     update_color(chart, cache, time, lines);
+// }
+
+fn update_shape(
     chart: Res<GameChart>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
     mut lines: Query<(&mut Stroke, &mut Path, &ComputedVisibility, &ChartLineId)>,
 ) {
-    update_shape(&chart, &cache, &time, &mut lines);
-    update_color(chart, cache, time, lines);
-}
-
-fn update_shape(
-    chart: &Res<GameChart>,
-    cache: &Res<GameChartCache>,
-    time: &Res<GameTime>,
-    lines: &mut Query<(&mut Stroke, &mut Path, &ComputedVisibility, &ChartLineId)>,
-) {
     lines
-        .par_iter_mut()
-        // .batching_strategy(BatchingStrategy::new().batches_per_thread(40))
+        // .par_iter_mut()
+        // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
         .for_each_mut(|(_, mut path, vis, id)| {
             if !vis.is_visible() {
                 if !path.0.as_slice().is_empty() {
@@ -151,11 +152,11 @@ fn update_shape(
             let mut builder = PathBuilder::new();
             let pos1 = chart
                 .with_cache(&cache)
-                .pos_for_linepoint_at(line_idx, keypoint_idx, ***time)
+                .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
                 .unwrap();
             let pos2 = chart
                 .with_cache(&cache)
-                .pos_for_linepoint_at(line_idx, keypoint_idx + 1, ***time)
+                .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
                 .unwrap();
             builder.move_to(pos1.into());
             if pos1[1].approx_eq(&0.) && pos2[1].approx_eq(&0.) {
@@ -168,10 +169,11 @@ fn update_shape(
                 || pos1[0].approx_eq(&pos2[0])
                 || pos1[1].approx_eq(&pos2[1]))
             {
-                let mut point_count = ((pos2[1] - pos1[1]) / 10.).floor();
+                let mut point_count = ((pos2[1] - pos1[1]) / 5.).floor();
                 if point_count >= 10000. {
                     point_count = 5000.
                 }
+                builder.reserve(point_count as usize);
                 // 0...>1...>2...>3..0'
                 (1..point_count as usize)
                     .map(|i| i as f32 / point_count)
@@ -190,7 +192,7 @@ fn update_shape(
             if let Some(pos) =
                 chart
                     .with_cache(&cache)
-                    .line_pos_at(line_idx, keypoint2.time + 0.01, ***time)
+                    .line_pos_at(line_idx, keypoint2.time + 0.01, **time)
             {
                 builder.line_to(pos.into());
             }
@@ -207,7 +209,7 @@ fn update_color(
     mut lines: Query<(&mut Stroke, &mut Path, &ComputedVisibility, &ChartLineId)>,
 ) {
     lines
-        // .par_iter_mut()
+        .par_iter_mut()
         .for_each_mut(|(mut stroke, _, vis, id)| {
             if !vis.is_visible() {
                 return;
