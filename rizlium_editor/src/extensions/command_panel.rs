@@ -2,7 +2,7 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 use egui::{Align2, Color32, Layout};
 
 use crate::{
-    hotkeys::{HotkeyListener, HotkeysExt},
+    hotkeys::{Hotkey, Hotkeys, HotkeysExt},
     widgets::WidgetSystem,
     ActionsExt,
 };
@@ -15,7 +15,7 @@ impl Plugin for CommandPanel {
         app.register_action("command_panel.toggle_open", toggle_open_command_panel)
             .register_hotkey(
                 "command_panel.toggle_open",
-                HotkeyListener::new_global([ControlLeft, P]),
+                Hotkey::new_global([ControlLeft, P]),
             )
             .init_resource::<CommandPanelState>();
     }
@@ -35,6 +35,7 @@ fn toggle_open_command_panel(mut state: ResMut<CommandPanelState>) {
 #[derive(SystemParam)]
 pub struct CommandPanelImpl<'w> {
     state: ResMut<'w, CommandPanelState>,
+    hotkeys: Res<'w, Hotkeys>
 }
 
 impl WidgetSystem for CommandPanelImpl<'static> {
@@ -46,7 +47,7 @@ impl WidgetSystem for CommandPanelImpl<'static> {
         _extra: Self::Extra<'_>,
     ) {
         let ctx = ui.ctx();
-        let CommandPanelImpl { mut state } = state.get_mut(world);
+        let CommandPanelImpl { mut state, hotkeys, } = state.get_mut(world);
         if !state.opened {
             return;
         }
@@ -70,12 +71,10 @@ impl WidgetSystem for CommandPanelImpl<'static> {
                         egui::ScrollArea::new([false, true])
                             // .max_height(ctx.screen_rect().height() / 2.)
                             .max_width(panel_rect.width())
-                            .auto_shrink(false)
+                            .auto_shrink([false, true])
                             .show(ui, |ui| {
-                                for _ in 0..500 {
-                                    // ui.menu_button("title", |ui| {
-                                    ui.button("Text\ntest");
-                                    // });
+                                for (i) in hotkeys.iter() {
+                                    
                                 }
                             });
                     })

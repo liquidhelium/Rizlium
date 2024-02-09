@@ -5,7 +5,9 @@ use bevy::{
     ecs::{schedule::BoxedCondition, system::Command},
     prelude::*,
     utils::HashMap,
+    window::PrimaryWindow,
 };
+use bevy_egui::EguiOutput;
 use dyn_clone::DynClone;
 use smallvec::SmallVec;
 
@@ -45,7 +47,7 @@ impl TriggerType {
     }
 }
 
-pub struct HotkeyListener {
+pub struct Hotkey {
     pub trigger_type: TriggerType,
     pub trigger_when: BoxedCondition,
     pub key: SmallVec<[KeyCode; 6]>,
@@ -64,7 +66,7 @@ fn new_condition<M>(condition: impl Condition<M>) -> BoxedCondition {
 const fn always() -> bool {
     true
 }
-impl HotkeyListener {
+impl Hotkey {
     pub fn new<M>(key: impl IntoIterator<Item = KeyCode>, trigger_when: impl Condition<M>) -> Self {
         Self {
             trigger_type: TriggerType::Pressed,
@@ -95,43 +97,58 @@ impl HotkeyListener {
                 .check_trigger(*self.key.last().unwrap(), &mut *input)
     }
     pub fn should_trigger(&mut self, world: &mut World) -> bool {
-        self.is_triggered_by_keyboard(world) && self.trigger_when.run_readonly((), world)
+        let not_editing_text = !world
+            .query_filtered::<&EguiOutput, With<PrimaryWindow>>()
+            .get_single(world)
+            .map_or(false, |e| e.platform_output.mutable_text_under_cursor);
+        let has_modifier = self.key.contains(&KeyCode::AltLeft)
+            || self.key.contains(&KeyCode::AltRight)
+            || self.key.contains(&KeyCode::ControlLeft)
+            || self.key.contains(&KeyCode::ControlRight);
+        self.is_triggered_by_keyboard(world)
+            && self.trigger_when.run_readonly((), world)
+            && (not_editing_text || has_modifier)
     }
 }
 
 #[derive(Resource, Default, Deref)]
-pub struct HotkeyListeners(HashMap<ActionId, HotkeyListener>);
+pub struct Hotkeys(HashMap<ActionId, Hotkey>);
 
 pub struct HotkeyPlugin;
 
 impl Plugin for HotkeyPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<HotkeyListeners>();
-        app.add_systems(PreUpdate, dispatch_hotkey);
+        app.init_resource::<Hotkeys>();
+        app.add_systems(
+            PostUpdate,
+            dispatch_hotkey.after(bevy_egui::EguiSet::ProcessOutput),
+        );
     }
 }
 
 fn dispatch_hotkey(world: &mut World) {
-    world.resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyListeners>| {
+    world.resource_scope(|world: &mut World, mut hotkeys: Mut<'_, Hotkeys>| {
         for (id, listener) in hotkeys.0.iter_mut() {
             if listener.should_trigger(world) {
                 // todo: error handling
-                world.resource_scope(|world: &mut World, mut actions: Mut<'_, ActionStorages>| {
-                    actions.run_instant(id, (), world)
-                }).expect("encountered err (todo handle this)");
+                world
+                    .resource_scope(|world: &mut World, mut actions: Mut<'_, ActionStorages>| {
+                        actions.run_instant(id, (), world)
+                    })
+                    .expect("encountered err (todo handle this)");
             }
         }
     });
 }
 
 pub trait HotkeysExt {
-    fn register_hotkey(&mut self, id: impl Into<ActionId>, listener: HotkeyListener) -> &mut Self;
+    fn register_hotkey(&mut self, id: impl Into<ActionId>, listener: Hotkey) -> &mut Self;
 }
 
 impl HotkeysExt for App {
-    fn register_hotkey(&mut self, id: impl Into<ActionId>, mut listener: HotkeyListener) -> &mut Self {
+    fn register_hotkey(&mut self, id: impl Into<ActionId>, mut listener: Hotkey) -> &mut Self {
         self.world
-            .resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyListeners>| {
+            .resource_scope(|world: &mut World, mut hotkeys: Mut<'_, Hotkeys>| {
                 listener.initialize(world);
                 hotkeys.0.insert(id.into(), listener);
             });

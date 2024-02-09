@@ -3,7 +3,7 @@ use rizlium_render::LoadChartEvent;
 
 use crate::{
     extensions::MenuExt,
-    hotkeys::{HotkeyListener, HotkeysExt},
+    hotkeys::{Hotkey, HotkeysExt},
     menu, open_dialog, ActionsExt, PendingDialog,
 };
 pub struct Game;
@@ -19,13 +19,13 @@ impl Plugin for Game {
             .register_action("game.time.toggle_pause", toggle_pause)
             .register_hotkey(
                 "game.open_dialog",
-                HotkeyListener::new_global([ControlLeft, O]),
+                Hotkey::new_global([ControlLeft, O]),
             )
-            .register_hotkey("game.time.advance", HotkeyListener::new_global([Right]))
-            .register_hotkey("game.time.rewind", HotkeyListener::new_global([Left]))
+            .register_hotkey("game.time.advance", Hotkey::new_global([Right]))
+            .register_hotkey("game.time.rewind", Hotkey::new_global([Left]))
             .register_hotkey(
                 "game.time.toggle_pause",
-                HotkeyListener::new_global([Space]),
+                Hotkey::new_global([Space]),
             )
             .menu_context(|mut ctx| {
                 ctx.with_sub_menu("file", "File".into(), 0, |mut ctx| {
