@@ -13,10 +13,10 @@ impl Plugin for CommandPanel {
     fn build(&self, app: &mut App) {
         use bevy::input::keyboard::KeyCode::*;
         app.register_action("command_panel.toggle_open", toggle_open_command_panel)
-            .register_hotkey(HotkeyListener::new_global(
+            .register_hotkey(
                 "command_panel.toggle_open",
-                [ControlLeft, P],
-            ))
+                HotkeyListener::new_global([ControlLeft, P]),
+            )
             .init_resource::<CommandPanelState>();
     }
 }
@@ -28,7 +28,6 @@ pub struct CommandPanelState {
 }
 
 fn toggle_open_command_panel(mut state: ResMut<CommandPanelState>) {
-    info!("command panel: {}", state.opened);
     state.opened = !state.opened;
     state.current_content.clear();
 }
@@ -54,7 +53,6 @@ impl WidgetSystem for CommandPanelImpl<'static> {
         let mut panel_rect = ctx.screen_rect().shrink(20.);
         panel_rect.set_height(20.);
         panel_rect.set_width(400.0f32.min(panel_rect.width()));
-        ctx.debug_painter().debug_rect(panel_rect, Color32::DEBUG_COLOR, "commands");
         egui::Area::new("commands")
             .movable(false)
             .order(egui::Order::Foreground)
@@ -85,7 +83,6 @@ impl WidgetSystem for CommandPanelImpl<'static> {
             });
     }
 }
-
 
 fn set_menu_style(style: &mut egui::Style) {
     style.spacing.button_padding = [2.0, 0.0].into();
