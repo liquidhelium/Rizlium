@@ -25,6 +25,7 @@ pub mod extra_window_control;
 pub struct EditorState {
     pub debug_resources: DebugResources,
     pub editing_presets: bool,
+    pub is_editing_text: bool,
 }
 #[derive(Debug, Default)]
 pub struct DebugResources {

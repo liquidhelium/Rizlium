@@ -187,7 +187,7 @@ fn egui_render(world: &mut World) {
             }
         });
     });
-
+    editor_state.is_editing_text = ctx.output(|out| out.mutable_text_under_cursor);
 
     commands.apply_manual(world);
     world.insert_resource(editor_state);
