@@ -1,19 +1,19 @@
 mod game;
-// pub mod docking;
+pub mod docking;
 
 use bevy::prelude::{App, Deref, DerefMut, Plugin, Resource};
 use snafu::Snafu;
 
 use crate::menu::{ItemAsContainer, MenuItem, MenuItemProvider, MenuItemVariant, SubMenu, Category, ItemGroup};
 
-use self::game::Game;
+use self::{docking::Docking, game::Game};
 
 pub struct ExtensionsPlugin;
 
 impl Plugin for ExtensionsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<EditorMenuEntrys>();
-        app.add_plugins(Game);
+        app.add_plugins((Game, Docking));
     }
 }
 

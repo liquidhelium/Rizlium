@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
-use bevy::prelude::{World, Mut};
+use bevy::prelude::{Mut, World};
+use dyn_clone::DynClone;
 use egui::Ui;
 use enum_dispatch::enum_dispatch;
 use indexmap::IndexMap;
@@ -11,6 +12,7 @@ use crate::{ActionId, ActionStorages};
 #[derive(Debug, Clone)]
 pub enum MenuItemVariant {
     Button,
+    Custom,
     SubMenu,
     Category,
 }
@@ -81,9 +83,7 @@ pub struct Button {
 
 impl Button {
     pub fn new(action: ActionId) -> Self {
-        Self {
-            action,
-        }
+        Self { action }
     }
 }
 
@@ -97,10 +97,33 @@ impl MenuItemProvider for Button {
     fn ui(&self, ui: &mut Ui, world: &mut World, name: &str) {
         if ui.button(name).clicked() {
             world.resource_scope(|world: &mut World, mut actions: Mut<ActionStorages>| {
-                let _ = actions.run_instant(&self.action, (), world).map_err(|err| bevy::prelude::error!("encountered error when running action: {}", err));
+                let _ = actions.run_instant(&self.action, (), world).map_err(|err| {
+                    bevy::prelude::error!("encountered error when running action: {}", err)
+                });
             });
             ui.close_menu();
         }
+    }
+}
+
+pub trait CloneableUiFunc: Fn(&mut Ui, &mut World, &str) + Sync + Send + DynClone + 'static {}
+
+impl<T> CloneableUiFunc for T where T: Fn(&mut Ui, &mut World, &str) + Sync + Send + DynClone + 'static {}
+
+dyn_clone::clone_trait_object!(CloneableUiFunc);
+
+#[derive(Clone)]
+pub struct Custom(pub Box<dyn CloneableUiFunc>);
+
+impl MenuItemProvider for Custom {
+    fn ui(&self, ui: &mut Ui, world: &mut World, name: &str) {
+        (self.0)(ui, world, name)
+    }
+}
+
+impl Debug for Custom {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("<Custom widget>")
     }
 }
 
@@ -120,7 +143,7 @@ impl ItemGroup {
     }
     pub fn as_container(&mut self) -> ItemAsContainer {
         ItemAsContainer {
-            container_item: Box::new(ItemGroupAsContainer {group: self}),
+            container_item: Box::new(ItemGroupAsContainer { group: self }),
         }
     }
 }
