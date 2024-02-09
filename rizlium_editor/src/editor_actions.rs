@@ -1,3 +1,4 @@
+use std::any::type_name;
 use std::sync::Arc;
 
 use bevy::ecs::system::{CommandQueue, SystemBuffer, SystemMeta, SystemParam};
@@ -40,7 +41,7 @@ pub trait DynActionStorage: Send + Sync {
     fn get_command(
         &self,
         input: Box<dyn Reflect>,
-    ) -> Option<Box<dyn FnOnce(&mut World) + Send + Sync + 'static>>;
+    ) -> Result<Box<dyn FnOnce(&mut World) + Send + Sync + 'static>, String>;
 }
 
 pub struct ActionStorage<Input: Reflect> {
@@ -51,10 +52,13 @@ impl<Input: Reflect> DynActionStorage for ActionStorage<Input> {
     fn get_command(
         &self,
         input: Box<dyn Reflect>,
-    ) -> Option<Box<dyn FnOnce(&mut World) + Send + Sync + 'static>> {
+    ) -> Result<Box<dyn FnOnce(&mut World) + Send + Sync + 'static>, String> {
         let owned_action = Arc::clone(&self.action);
-        let input = *input.into_any().downcast::<Input>().ok()?;
-        Some(Box::new(move |world| {
+        let input = *input
+            .into_any()
+            .downcast::<Input>()
+            .map_err(|_| type_name::<Input>().to_string())?;
+        Ok(Box::new(move |world| {
             let lock = &mut owned_action.lock();
             lock.run(input, world);
             lock.apply_deferred(world);
@@ -69,10 +73,10 @@ pub struct Actions<'w, 's> {
 }
 
 impl Actions<'_, '_> {
-    pub fn run_action<'id>(
+    pub fn run_action<'id, I: Reflect>(
         &mut self,
         id: &'id ActionId,
-        input: impl Reflect,
+        input: I,
     ) -> Result<(), ActionError> {
         if self.storages.0.contains_key(id) {
             let _owned_id = id.to_owned();
@@ -82,7 +86,10 @@ impl Actions<'_, '_> {
                     .get(id)
                     .unwrap()
                     .get_command(Box::new(input))
-                    .expect("input type mismatch"),
+                    .map_err(|expected_type_name| ActionError::MismatchInput {
+                        expected_type_name,
+                        found_type_name: type_name::<I>().into()
+                    })?,
             );
             Ok(())
         } else {
@@ -95,6 +102,11 @@ impl Actions<'_, '_> {
 pub enum ActionError {
     #[snafu(display("Action {id} does not exist."))]
     NotFound { id: String },
+    #[snafu(display("input type mismatch, expecting {expected_type_name}, found {found_type_name}"))]
+    MismatchInput {
+        expected_type_name: String,
+        found_type_name: String,
+    },
 }
 
 pub trait ActionsExt {

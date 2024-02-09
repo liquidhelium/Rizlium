@@ -1,8 +1,6 @@
 use bevy::log::LogPlugin;
 use rizlium_editor::extensions::{EditorMenuEntrys, ExtensionsPlugin};
-use rizlium_editor::extra_window_control::{
-    DragWindowRequested, ExtraWindowControlPlugin,
-};
+use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
 use rizlium_editor::hotkeys::HotkeyPlugin;
 use rizlium_editor::widgets::{widget, LayoutPresetEdit};
 use rizlium_editor::{ActionPlugin, FilePlugin, InitRizTabsExt, WindowUpdateControlPlugin};
@@ -14,7 +12,7 @@ use bevy::{prelude::*, render::render_resource::TextureDescriptor};
 use bevy_egui::EguiContexts;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
-use egui::{Align2, Layout};
+use egui::{Align2, Color32, Layout};
 use egui_dock::DockArea;
 use rizlium_editor::{
     ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
@@ -26,7 +24,7 @@ fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins.set(LogPlugin {
-                level: bevy::log::Level::DEBUG,
+                level: bevy::log::Level::INFO,
                 ..Default::default()
             }),
             EguiPlugin,
@@ -41,7 +39,7 @@ fn main() {
             HotkeyPlugin,
             FilePlugin,
             ExtensionsPlugin,
-            ExtraWindowControlPlugin
+            ExtraWindowControlPlugin,
         ))
         .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
@@ -125,6 +123,7 @@ fn egui_render(world: &mut World) {
     // ctx.set_debug_on_hover(editor_state.debug_resources.show_cursor);
     let mut commands = ManualEditorCommands::default();
     let _window = world.query_filtered::<Entity, With<Window>>().single(world);
+    // todo: status into extension
     egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
         ui.horizontal_centered(|ui| {
             if world.contains_resource::<GameChart>() {
@@ -165,16 +164,15 @@ fn egui_render(world: &mut World) {
     world.resource_scope(|world: &mut World, mut tab: Mut<'_, RizTabs>| {
         world.resource_scope(|world: &mut World, mut state: Mut<'_, RizDockState>| {
             let focused_tab = state.state.find_active_focused().unzip().1.copied();
-            DockArea::new(&mut state.state)
-                .show(
-                    ctx,
-                    &mut RizTabViewer {
-                        world,
-                        editor_state: &mut editor_state,
-                        tabs: &mut tab.tabs,
-                        focused_tab,
-                    },
-                );
+            DockArea::new(&mut state.state).show(
+                ctx,
+                &mut RizTabViewer {
+                    world,
+                    editor_state: &mut editor_state,
+                    tabs: &mut tab.tabs,
+                    focused_tab,
+                },
+            );
 
             if state.state.main_surface().is_empty() {
                 egui::CentralPanel::default().show(ctx, |ui| {
@@ -187,6 +185,48 @@ fn egui_render(world: &mut World) {
             }
         });
     });
+
+    let mut panel_rect = ctx.screen_rect().shrink(20.);
+    panel_rect.set_height(20.);
+    panel_rect.set_width(400.0f32.min(panel_rect.width()));
+    // ctx.debug_painter().debug_rect(panel_rect, Color32::DEBUG_COLOR, "commands");
+    egui::Area::new("commands")
+        .movable(false)
+        .order(egui::Order::Foreground)
+        .anchor(Align2::CENTER_TOP, [0., 5.])
+        .show(ctx, |ui| {
+            set_menu_style(ui.style_mut());
+            egui::Frame::popup(ui.style()).show(ui, |ui| {
+                ui.set_max_width(panel_rect.width());
+                ui.set_max_height(ctx.screen_rect().height() / 2.);
+                ui.with_layout(Layout::top_down_justified(egui::Align::LEFT), |ui| {
+                    ui.add_sized(
+                        panel_rect.size(),
+                        egui::TextEdit::singleline(&mut "Test".to_string()),
+                    );
+                    egui::ScrollArea::new([false, true])
+                        // .max_height(ctx.screen_rect().height() / 2.)
+                        .max_width(panel_rect.width())
+                        .auto_shrink(false)
+                        .show(ui, |ui| {
+                            for _ in 0..500 {
+                                // ui.menu_button("title", |ui| {
+                                ui.button("Text\ntest");
+                                // });
+                            }
+                        });
+                })
+            });
+        });
+
     commands.apply_manual(world);
     world.insert_resource(editor_state);
+}
+
+fn set_menu_style(style: &mut egui::Style) {
+    style.spacing.button_padding = [2.0, 0.0].into();
+    style.visuals.widgets.active.bg_stroke = egui::Stroke::NONE;
+    style.visuals.widgets.hovered.bg_stroke = egui::Stroke::NONE;
+    style.visuals.widgets.inactive.weak_bg_fill = egui::Color32::TRANSPARENT;
+    style.visuals.widgets.inactive.bg_stroke = egui::Stroke::NONE;
 }

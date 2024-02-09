@@ -4,7 +4,7 @@ use rizlium_render::LoadChartEvent;
 use crate::{
     extensions::MenuExt,
     hotkeys::{HotkeyListener, HotkeysExt},
-    menu, open_dialog, ActionsExt, EditorCommands, PendingDialog,
+    menu, open_dialog, ActionsExt, PendingDialog,
 };
 pub struct Game;
 
