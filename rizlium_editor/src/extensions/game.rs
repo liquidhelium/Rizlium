@@ -18,19 +18,19 @@ impl Plugin for Game {
             .register_action("game.time.rewind", rewind_time)
             .register_action("game.time.toggle_pause", toggle_pause)
             .register_hotkey(HotkeyListener::new_global(
-                "game.open_dialog".into(),
+                "game.open_dialog",
                 [ControlLeft, O],
             ))
             .register_hotkey(HotkeyListener::new_global(
-                "game.time.advance".into(),
+                "game.time.advance",
                 [Right],
             ))
             .register_hotkey(HotkeyListener::new_global(
-                "game.time.rewind".into(),
+                "game.time.rewind",
                 [Left],
             ))
             .register_hotkey(HotkeyListener::new_global(
-                "game.time.toggle_pause".into(),
+                "game.time.toggle_pause",
                 [Space],
             ))
             .menu_context(|mut ctx| {

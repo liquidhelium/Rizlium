@@ -33,14 +33,17 @@ pub enum TriggerType {
 }
 
 impl TriggerType {
-    fn check_trigger(&self, code: KeyCode, input: &Input<KeyCode>) -> bool {
+    fn check_trigger(&self, code: KeyCode, input: &mut Input<KeyCode>) -> bool {
         use TriggerType::*;
-        match self {
+        let triggered =  match self {
             Pressed => input.just_pressed(code),
             Released => input.just_released(code),
             PressAndRelease => input.just_pressed(code) || input.just_released(code),
             Repeat => input.pressed(code),
-        }
+        };
+        input.clear_just_pressed(code);
+        input.clear_just_released(code);
+        return triggered;
     }
 }
 
@@ -66,19 +69,19 @@ const fn always() -> bool {
 }
 impl HotkeyListener {
     pub fn new<M>(
-        action: ActionId,
+        action: impl Into<ActionId>,
         key: impl IntoIterator<Item = KeyCode>,
         trigger_when: impl Condition<M>,
     ) -> Self {
         Self {
             trigger_type: TriggerType::Pressed,
             trigger_when: new_condition(trigger_when),
-            action,
+            action: action.into(),
             key: key.into_iter().collect(),
         }
     }
-    pub fn new_global(action: ActionId, key: impl IntoIterator<Item = KeyCode>) -> Self {
-        Self::new(action,key, always)
+    pub fn new_global(action: impl Into<ActionId>, key: impl IntoIterator<Item = KeyCode>) -> Self {
+        Self::new(action.into(),key, always)
     }
     /// 在应用于 `world` 前一定要先 `initialize`.
     pub fn initialize(&mut self, world: &mut World) {
@@ -89,11 +92,11 @@ impl HotkeyListener {
             actions.run_instant(&self.action, (), world)
         })
     }
-    pub fn is_triggered_by_keyboard(&self, world: &World) -> bool {
+    pub fn is_triggered_by_keyboard(&self, world: &mut World) -> bool {
         if self.key.is_empty() {
             return false;
         }
-        let input = world.resource::<Input<KeyCode>>();
+        let mut input = world.resource_mut::<Input<KeyCode>>();
         let mut other_all_pressed = true;
         for code in self.key.iter().copied() {
             other_all_pressed &= input.pressed(code);
@@ -101,9 +104,9 @@ impl HotkeyListener {
         other_all_pressed
             && self
                 .trigger_type
-                .check_trigger(*self.key.last().unwrap(), input)
+                .check_trigger(*self.key.last().unwrap(), &mut *input)
     }
-    pub fn should_trigger(&mut self, world: &World) -> bool {
+    pub fn should_trigger(&mut self, world: &mut World) -> bool {
         self.is_triggered_by_keyboard(world) && self.trigger_when.run_readonly((), world)
     }
 }

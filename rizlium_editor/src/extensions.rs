@@ -1,19 +1,22 @@
-mod game;
+pub mod command_panel;
 pub mod docking;
+mod game;
 
 use bevy::prelude::{App, Deref, DerefMut, Plugin, Resource};
 use snafu::Snafu;
 
-use crate::menu::{ItemAsContainer, MenuItem, MenuItemProvider, MenuItemVariant, SubMenu, Category, ItemGroup};
+use crate::menu::{
+    Category, ItemAsContainer, ItemGroup, MenuItem, MenuItemProvider, MenuItemVariant, SubMenu,
+};
 
-use self::{docking::Docking, game::Game};
+use self::{command_panel::CommandPanel, docking::Docking, game::Game};
 
 pub struct ExtensionsPlugin;
 
 impl Plugin for ExtensionsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<EditorMenuEntrys>();
-        app.add_plugins((Game, Docking));
+        app.add_plugins((Game, Docking, CommandPanel));
     }
 }
 
@@ -46,11 +49,23 @@ impl MenuContext<'_> {
         });
         Ok(())
     }
-    pub fn with_category<'a>(&mut self,id: &'a str, name: String, piority: usize, add_sub: impl FnOnce(MenuContext)) {
+    pub fn with_category<'a>(
+        &mut self,
+        id: &'a str,
+        name: String,
+        piority: usize,
+        add_sub: impl FnOnce(MenuContext),
+    ) {
         self.add(id, name, Category::default(), piority);
         self.inside_sub(id, add_sub).unwrap();
     }
-    pub fn with_sub_menu<'a>(&mut self,id: &'a str, name: String, piority: usize, add_sub: impl FnOnce(MenuContext)) {
+    pub fn with_sub_menu<'a>(
+        &mut self,
+        id: &'a str,
+        name: String,
+        piority: usize,
+        add_sub: impl FnOnce(MenuContext),
+    ) {
         self.add(id, name, SubMenu::default(), piority);
         self.inside_sub(id, add_sub).unwrap();
     }
