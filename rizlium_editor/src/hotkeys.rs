@@ -1,7 +1,10 @@
+//! Hotkey 实现。
+//! 工作方式：多个键时，最后一个键使用 [`TriggerType`] 定义的触发方式，其他键要保持按下。
+
 use bevy::{
     ecs::{
         schedule::BoxedCondition,
-        system::{Command, SystemParam},
+        system::Command,
     },
     prelude::*,
 };
@@ -24,7 +27,7 @@ impl<T: Clone + Command + Sync> Action for T {
 
 pub enum TriggerType {
     Pressed,
-    Relesed,
+    Released,
     PressAndRelease,
     Repeat,
 }
@@ -34,7 +37,7 @@ impl TriggerType {
         use TriggerType::*;
         match self {
             Pressed => input.just_pressed(code),
-            Relesed => input.just_released(code),
+            Released => input.just_released(code),
             PressAndRelease => input.just_pressed(code) || input.just_released(code),
             Repeat => input.pressed(code),
         }
@@ -58,7 +61,7 @@ fn new_condition<M>(condition: impl Condition<M>) -> BoxedCondition {
 
     Box::new(condition_system)
 }
-fn always() -> bool {
+const fn always() -> bool {
     true
 }
 impl HotkeyListener {
@@ -77,6 +80,7 @@ impl HotkeyListener {
     pub fn new_global(action: ActionId, key: impl IntoIterator<Item = KeyCode>) -> Self {
         Self::new(action,key, always)
     }
+    /// 在应用于 `world` 前一定要先 `initialize`.
     pub fn initialize(&mut self, world: &mut World) {
         self.trigger_when.initialize(world);
     }
@@ -111,13 +115,6 @@ pub struct HotkeyPlugin;
 
 impl Plugin for HotkeyPlugin {
     fn build(&self, app: &mut App) {
-        // app.add_plugins(InputManagerPlugin::<GlobalEditorAction>::default())
-        //     .add_systems(Update, global_actions::dispatch);
-        // app.world.spawn(InputManagerBundle::<GlobalEditorAction> {
-        //     input_map: GlobalEditorAction::default_map(),
-        //     ..default()
-        // });
-        ////
         app.init_resource::<HotkeyListeners>();
         app.add_systems(PreUpdate, dispatch_hotkey);
     }
