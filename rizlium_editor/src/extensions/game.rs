@@ -12,11 +12,11 @@ impl Plugin for Game {
     fn build(&self, app: &mut App) {
         use time_systems::*;
         use KeyCode::*;
-        app.register_action("game.load_chart", load_chart)
-            .register_action("game.open_dialog", open_dialog_and_load_chart)
-            .register_action("game.time.advance", advance_time)
-            .register_action("game.time.rewind", rewind_time)
-            .register_action("game.time.toggle_pause", toggle_pause)
+        app.register_action("game.load_chart", "Load chart file",load_chart)
+            .register_action("game.open_dialog", "Open a dialog to pick chart file and load it", open_dialog_and_load_chart)
+            .register_action("game.time.advance", "Advance game time",advance_time)
+            .register_action("game.time.rewind", "Rewind game time", rewind_time)
+            .register_action("game.time.toggle_pause", "Pause or resume game",toggle_pause)
             .register_hotkey(
                 "game.open_dialog",
                 Hotkey::new_global([ControlLeft, O]),

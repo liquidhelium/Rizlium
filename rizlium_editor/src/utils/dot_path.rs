@@ -1,6 +1,6 @@
 //! Data structure for a path seprated by dots (".").
 
-use std::{convert::Infallible, fmt::Debug, str::FromStr};
+use std::{convert::Infallible, fmt::{Debug, Display}, str::FromStr};
 
 use bevy::prelude::Deref;
 use smallvec::SmallVec;
@@ -12,7 +12,7 @@ pub struct DotPath {
 
 impl Debug for DotPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inner.join(".").fmt(f)
+        Display::fmt(&self, f)
     }
 }
 
@@ -36,9 +36,12 @@ impl From<&str> for DotPath {
     }
 }
 
-impl ToString for DotPath {
-    fn to_string(&self) -> String {
-        self.inner.join(".")
+
+impl Display for DotPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        
+        f.write_str(&self.inner.join("."))
+        
     }
 }
 
