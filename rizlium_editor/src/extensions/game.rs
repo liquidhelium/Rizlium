@@ -19,13 +19,13 @@ impl Plugin for Game {
             .register_action("game.time.toggle_pause", "Pause or resume game",toggle_pause)
             .register_hotkey(
                 "game.open_dialog",
-                Hotkey::new_global([ControlLeft, O]),
+                [Hotkey::new_global([ControlLeft, O])],
             )
-            .register_hotkey("game.time.advance", Hotkey::new_global([Right]))
-            .register_hotkey("game.time.rewind", Hotkey::new_global([Left]))
+            .register_hotkey("game.time.advance", [Hotkey::new_global([Right])])
+            .register_hotkey("game.time.rewind", [Hotkey::new_global([Left])])
             .register_hotkey(
                 "game.time.toggle_pause",
-                Hotkey::new_global([Space]),
+                [Hotkey::new_global([Space])],
             )
             .menu_context(|mut ctx| {
                 ctx.with_sub_menu("file", "File".into(), 0, |mut ctx| {

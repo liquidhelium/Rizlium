@@ -50,7 +50,7 @@ impl TriggerType {
 pub struct Hotkey {
     pub trigger_type: TriggerType,
     pub trigger_when: BoxedCondition,
-    pub key: SmallVec<[KeyCode; 6]>,
+    pub key: SmallVec<[KeyCode; 4]>,
 }
 
 fn new_condition<M>(condition: impl Condition<M>) -> BoxedCondition {
@@ -111,12 +111,16 @@ impl Hotkey {
     }
 
     pub fn hotkey_text(&self) -> String {
-        self.key.iter().map(|k| format!("{k:?}")).collect::<Vec<_>>().join("+")
+        self.key
+            .iter()
+            .map(|k| format!("{k:?}"))
+            .collect::<Vec<_>>()
+            .join("+")
     }
 }
 
 #[derive(Resource, Default, Deref)]
-pub struct Hotkeys(HashMap<ActionId, Hotkey>);
+pub struct Hotkeys(HashMap<ActionId, SmallVec<[Hotkey; 3]>>);
 
 pub struct HotkeyPlugin;
 
@@ -132,29 +136,48 @@ impl Plugin for HotkeyPlugin {
 
 fn dispatch_hotkey(world: &mut World) {
     world.resource_scope(|world: &mut World, mut hotkeys: Mut<'_, Hotkeys>| {
-        for (id, listener) in hotkeys.0.iter_mut() {
-            if listener.should_trigger(world) {
-                // todo: error handling
-                world
-                    .resource_scope(|world: &mut World, mut actions: Mut<'_, ActionStorages>| {
-                        actions.run_instant(id, (), world)
-                    })
-                    .expect("encountered err (todo handle this)");
+        for (id, listeners) in hotkeys.0.iter_mut() {
+            for listener in listeners {
+                if listener.should_trigger(world) {
+                    // todo: error handling
+                    world
+                        .resource_scope(
+                            |world: &mut World, mut actions: Mut<'_, ActionStorages>| {
+                                actions.run_instant(id, (), world)
+                            },
+                        )
+                        .expect("encountered err (todo handle this)");
+                }
             }
         }
     });
 }
 
 pub trait HotkeysExt {
-    fn register_hotkey(&mut self, id: impl Into<ActionId>, listener: Hotkey) -> &mut Self;
+    fn register_hotkey(
+        &mut self,
+        id: impl Into<ActionId>,
+        hotkeys: impl IntoIterator<Item = Hotkey>,
+    ) -> &mut Self;
 }
 
 impl HotkeysExt for App {
-    fn register_hotkey(&mut self, id: impl Into<ActionId>, mut listener: Hotkey) -> &mut Self {
+    fn register_hotkey(
+        &mut self,
+        id: impl Into<ActionId>,
+        mut hotkey_list: impl IntoIterator<Item = Hotkey>,
+    ) -> &mut Self {
         self.world
             .resource_scope(|world: &mut World, mut hotkeys: Mut<'_, Hotkeys>| {
-                listener.initialize(world);
-                hotkeys.0.insert(id.into(), listener);
+                let mut hotkey_list: SmallVec<[Hotkey; 3]> = hotkey_list
+                    .into_iter()
+                    .map(|mut k| {
+                        k.initialize(world);
+                        k
+                    })
+                    .collect();
+                let listeners = hotkeys.0.entry(id.into()).or_default();
+                listeners.append(&mut hotkey_list);
             });
         self
     }
