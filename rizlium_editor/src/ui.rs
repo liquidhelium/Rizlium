@@ -1,4 +1,4 @@
-use crate::{EditorState, RizDockState};
+use crate::EditorState;
 use bevy::prelude::{App, Deref, DerefMut, Resource, World};
 
 use egui::{Color32, RichText, Ui};

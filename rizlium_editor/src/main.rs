@@ -13,7 +13,7 @@ use bevy::{prelude::*, render::render_resource::TextureDescriptor};
 use bevy_egui::EguiContexts;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
-use egui::{Align2, Color32, Layout};
+use egui::{Align2, Layout};
 use egui_dock::DockArea;
 use rizlium_editor::{
     ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,

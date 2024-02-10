@@ -1,5 +1,5 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
-use egui::{Align2, Color32, Layout, RichText, WidgetText};
+use egui::{Align2, Layout};
 
 use crate::{
     hotkeys::{Hotkey, Hotkeys, HotkeysExt},
@@ -20,7 +20,10 @@ impl Plugin for CommandPanel {
         )
         .register_hotkey(
             "command_panel.toggle_open",
-            Hotkey::new_global([ControlLeft, P]),
+            [
+                Hotkey::new_global([ControlLeft, P]),
+                Hotkey::new([Escape], |r:Res<CommandPanelState>| r.opened),
+            ],
         )
         .init_resource::<CommandPanelState>();
     }
@@ -89,7 +92,10 @@ impl WidgetSystem for CommandPanelImpl<'static> {
                                         id.to_string() + "\n" + action.get_description(),
                                     );
                                     if let Some(hotkey) = hotkeys.get(id) {
-                                        button = button.shortcut_text(hotkey.hotkey_text());
+                                        if !hotkey.is_empty() {
+                                            let text = hotkey.iter().map(Hotkey::hotkey_text).collect::<Vec<_>>().join(" or ");
+                                            button = button.shortcut_text(text);
+                                        }
                                     }
                                     if ui.add(button).clicked_by(egui::PointerButton::Primary) {
                                         ready_to_run = Some(id.clone())
@@ -113,7 +119,7 @@ impl WidgetSystem for CommandPanelImpl<'static> {
 }
 
 fn set_menu_style(style: &mut egui::Style) {
-    style.spacing.button_padding = [2.0, 0.0].into();
+    style.spacing.button_padding = [2.0, 2.0].into();
     style.visuals.widgets.active.bg_stroke = egui::Stroke::NONE;
     style.visuals.widgets.hovered.bg_stroke = egui::Stroke::NONE;
     style.visuals.widgets.inactive.weak_bg_fill = egui::Color32::TRANSPARENT;
