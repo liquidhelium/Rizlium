@@ -14,25 +14,48 @@ use snafu::Snafu;
 use crate::utils::dot_path::DotPath;
 use crate::{files::open_dialog, files::PendingDialog, RecentFiles};
 
-pub type BoxedStorage = Box<dyn DynActionStorage>;
+pub struct BoxedStorage {
+    boxed_action: Box<dyn DynActionStorage>,
+    description: ActionDescription,
+}
+
+#[derive(Deref)]
+pub struct ActionDescription {
+    description: String,
+}
+
+impl BoxedStorage {
+    fn get_command(
+        &self,
+        input: Box<dyn Reflect>,
+    ) -> Result<Box<dyn FnOnce(&mut World) + Send + Sync + 'static>, String> {
+        self.boxed_action.get_command(input)
+    }
+    pub fn get_description(&self) -> &str {
+        &self.description
+    }
+}
 
 pub type ActionId = DotPath;
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Deref)]
 pub struct ActionStorages(HashMap<ActionId, BoxedStorage>);
 
 impl ActionStorages {
-    pub fn run_instant(
+    pub fn run_instant<R: Reflect>(
         &mut self,
         id: &ActionId,
-        input: impl Reflect,
+        input: R,
         world: &mut World,
     ) -> Result<(), ActionError> {
         self.0
             .get(id)
             .ok_or(ActionError::NotFound { id: id.to_string() })?
             .get_command(Box::new(input))
-            .expect("input type mismatch")(world);
+            .map_err(|expected| ActionError::MismatchInput {
+                expected_type_name: expected,
+                found_type_name: type_name::<R>().to_owned(),
+            })?(world);
         Ok(())
     }
 }
@@ -88,7 +111,7 @@ impl Actions<'_, '_> {
                     .get_command(Box::new(input))
                     .map_err(|expected_type_name| ActionError::MismatchInput {
                         expected_type_name,
-                        found_type_name: type_name::<I>().into()
+                        found_type_name: type_name::<I>().into(),
                     })?,
             );
             Ok(())
@@ -102,7 +125,9 @@ impl Actions<'_, '_> {
 pub enum ActionError {
     #[snafu(display("Action {id} does not exist."))]
     NotFound { id: String },
-    #[snafu(display("input type mismatch, expecting {expected_type_name}, found {found_type_name}"))]
+    #[snafu(display(
+        "input type mismatch, expecting {expected_type_name}, found {found_type_name}"
+    ))]
     MismatchInput {
         expected_type_name: String,
         found_type_name: String,
@@ -113,6 +138,7 @@ pub trait ActionsExt {
     fn register_action<M, In: FromReflect>(
         &mut self,
         id: impl Into<ActionId>,
+        description: impl Into<String>,
         action: impl IntoSystem<In, (), M>,
     ) -> &mut Self;
 }
@@ -121,6 +147,7 @@ impl ActionsExt for App {
     fn register_action<M, SystemInput: FromReflect>(
         &mut self,
         id: impl Into<ActionId>,
+        description: impl Into<String>,
         action: impl IntoSystem<SystemInput, (), M>,
     ) -> &mut Self {
         self.world
@@ -129,9 +156,14 @@ impl ActionsExt for App {
                 system.initialize(world);
                 actions.0.insert(
                     id.into(),
-                    Box::new(ActionStorage {
-                        action: Arc::new(Mutex::new(Box::new(system))),
-                    }),
+                    BoxedStorage {
+                        boxed_action: Box::new(ActionStorage {
+                            action: Arc::new(Mutex::new(Box::new(system))),
+                        }),
+                        description: ActionDescription {
+                            description: description.into(),
+                        },
+                    },
                 );
             });
         self

@@ -1,10 +1,11 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
-use egui::{Align2, Color32, Layout};
+use egui::{Align2, Color32, Layout, RichText, WidgetText};
 
 use crate::{
     hotkeys::{Hotkey, Hotkeys, HotkeysExt},
+    utils::dot_path::DotPath,
     widgets::WidgetSystem,
-    ActionsExt,
+    ActionStorages, ActionsExt,
 };
 
 pub struct CommandPanel;
@@ -12,12 +13,16 @@ pub struct CommandPanel;
 impl Plugin for CommandPanel {
     fn build(&self, app: &mut App) {
         use bevy::input::keyboard::KeyCode::*;
-        app.register_action("command_panel.toggle_open", toggle_open_command_panel)
-            .register_hotkey(
-                "command_panel.toggle_open",
-                Hotkey::new_global([ControlLeft, P]),
-            )
-            .init_resource::<CommandPanelState>();
+        app.register_action(
+            "command_panel.toggle_open",
+            "Open or close the command panel",
+            toggle_open_command_panel,
+        )
+        .register_hotkey(
+            "command_panel.toggle_open",
+            Hotkey::new_global([ControlLeft, P]),
+        )
+        .init_resource::<CommandPanelState>();
     }
 }
 
@@ -35,7 +40,8 @@ fn toggle_open_command_panel(mut state: ResMut<CommandPanelState>) {
 #[derive(SystemParam)]
 pub struct CommandPanelImpl<'w> {
     state: ResMut<'w, CommandPanelState>,
-    hotkeys: Res<'w, Hotkeys>
+    action_storage: Res<'w, ActionStorages>,
+    hotkeys: Res<'w, Hotkeys>,
 }
 
 impl WidgetSystem for CommandPanelImpl<'static> {
@@ -47,10 +53,15 @@ impl WidgetSystem for CommandPanelImpl<'static> {
         _extra: Self::Extra<'_>,
     ) {
         let ctx = ui.ctx();
-        let CommandPanelImpl { mut state, hotkeys, } = state.get_mut(world);
+        let CommandPanelImpl {
+            mut state,
+            action_storage,
+            hotkeys,
+        } = state.get_mut(world);
         if !state.opened {
             return;
         }
+        let mut ready_to_run: Option<DotPath> = None;
         let mut panel_rect = ctx.screen_rect().shrink(20.);
         panel_rect.set_height(20.);
         panel_rect.set_width(400.0f32.min(panel_rect.width()));
@@ -73,13 +84,31 @@ impl WidgetSystem for CommandPanelImpl<'static> {
                             .max_width(panel_rect.width())
                             .auto_shrink([false, true])
                             .show(ui, |ui| {
-                                for (i) in hotkeys.iter() {
-                                    
-                                }
+                                action_storage.iter().for_each(|(id, action)| {
+                                    let mut button = egui::Button::new(
+                                        id.to_string() + "\n" + action.get_description(),
+                                    );
+                                    if let Some(hotkey) = hotkeys.get(id) {
+                                        button = button.shortcut_text(hotkey.hotkey_text());
+                                    }
+                                    if ui.add(button).clicked_by(egui::PointerButton::Primary) {
+                                        ready_to_run = Some(id.clone())
+                                    }
+                                })
                             });
                     })
                 });
             });
+        if let Some(ready) = ready_to_run {
+            world.resource_scope(|world, mut action_storage: Mut<'_, ActionStorages>| {
+                if let Err(e) = action_storage.run_instant(&ready, (), world) {
+                    error!("Error executing {ready}, {e}");
+                }
+                if world.resource::<CommandPanelState>().opened {
+                    world.resource_mut::<CommandPanelState>().opened = false;
+                }
+            });
+        }
     }
 }
 

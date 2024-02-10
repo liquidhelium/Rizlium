@@ -109,6 +109,10 @@ impl Hotkey {
             && self.trigger_when.run_readonly((), world)
             && (not_editing_text || has_modifier)
     }
+
+    pub fn hotkey_text(&self) -> String {
+        self.key.iter().map(|k| format!("{k:?}")).collect::<Vec<_>>().join("+")
+    }
 }
 
 #[derive(Resource, Default, Deref)]
