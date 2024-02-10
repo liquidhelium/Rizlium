@@ -10,7 +10,7 @@ rizlium_render = {path="../rizlium_render"}
 font-kit = "*"
 bevy_egui = {git = "https://github.com/liquidhelium/bevy_egui_0.11-0.26"}
 egui = "0.26"
-egui_dock = {version = "0.11.0", features = ["serde"]}
+egui_dock = {version = "0.11.1", features = ["serde"]}
 bevy-inspector-egui = "*"
 # Todo: split x11, wayland and webgl2
 bevy = { version = "0.11", default-features = false, features = [
