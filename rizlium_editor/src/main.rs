@@ -165,6 +165,15 @@ fn egui_render(world: &mut World) {
     }
     world.resource_scope(|world: &mut World, mut tab: Mut<'_, RizTabs>| {
         world.resource_scope(|world: &mut World, mut state: Mut<'_, RizDockState>| {
+            if state.state.main_surface().is_empty() {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui_when_no_dock(
+                        ui,
+                        world.resource::<Persistent<RecentFiles>>(),
+                        &mut commands,
+                    );
+                });
+            }
             let focused_tab = state.state.find_active_focused().unzip().1.copied();
             DockArea::new(&mut state.state).show(
                 ctx,
@@ -176,15 +185,7 @@ fn egui_render(world: &mut World) {
                 },
             );
 
-            if state.state.main_surface().is_empty() {
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    ui_when_no_dock(
-                        ui,
-                        world.resource::<Persistent<RecentFiles>>(),
-                        &mut commands,
-                    );
-                });
-            }
+            
         });
     });
     editor_state.is_editing_text = ctx.output(|out| out.mutable_text_under_cursor);

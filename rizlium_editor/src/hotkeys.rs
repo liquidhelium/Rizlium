@@ -165,7 +165,7 @@ impl HotkeysExt for App {
     fn register_hotkey(
         &mut self,
         id: impl Into<ActionId>,
-        mut hotkey_list: impl IntoIterator<Item = Hotkey>,
+        hotkey_list: impl IntoIterator<Item = Hotkey>,
     ) -> &mut Self {
         self.world
             .resource_scope(|world: &mut World, mut hotkeys: Mut<'_, Hotkeys>| {
