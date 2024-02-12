@@ -16,5 +16,7 @@ You're right, but this is an editor. (?)
  - [x] recent files
 
  ## 已知问题
- ~~linux wayland 桌面录屏会导致音频状态异常，进而使谱面时间异常，原因未知~~
- 使用`pipeware`可以解决.
+ 1. ~~linux wayland 桌面录屏会导致音频状态异常，进而使谱面时间异常，原因未知~~
+    解决方案: 使用`pipeware`可以解决.
+ 2. 使用bevy 0.12 和opengl后端时, 有时会出现奇怪的渲染问题 (见 bevyengine/bevy#10917 )
+    解决方案: 使用vulkan做后端, 权宜之计.
