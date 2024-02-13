@@ -1,9 +1,8 @@
 use std::io::{Cursor, Read};
 
 use bevy::{
-    asset::{AssetLoader, LoadState, LoadedAsset},
-    prelude::*,
-    prelude::{AssetServer, Assets, ResMut},
+    asset::{AssetLoader, AsyncReadExt, LoadState, LoadedAsset},
+    prelude::{AssetServer, Assets, ResMut, *},
     reflect::{TypePath, TypeUuid},
 };
 use bevy_kira_audio::{
@@ -20,8 +19,8 @@ pub struct ChartLoadingPlugin;
 
 impl Plugin for ChartLoadingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_asset::<GameChartAsset>()
-            .add_asset_loader(GameChartLoader)
+        app.init_asset::<GameChartAsset>()
+            .register_asset_loader(GameChartLoader)
             .add_event::<LoadChartEvent>()
             .add_systems(
                 PostUpdate,
@@ -34,8 +33,7 @@ impl Plugin for ChartLoadingPlugin {
     }
 }
 
-#[derive(TypeUuid, TypePath)]
-#[uuid = "d935131a-18f3-429d-9821-65ec60a2a025"]
+#[derive(Asset, TypePath)]
 pub struct GameChartAsset {
     music: AudioSource,
     chart: Chart,
@@ -47,30 +45,29 @@ pub struct GameChartAsset {
 pub struct GameChartLoader;
 
 impl AssetLoader for GameChartLoader {
+    type Asset = GameChartAsset;
+    type Error = String;
+    type Settings = ();
     fn load<'a>(
         &'a self,
-        bytes: &'a [u8],
+        reader: &'a mut bevy::asset::io::Reader,
+        settings: &'a Self::Settings,
         load_context: &'a mut bevy::asset::LoadContext,
-    ) -> bevy::utils::BoxedFuture<'a, Result<(), bevy::asset::Error>> {
+    ) -> bevy::utils::BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
             #[cfg(feature = "trace")]
             let span = info_span!("load chart");
             #[cfg(feature = "trace")]
             let _enter = span.enter();
-            //     let Some(suffix) = load_context.path().extension() else {
-            //     return Ok(())
-            // };
-            //     let suffix = suffix.to_str().expect("invalid path");
-            let reader = Cursor::new(bytes);
-            // match suffix {
-            //     ".zip" => {
-            let mut res = ZipArchive::new(reader)?;
+            let mut file = Vec::<u8>::new();
+            reader.read_to_end(&mut file).await.map_err(|_|"")?;
+            let mut res = ZipArchive::new(Cursor::new(file.as_mut_slice())).map_err(|_|"")?;
             #[cfg(feature = "trace")]
             let span = info_span!("load info");
             #[cfg(feature = "trace")]
             let _enter = span.enter();
-            let info_file = res.by_name("info.yml")?;
-            let info: ChartInfo = serde_yaml::from_reader(info_file)?;
+            let info_file = res.by_name("info.yml").map_err(|_|"")?;
+            let info: ChartInfo = serde_yaml::from_reader(info_file).map_err(|_|"")?;
             #[cfg(feature = "trace")]
             drop(_enter);
             #[cfg(feature = "trace")]
@@ -83,14 +80,14 @@ impl AssetLoader for GameChartLoader {
             let span = info_span!("Deserialize chart");
             #[cfg(feature = "trace")]
             let _enter1 = span.enter();
-            let chart: RizlineChart = serde_yaml::from_reader(res.by_name(chart_path)?)?;
+            let chart: RizlineChart = serde_yaml::from_reader(res.by_name(chart_path).map_err(|_|"")?).map_err(|_|"")?;
             #[cfg(feature = "trace")]
             drop(_enter1);
             #[cfg(feature = "trace")]
             let span = info_span!("Convert chart");
             #[cfg(feature = "trace")]
             let _enter1 = span.enter();
-            let chart: Chart = chart.try_into()?;
+            let chart: Chart = chart.try_into().map_err(|_|"")?;
             #[cfg(feature = "trace")]
             drop(_enter1);
             #[cfg(feature = "trace")]
@@ -104,7 +101,7 @@ impl AssetLoader for GameChartLoader {
             #[cfg(feature = "trace")]
             let _enter1 = span.enter();
             let mut sound_data = Vec::new();
-            res.by_name(music_path)?.read_to_end(&mut sound_data)?;
+            res.by_name(music_path).map_err(|_|"")?.read_to_end(&mut sound_data).map_err(|_|"")?;
             #[cfg(feature = "trace")]
             drop(_enter1);
             #[cfg(feature = "trace")]
@@ -115,18 +112,21 @@ impl AssetLoader for GameChartLoader {
                 sound: StaticSoundData::from_cursor(
                     Cursor::new(sound_data),
                     StaticSoundSettings::default(),
-                )?,
+                ).map_err(|_|"")?,
             };
             #[cfg(feature = "trace")]
             drop(_enter1);
             #[cfg(feature = "trace")]
             drop(_enter);
-            load_context.set_default_asset(LoadedAsset::new(GameChartAsset { music, chart, _info:info }));
 
             //     }
             //     _ => unreachable!("Bevy should guarantee the extension"),
             // };
-            Ok(())
+            Ok(GameChartAsset {
+                music,
+                chart,
+                _info: info,
+            })
         })
     }
     fn extensions(&self) -> &[&str] {
@@ -173,7 +173,7 @@ fn chart_loader_system(
     }
 
     {
-        let Some(event) = events.iter().last() else {
+        let Some(event) = events.read().last() else {
             return;
         };
         if pending.is_some() {
@@ -193,12 +193,12 @@ fn unpack_loaded_chart(
     mut chart_assets: ResMut<Assets<GameChartAsset>>,
     mut audio_sources: ResMut<Assets<AudioSource>>,
 ) {
-    let Some(AssetEvent::Created { handle } )=ev.iter().next() else {
+    let Some(AssetEvent::Added { id }) = ev.read().next() else {
         return;
     };
     let pending_handle = &pending.handle;
-    if pending_handle != handle {
-        info!("Ignoring loaded chart {:?}.", handle);
+    if &pending_handle.id() != id {
+        info!("Ignoring loaded chart {:?}.", id);
         return;
     }
     // check loading
@@ -217,7 +217,7 @@ fn remove_failure_and_report(
     pending: Res<PendingGameChartHandle>,
     server: Res<AssetServer>,
 ) {
-    if server.get_load_state(&pending.handle) == LoadState::Failed {
+    if server.get_load_state(&pending.handle) == Some(LoadState::Failed) {
         error!("Loading chart failed");
         commands.remove_resource::<PendingGameChartHandle>();
     }

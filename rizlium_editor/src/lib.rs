@@ -72,7 +72,7 @@ fn compute_fps(
     time: Res<Time>,
     mut fps_timer: Local<SecondTimer>,
 ) {
-    if fps_timer.tick(time.raw_delta()).finished() {
+    if fps_timer.tick(time.delta()).finished() {
         fps.0 = current.0 - *last_fps;
         *last_fps = current.0;
     }
