@@ -6,7 +6,7 @@ use egui::Ui;
 use enum_dispatch::enum_dispatch;
 use indexmap::IndexMap;
 
-use crate::{ActionId, ActionStorages};
+use crate::{ActionId, ActionRegistry};
 
 #[enum_dispatch(MenuItemProvider)]
 #[derive(Debug, Clone)]
@@ -96,7 +96,7 @@ impl Debug for Button {
 impl MenuItemProvider for Button {
     fn ui(&self, ui: &mut Ui, world: &mut World, name: &str) {
         if ui.button(name).clicked() {
-            world.resource_scope(|world: &mut World, mut actions: Mut<ActionStorages>| {
+            world.resource_scope(|world: &mut World, mut actions: Mut<ActionRegistry>| {
                 let _ = actions.run_instant(&self.action, (), world).map_err(|err| {
                     bevy::prelude::error!("encountered error when running action: {}", err)
                 });

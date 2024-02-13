@@ -11,7 +11,7 @@ use bevy_egui::EguiOutput;
 use dyn_clone::DynClone;
 use smallvec::SmallVec;
 
-use crate::{ActionId, ActionStorages};
+use crate::{ActionId, ActionRegistry};
 
 pub trait Action: DynClone + Sync + Send + 'static {
     fn run(&self, world: &mut World);
@@ -142,7 +142,7 @@ fn dispatch_hotkey(world: &mut World) {
                     // todo: error handling
                     world
                         .resource_scope(
-                            |world: &mut World, mut actions: Mut<'_, ActionStorages>| {
+                            |world: &mut World, mut actions: Mut<'_, ActionRegistry>| {
                                 actions.run_instant(id, (), world)
                             },
                         )

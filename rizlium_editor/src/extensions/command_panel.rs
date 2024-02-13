@@ -5,7 +5,7 @@ use crate::{
     hotkeys::{Hotkey, Hotkeys, HotkeysExt},
     utils::dot_path::DotPath,
     widgets::WidgetSystem,
-    ActionStorages, ActionsExt,
+    ActionRegistry, ActionsExt,
 };
 
 pub struct CommandPanel;
@@ -22,7 +22,7 @@ impl Plugin for CommandPanel {
             "command_panel.toggle_open",
             [
                 Hotkey::new_global([ControlLeft, P]),
-                Hotkey::new([Escape], |r:Res<CommandPanelState>| r.opened),
+                Hotkey::new([Escape], |r: Res<CommandPanelState>| r.opened),
             ],
         )
         .init_resource::<CommandPanelState>();
@@ -43,7 +43,7 @@ fn toggle_open_command_panel(mut state: ResMut<CommandPanelState>) {
 #[derive(SystemParam)]
 pub struct CommandPanelImpl<'w> {
     state: ResMut<'w, CommandPanelState>,
-    action_storage: Res<'w, ActionStorages>,
+    action_storage: Res<'w, ActionRegistry>,
     hotkeys: Res<'w, Hotkeys>,
 }
 
@@ -89,11 +89,22 @@ impl WidgetSystem for CommandPanelImpl<'static> {
                             .show(ui, |ui| {
                                 action_storage.iter().for_each(|(id, action)| {
                                     let mut button = egui::Button::new(
-                                        id.to_string() + "\n" + action.get_description(),
+                                        id.to_string()
+                                            + " "
+                                            + action
+                                                .input_type_info()
+                                                .type_path_table()
+                                                .short_path()
+                                            + "\n"
+                                            + action.get_description(),
                                     );
                                     if let Some(hotkey) = hotkeys.get(id) {
                                         if !hotkey.is_empty() {
-                                            let text = hotkey.iter().map(Hotkey::hotkey_text).collect::<Vec<_>>().join(" or ");
+                                            let text = hotkey
+                                                .iter()
+                                                .map(Hotkey::hotkey_text)
+                                                .collect::<Vec<_>>()
+                                                .join(" or ");
                                             button = button.shortcut_text(text);
                                         }
                                     }
@@ -106,7 +117,7 @@ impl WidgetSystem for CommandPanelImpl<'static> {
                 });
             });
         if let Some(ready) = ready_to_run {
-            world.resource_scope(|world, mut action_storage: Mut<'_, ActionStorages>| {
+            world.resource_scope(|world, mut action_storage: Mut<'_, ActionRegistry>| {
                 if let Err(e) = action_storage.run_instant(&ready, (), world) {
                     error!("Error executing {ready}, {e}");
                 }
