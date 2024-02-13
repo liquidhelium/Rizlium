@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 rizlium_render = {path="../rizlium_render"}
-font-kit = "*"
 bevy_egui = {git = "https://github.com/liquidhelium/bevy_egui_0.11-0.26"}
 egui = "0.26"
 egui_dock = {version = "0.11.1", features = ["serde"]}
@@ -44,7 +43,6 @@ futures-lite = "1"
 indexmap = {version = "*", features = ["serde"]}
 enum_dispatch = "*"
 snafu = "*"
-static_init = "1"
 dyn-clone = "1"
 smallvec = "1"
 
