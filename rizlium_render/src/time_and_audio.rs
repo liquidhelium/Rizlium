@@ -65,7 +65,7 @@ pub enum TimeControlEvent {
 }
 
 fn update_timemgr(mut time: ResMut<TimeManager>, real_time: Res<Time>) {
-    time.update(real_time.raw_elapsed_seconds());
+    time.update(real_time.elapsed_seconds());
 }
 
 fn dispatch_events(
@@ -79,11 +79,11 @@ fn dispatch_events(
     let Some(audio) = audios.get_mut(&audio.0) else {
         return;
     };
-    let Some(audio_data) = audio_datas.get(&audio_data) else {
+    let Some(audio_data) = audio_datas.get(&**audio_data) else {
         warn!("invalid audio source");
         return;
     };
-    for ev in event.iter() {
+    for ev in event.read() {
         match ev {
             TimeControlEvent::Pause => time.pause(),
             TimeControlEvent::Resume => time.resume(),
@@ -133,9 +133,9 @@ fn sync_audio(
 
 fn init_time_manager(mut commands: Commands, time: Res<Time>) {
     commands.insert_resource(TimeManager {
-        start_time: time.raw_elapsed_seconds(),
+        start_time: time.elapsed_seconds(),
         paused_since: None,
-        now: time.raw_elapsed_seconds(),
+        now: time.elapsed_seconds(),
     });
 }
 fn game_time(cache: Res<GameChartCache>, time: Res<TimeManager>, mut game_time: ResMut<GameTime>) {

@@ -25,7 +25,7 @@ fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins.set(LogPlugin {
-                level: bevy::log::Level::INFO,
+                level: bevy::log::Level::DEBUG,
                 ..Default::default()
             }),
             EguiPlugin,

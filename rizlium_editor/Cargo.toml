@@ -13,7 +13,7 @@ egui = "0.26"
 egui_dock = {version = "0.11.1", features = ["serde"]}
 bevy-inspector-egui = "*"
 # Todo: split x11, wayland and webgl2
-bevy = { version = "0.11", default-features = false, features = [
+bevy = { version = "0.12", default-features = false, features = [
     # "animation",
     "bevy_asset",
     # "bevy_scene",
@@ -28,13 +28,14 @@ bevy = { version = "0.11", default-features = false, features = [
     "zstd",
     "x11",
     "ktx2",
-    "filesystem_watcher",
+    # "filesystem_watcher",
     "tonemapping_luts",
     "webgl2",
-    "wayland"
+    "wayland",
+    "multi-threaded"
 ] }
 rizlium_chart ={ path = "../rizlium_chart"}
-bevy-persistent = {version = "0.3.2", features = ["json","toml"]}
+bevy-persistent = {version = "0.4", features = ["json","toml"]}
 serde ={ version = "*", features = ["derive"]}
 dirs = "*"
 rfd = "*"

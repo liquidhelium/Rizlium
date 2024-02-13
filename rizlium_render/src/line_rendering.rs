@@ -85,7 +85,7 @@ fn change_bounding(
     time: Res<GameTime>,
     mut lines: Query<(&mut Aabb, &Stroke, &ChartLineId)>,
 ) {
-    lines.par_iter_mut().for_each_mut(|(mut vis, stroke, id)| {
+    lines.par_iter_mut().for_each(|(mut vis, stroke, id)| {
         let line_idx = id.line_idx;
         let keypoint_idx = id.keypoint_idx;
         let pos1 = chart
@@ -126,7 +126,7 @@ fn associate_segment(
 //     chart: Res<GameChart>,
 //     cache: Res<GameChartCache>,
 //     time: Res<GameTime>,
-//     mut lines: Query<(&mut Stroke, &mut Path, &ComputedVisibility, &ChartLineId)>,
+//     mut lines: Query<(&mut Stroke, &mut Path, &ViewVisibility, &ChartLineId)>,
 // ) {
 //     update_shape(&chart, &cache, &time, &mut lines);
 //     update_color(chart, cache, time, lines);
@@ -136,13 +136,13 @@ fn update_shape(
     chart: Res<GameChart>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
-    mut lines: Query<(&mut Stroke, &mut Path, &ComputedVisibility, &ChartLineId)>,
+    mut lines: Query<(&mut Stroke, &mut Path, &ViewVisibility, &ChartLineId)>,
 ) {
     lines
         .par_iter_mut()
         // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
-        .for_each_mut(|(_, mut path, vis, id)| {
-            if !vis.is_visible() {
+        .for_each(|(_, mut path, vis, id)| {
+            if !vis.get() {
                 if !path.0.as_slice().is_empty() {
                     *path = Path(tess::path::Path::new());
                 }
@@ -211,12 +211,12 @@ fn update_color(
     chart: Res<GameChart>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
-    mut lines: Query<(&mut Stroke, &mut Path, &ComputedVisibility, &ChartLineId)>,
+    mut lines: Query<(&mut Stroke, &mut Path, &ViewVisibility, &ChartLineId)>,
 ) {
     lines
         // .par_iter_mut()
         .for_each_mut(|(mut stroke, _, vis, id)| {
-            if !vis.is_visible() {
+            if !vis.get() {
                 return;
             }
             let line_idx = id.line_idx;
