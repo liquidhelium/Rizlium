@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use bevy::ecs::system::{CommandQueue, SystemBuffer, SystemMeta, SystemParam};
 use bevy::prelude::*;
+use bevy::reflect::{GetTypeRegistration, TypeInfo, Typed};
 use bevy::utils::HashMap;
 use bevy_persistent::Persistent;
 use egui::mutex::Mutex;
@@ -34,15 +35,22 @@ impl BoxedStorage {
     pub fn get_description(&self) -> &str {
         &self.description
     }
+    pub fn input_type_info(&self) -> &'static TypeInfo {
+        self.boxed_action.input_type_info()
+    }
 }
 
 pub type ActionId = DotPath;
 
-#[derive(Resource, Default, Deref)]
-pub struct ActionStorages(HashMap<ActionId, BoxedStorage>);
+pub trait ActionArgument: Reflect + Typed {}
 
-impl ActionStorages {
-    pub fn run_instant<R: Reflect>(
+impl<T> ActionArgument for T where T: Reflect + Typed {}
+
+#[derive(Resource, Default, Deref)]
+pub struct ActionRegistry(HashMap<ActionId, BoxedStorage>);
+
+impl ActionRegistry {
+    pub fn run_instant<R: ActionArgument>(
         &mut self,
         id: &ActionId,
         input: R,
@@ -65,13 +73,14 @@ pub trait DynActionStorage: Send + Sync {
         &self,
         input: Box<dyn Reflect>,
     ) -> Result<Box<dyn FnOnce(&mut World) + Send + Sync + 'static>, String>;
+    fn input_type_info(&self) -> &'static TypeInfo;
 }
 
-pub struct ActionStorage<Input: Reflect> {
+pub struct ActionStorage<Input: ActionArgument> {
     action: Arc<Mutex<Box<dyn System<In = Input, Out = ()>>>>,
 }
 
-impl<Input: Reflect> DynActionStorage for ActionStorage<Input> {
+impl<Input: ActionArgument> DynActionStorage for ActionStorage<Input> {
     fn get_command(
         &self,
         input: Box<dyn Reflect>,
@@ -87,16 +96,19 @@ impl<Input: Reflect> DynActionStorage for ActionStorage<Input> {
             lock.apply_deferred(world);
         }))
     }
+    fn input_type_info(&self) -> &'static TypeInfo {
+        Input::type_info()
+    }
 }
 
 #[derive(SystemParam)]
 pub struct Actions<'w, 's> {
     commands: Commands<'w, 's>,
-    storages: Res<'w, ActionStorages>,
+    storages: Res<'w, ActionRegistry>,
 }
 
 impl Actions<'_, '_> {
-    pub fn run_action<'id, I: Reflect>(
+    pub fn run_action<'id, I: ActionArgument>(
         &mut self,
         id: &'id ActionId,
         input: I,
@@ -135,7 +147,7 @@ pub enum ActionError {
 }
 
 pub trait ActionsExt {
-    fn register_action<M, In: FromReflect>(
+    fn register_action<M, In: ActionArgument>(
         &mut self,
         id: impl Into<ActionId>,
         description: impl Into<String>,
@@ -144,14 +156,14 @@ pub trait ActionsExt {
 }
 
 impl ActionsExt for App {
-    fn register_action<M, SystemInput: FromReflect>(
+    fn register_action<M, SystemInput: ActionArgument>(
         &mut self,
         id: impl Into<ActionId>,
         description: impl Into<String>,
         action: impl IntoSystem<SystemInput, (), M>,
     ) -> &mut Self {
         self.world
-            .resource_scope(|world, mut actions: Mut<'_, ActionStorages>| {
+            .resource_scope(|world, mut actions: Mut<'_, ActionRegistry>| {
                 let mut system = IntoSystem::into_system(action);
                 system.initialize(world);
                 actions.0.insert(
@@ -174,7 +186,7 @@ pub struct ActionPlugin;
 
 impl Plugin for ActionPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<ActionStorages>();
+        app.init_resource::<ActionRegistry>();
     }
 }
 
