@@ -1,9 +1,8 @@
 use std::io::{Cursor, Read};
 
 use bevy::{
-    asset::{AssetLoader, AsyncReadExt, LoadState, LoadedAsset},
-    prelude::{AssetServer, Assets, ResMut, *},
-    reflect::{TypePath, TypeUuid},
+    prelude::{ResMut, *},
+    tasks::{IoTaskPool, Task},
 };
 use bevy_kira_audio::{
     prelude::{StaticSoundData, StaticSoundSettings},
@@ -19,121 +18,17 @@ pub struct ChartLoadingPlugin;
 
 impl Plugin for ChartLoadingPlugin {
     fn build(&self, app: &mut App) {
-        app.init_asset::<GameChartAsset>()
-            .register_asset_loader(GameChartLoader)
-            .add_event::<LoadChartEvent>()
+        app.add_event::<LoadChartEvent>()
+            .init_resource::<PendingChart>()
             .add_systems(
                 PostUpdate,
                 (
-                    chart_loader_system,
-                    (unpack_loaded_chart, remove_failure_and_report)
-                        .run_if(resource_exists::<PendingGameChartHandle>()),
+                    dispatch_load_event,
+                    (unpack_chart).run_if(|r: Res<PendingChart>| r.0.is_some()),
                 ),
             );
     }
 }
-
-#[derive(Asset, TypePath)]
-pub struct GameChartAsset {
-    music: AudioSource,
-    chart: Chart,
-    // todo: handle chart info
-    _info: ChartInfo,
-}
-
-#[derive(Default)]
-pub struct GameChartLoader;
-
-impl AssetLoader for GameChartLoader {
-    type Asset = GameChartAsset;
-    type Error = String;
-    type Settings = ();
-    fn load<'a>(
-        &'a self,
-        reader: &'a mut bevy::asset::io::Reader,
-        settings: &'a Self::Settings,
-        load_context: &'a mut bevy::asset::LoadContext,
-    ) -> bevy::utils::BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
-        Box::pin(async move {
-            #[cfg(feature = "trace")]
-            let span = info_span!("load chart");
-            #[cfg(feature = "trace")]
-            let _enter = span.enter();
-            let mut file = Vec::<u8>::new();
-            reader.read_to_end(&mut file).await.map_err(|_|"")?;
-            let mut res = ZipArchive::new(Cursor::new(file.as_mut_slice())).map_err(|_|"")?;
-            #[cfg(feature = "trace")]
-            let span = info_span!("load info");
-            #[cfg(feature = "trace")]
-            let _enter = span.enter();
-            let info_file = res.by_name("info.yml").map_err(|_|"")?;
-            let info: ChartInfo = serde_yaml::from_reader(info_file).map_err(|_|"")?;
-            #[cfg(feature = "trace")]
-            drop(_enter);
-            #[cfg(feature = "trace")]
-            let span = info_span!("load chart it self");
-            #[cfg(feature = "trace")]
-            let _enter = span.enter();
-            let chart_path = &info.chart_path;
-            let music_path = &info.music_path;
-            #[cfg(feature = "trace")]
-            let span = info_span!("Deserialize chart");
-            #[cfg(feature = "trace")]
-            let _enter1 = span.enter();
-            let chart: RizlineChart = serde_yaml::from_reader(res.by_name(chart_path).map_err(|_|"")?).map_err(|_|"")?;
-            #[cfg(feature = "trace")]
-            drop(_enter1);
-            #[cfg(feature = "trace")]
-            let span = info_span!("Convert chart");
-            #[cfg(feature = "trace")]
-            let _enter1 = span.enter();
-            let chart: Chart = chart.try_into().map_err(|_|"")?;
-            #[cfg(feature = "trace")]
-            drop(_enter1);
-            #[cfg(feature = "trace")]
-            drop(_enter);
-            #[cfg(feature = "trace")]
-            let span = info_span!("load music");
-            #[cfg(feature = "trace")]
-            let _enter = span.enter();
-            #[cfg(feature = "trace")]
-            let span = info_span!("extract music");
-            #[cfg(feature = "trace")]
-            let _enter1 = span.enter();
-            let mut sound_data = Vec::new();
-            res.by_name(music_path).map_err(|_|"")?.read_to_end(&mut sound_data).map_err(|_|"")?;
-            #[cfg(feature = "trace")]
-            drop(_enter1);
-            #[cfg(feature = "trace")]
-            let span = info_span!("create music");
-            #[cfg(feature = "trace")]
-            let _enter1 = span.enter();
-            let music = bevy_kira_audio::AudioSource {
-                sound: StaticSoundData::from_cursor(
-                    Cursor::new(sound_data),
-                    StaticSoundSettings::default(),
-                ).map_err(|_|"")?,
-            };
-            #[cfg(feature = "trace")]
-            drop(_enter1);
-            #[cfg(feature = "trace")]
-            drop(_enter);
-
-            //     }
-            //     _ => unreachable!("Bevy should guarantee the extension"),
-            // };
-            Ok(GameChartAsset {
-                music,
-                chart,
-                _info: info,
-            })
-        })
-    }
-    fn extensions(&self) -> &[&str] {
-        &["zip"]
-    }
-}
-
 #[derive(Deserialize, Default)]
 pub struct ChartInfo {
     pub name: String,
@@ -151,22 +46,101 @@ pub enum ChartFormat {
 #[derive(Event)]
 pub struct LoadChartEvent(pub String);
 
-#[derive(Resource)]
-struct PendingGameChartHandle {
-    handle: Handle<GameChartAsset>,
+pub struct BundledGameChart {
+    music: AudioSource,
+    chart: Chart,
+    // todo: handle chart info
+    _info: ChartInfo,
 }
 
-impl PendingGameChartHandle {
-    fn new(handle: Handle<GameChartAsset>) -> Self {
-        Self { handle }
-    }
+#[derive(Resource, Default)]
+pub struct PendingChart(Option<Task<Result<BundledGameChart, String>>>);
+
+fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
+    let r: Task<Result<BundledGameChart, String>> = IoTaskPool::get().spawn(async {
+        #[cfg(feature = "trace")]
+        let span = info_span!("load chart");
+        #[cfg(feature = "trace")]
+        let _enter = span.enter();
+        let mut file = async_fs::read(path).await.map_err(|_| "")?;
+        let mut res = ZipArchive::new(Cursor::new(file.as_mut_slice())).map_err(|_| "")?;
+        #[cfg(feature = "trace")]
+        let span = info_span!("load info");
+        #[cfg(feature = "trace")]
+        let _enter = span.enter();
+        let info_file = res.by_name("info.yml").map_err(|_| "")?;
+        let info: ChartInfo = serde_yaml::from_reader(info_file).map_err(|_| "")?;
+        #[cfg(feature = "trace")]
+        drop(_enter);
+        #[cfg(feature = "trace")]
+        let span = info_span!("load chart it self");
+        #[cfg(feature = "trace")]
+        let _enter = span.enter();
+        let chart_path = &info.chart_path;
+        let music_path = &info.music_path;
+        #[cfg(feature = "trace")]
+        let span = info_span!("Deserialize chart");
+        #[cfg(feature = "trace")]
+        let _enter1 = span.enter();
+        let chart: RizlineChart =
+            serde_yaml::from_reader(res.by_name(chart_path).map_err(|_| "")?).map_err(|_| "")?;
+        #[cfg(feature = "trace")]
+        drop(_enter1);
+        #[cfg(feature = "trace")]
+        let span = info_span!("Convert chart");
+        #[cfg(feature = "trace")]
+        let _enter1 = span.enter();
+        let chart: Chart = chart.try_into().map_err(|_| "")?;
+        #[cfg(feature = "trace")]
+        drop(_enter1);
+        #[cfg(feature = "trace")]
+        drop(_enter);
+        #[cfg(feature = "trace")]
+        let span = info_span!("load music");
+        #[cfg(feature = "trace")]
+        let _enter = span.enter();
+        #[cfg(feature = "trace")]
+        let span = info_span!("extract music");
+        #[cfg(feature = "trace")]
+        let _enter1 = span.enter();
+        let mut sound_data = Vec::new();
+        res.by_name(music_path)
+            .map_err(|_| "")?
+            .read_to_end(&mut sound_data)
+            .map_err(|_| "")?;
+        #[cfg(feature = "trace")]
+        drop(_enter1);
+        #[cfg(feature = "trace")]
+        let span = info_span!("create music");
+        #[cfg(feature = "trace")]
+        let _enter1 = span.enter();
+        let music = bevy_kira_audio::AudioSource {
+            sound: StaticSoundData::from_cursor(
+                Cursor::new(sound_data),
+                StaticSoundSettings::default(),
+            )
+            .map_err(|_| "")?,
+        };
+        #[cfg(feature = "trace")]
+        drop(_enter1);
+        #[cfg(feature = "trace")]
+        drop(_enter);
+
+        //     }
+        //     _ => unreachable!("Bevy should guarantee the extension"),
+        // };
+        Ok(BundledGameChart {
+            music,
+            chart,
+            _info: info,
+        })
+    });
+    pending.0 = Some(r);
 }
 
-fn chart_loader_system(
-    mut commands: Commands,
+fn dispatch_load_event(
     mut events: EventReader<LoadChartEvent>,
-    pending: Option<Res<PendingGameChartHandle>>,
-    asset_server: Res<AssetServer>,
+    pending_chart: ResMut<PendingChart>,
 ) {
     if events.len() > 1 {
         warn!("Mutiple charts are requested, ignoring previous ones.");
@@ -176,49 +150,35 @@ fn chart_loader_system(
         let Some(event) = events.read().last() else {
             return;
         };
-        if pending.is_some() {
+        if pending_chart.0.is_some() {
             warn!("Replacing previous unloaded chart.");
         }
         info!("Loading chart {}...", &event.0);
-        let handle: Handle<GameChartAsset> = asset_server.load(&event.0);
-        commands.insert_resource(PendingGameChartHandle::new(handle.clone()));
+        load_chart(event.0.clone(), pending_chart);
     }
     events.clear();
 }
 
-fn unpack_loaded_chart(
-    mut ev: EventReader<AssetEvent<GameChartAsset>>,
+fn unpack_chart(
+    mut pending_chart: ResMut<PendingChart>,
     mut commands: Commands,
-    pending: Res<PendingGameChartHandle>,
-    mut chart_assets: ResMut<Assets<GameChartAsset>>,
     mut audio_sources: ResMut<Assets<AudioSource>>,
 ) {
-    let Some(AssetEvent::Added { id }) = ev.read().next() else {
+    let Some(chart) = pending_chart
+        .0
+        .as_mut()
+        .and_then(|c| futures_lite::future::block_on(futures_lite::future::poll_once(c)))
+    else {
         return;
     };
-    let pending_handle = &pending.handle;
-    if &pending_handle.id() != id {
-        info!("Ignoring loaded chart {:?}.", id);
-        return;
-    }
-    // check loading
-    commands.remove_resource::<PendingGameChartHandle>();
-    let asset = chart_assets
-        .remove(pending_handle)
-        .expect("Pending handle does not exist");
-    commands.insert_resource(GameChart::new(asset.chart));
-    let audio_handle = audio_sources.add(asset.music);
-    commands.insert_resource(GameAudioSource(audio_handle));
-    info!("Completed loading chart")
-}
-
-fn remove_failure_and_report(
-    mut commands: Commands,
-    pending: Res<PendingGameChartHandle>,
-    server: Res<AssetServer>,
-) {
-    if server.get_load_state(&pending.handle) == Some(LoadState::Failed) {
-        error!("Loading chart failed");
-        commands.remove_resource::<PendingGameChartHandle>();
+    pending_chart.0 = None;
+    match chart {
+        Err(err) => error!(err), // todo: err handling insted of ""
+        Ok(bundle) => {
+            commands.insert_resource(GameChart::new(bundle.chart));
+            let audio_handle = audio_sources.add(bundle.music);
+            commands.insert_resource(GameAudioSource(audio_handle));
+            info!("completed loading chart")
+        }
     }
 }

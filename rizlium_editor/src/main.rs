@@ -1,11 +1,13 @@
-use bevy::log::LogPlugin;
+use bevy::log::{Level, LogPlugin};
 use rizlium_editor::extensions::command_panel::CommandPanelImpl;
 use rizlium_editor::extensions::{EditorMenuEntrys, ExtensionsPlugin};
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
 use rizlium_editor::hotkeys::HotkeyPlugin;
 use rizlium_editor::tab_system::{TabPlugin, TabRegistry};
 use rizlium_editor::widgets::{widget, LayoutPresetEdit};
-use rizlium_editor::{ActionPlugin, FilePlugin, RizTabViewerNext, WindowUpdateControlPlugin};
+use rizlium_editor::{
+    ActionPlugin, EventCollectorResource, FilePlugin, RizTabViewerNext, WindowUpdateControlPlugin,
+};
 
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::window::PrimaryWindow;
@@ -21,14 +23,20 @@ use rizlium_editor::{
     RizDockState, RizTabPresets,
 };
 use rizlium_render::{GameChart, GameView, RizliumRenderingPlugin};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::EnvFilter;
 
 fn main() {
+    let collector = egui_tracing::EventCollector::default().with_level(Level::DEBUG);
+    let default_filter = { format!("{},{}", Level::DEBUG, "wgpu=error,naga=warn") };
+        let filter_layer = EnvFilter::try_from_default_env()
+            .or_else(|_| EnvFilter::try_new(&default_filter))
+            .unwrap();
+    tracing_subscriber::registry().with(filter_layer).with(collector.clone()).with(tracing_subscriber::fmt::Layer::default()).init();
     App::new()
         .add_plugins((
-            DefaultPlugins.set(LogPlugin {
-                level: bevy::log::Level::DEBUG,
-                ..Default::default()
-            }),
+            DefaultPlugins.build().disable::<LogPlugin>(),
             EguiPlugin,
             RizliumRenderingPlugin {
                 config: (),
@@ -48,7 +56,7 @@ fn main() {
         .init_resource::<EditorState>()
         .init_resource::<RizDockState>()
         .add_event::<DragWindowRequested>()
-        // .init_riztabs()
+        .insert_resource(EventCollectorResource(collector))
         .add_systems(
             PreStartup,
             (setup_game_view, setup_window).after(bevy_egui::EguiStartupSet::InitContexts),
@@ -184,8 +192,6 @@ fn egui_render(world: &mut World) {
                     world,
                 },
             );
-
-            
         });
     });
     editor_state.is_editing_text = ctx.output(|out| out.mutable_text_under_cursor);

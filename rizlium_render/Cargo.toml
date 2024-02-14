@@ -33,6 +33,8 @@ rizlium_chart = {path="../rizlium_chart"}
 zip = "*"
 serde = {version = "*", features = ["derive"]}
 serde_yaml = "*"
+async-fs = "*"
+futures-lite = "*"
 
 [features]
 trace = ["bevy/trace_tracy"]

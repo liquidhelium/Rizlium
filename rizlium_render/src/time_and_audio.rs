@@ -54,7 +54,7 @@ impl Plugin for TimeAndAudioPlugin {
             );
     }
 }
-#[derive(Event, Debug)]
+#[derive(Event, Debug, Reflect)]
 pub enum TimeControlEvent {
     Pause,
     Resume,
