@@ -28,13 +28,16 @@ bevy = { version = "0.12", default-features = false, features = [
     "wayland"
 ] }
 bevy_kira_audio = { version = "0.18" }
+kira = "*"
 bevy_prototype_lyon = {git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium"}
 rizlium_chart = {path="../rizlium_chart"}
 zip = "*"
 serde = {version = "*", features = ["derive"]}
 serde_yaml = "*"
+serde_json = "*"
 async-fs = "*"
 futures-lite = "*"
+snafu = "*"
 
 [features]
 trace = ["bevy/trace_tracy"]
