@@ -11,6 +11,7 @@ use egui::{Color32, Rect, RichText, Ui};
 use egui_dock::DockState;
 use rizlium_render::GameTime;
 
+use ui::tab_system::TabId;
 pub use ui::*;
 mod editor_actions;
 pub mod hotkeys;
@@ -34,13 +35,13 @@ pub struct DebugResources {
 
 #[derive(Debug, Resource)]
 pub struct RizDockState {
-    pub state: DockState<usize>,
+    pub state: DockState<TabId>,
 }
 
 impl Default for RizDockState {
     fn default() -> Self {
         Self {
-            state: DockState::new(vec![0]),
+            state: DockState::new(vec![]),
         }
     }
 }

@@ -3,9 +3,10 @@
 use std::{convert::Infallible, fmt::{Debug, Display}, str::FromStr};
 
 use bevy::prelude::Deref;
+use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-#[derive(Deref, Hash, PartialEq, Eq, Clone)]
+#[derive(Deref, Hash, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct DotPath {
     inner: SmallVec<[String; 6]>
 }

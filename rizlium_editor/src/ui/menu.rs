@@ -166,7 +166,7 @@ impl<'item> ContainerItem<'item> for ItemGroupAsContainer<'item> {
         self.group.items.get(id)
     }
     fn remove_item(&mut self, id: &str) -> Option<MenuItem> {
-        self.group.items.remove(id)
+        self.group.items.shift_remove(id)
     }
 }
 

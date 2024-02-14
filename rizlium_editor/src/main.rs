@@ -3,8 +3,9 @@ use rizlium_editor::extensions::command_panel::CommandPanelImpl;
 use rizlium_editor::extensions::{EditorMenuEntrys, ExtensionsPlugin};
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
 use rizlium_editor::hotkeys::HotkeyPlugin;
+use rizlium_editor::tab_system::{TabPlugin, TabRegistry};
 use rizlium_editor::widgets::{widget, LayoutPresetEdit};
-use rizlium_editor::{ActionPlugin, FilePlugin, InitRizTabsExt, WindowUpdateControlPlugin};
+use rizlium_editor::{ActionPlugin, FilePlugin, RizTabViewerNext, WindowUpdateControlPlugin};
 
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages};
 use bevy::window::PrimaryWindow;
@@ -17,7 +18,7 @@ use egui::{Align2, Layout};
 use egui_dock::DockArea;
 use rizlium_editor::{
     ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
-    RizDockState, RizTabPresets, RizTabViewer, RizTabs,
+    RizDockState, RizTabPresets,
 };
 use rizlium_render::{GameChart, GameView, RizliumRenderingPlugin};
 
@@ -38,6 +39,7 @@ fn main() {
             WindowUpdateControlPlugin,
             ActionPlugin,
             HotkeyPlugin,
+            TabPlugin,
             FilePlugin,
             ExtensionsPlugin,
             ExtraWindowControlPlugin,
@@ -46,7 +48,7 @@ fn main() {
         .init_resource::<EditorState>()
         .init_resource::<RizDockState>()
         .add_event::<DragWindowRequested>()
-        .init_riztabs()
+        // .init_riztabs()
         .add_systems(
             PreStartup,
             (setup_game_view, setup_window).after(bevy_egui::EguiStartupSet::InitContexts),
@@ -163,7 +165,7 @@ fn egui_render(world: &mut World) {
     if before != editor_state.editing_presets {
         commands.persist_resource::<RizTabPresets>();
     }
-    world.resource_scope(|world: &mut World, mut tab: Mut<'_, RizTabs>| {
+    world.resource_scope(|world: &mut World, mut registry: Mut<'_, TabRegistry>| {
         world.resource_scope(|world: &mut World, mut state: Mut<'_, RizDockState>| {
             if state.state.main_surface().is_empty() {
                 egui::CentralPanel::default().show(ctx, |ui| {
@@ -174,14 +176,12 @@ fn egui_render(world: &mut World) {
                     );
                 });
             }
-            let focused_tab = state.state.find_active_focused().unzip().1.copied();
+            // let focused_tab = state.state.find_active_focused().unzip().1.copied();
             DockArea::new(&mut state.state).show(
                 ctx,
-                &mut RizTabViewer {
+                &mut RizTabViewerNext {
+                    registry: &mut *registry,
                     world,
-                    editor_state: &mut editor_state,
-                    tabs: &mut tab.tabs,
-                    focused_tab,
                 },
             );
 

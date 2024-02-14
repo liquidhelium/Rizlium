@@ -1,6 +1,7 @@
 pub mod command_panel;
 pub mod docking;
 mod game;
+mod editing;
 
 use bevy::prelude::{App, Deref, DerefMut, Plugin, Resource};
 use snafu::Snafu;
@@ -9,14 +10,14 @@ use crate::menu::{
     Category, ItemAsContainer, ItemGroup, MenuItem, MenuItemProvider, MenuItemVariant, SubMenu,
 };
 
-use self::{command_panel::CommandPanel, docking::Docking, game::Game};
+use self::{command_panel::CommandPanel, docking::Docking, editing::Editing, game::Game};
 
 pub struct ExtensionsPlugin;
 
 impl Plugin for ExtensionsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<EditorMenuEntrys>();
-        app.add_plugins((Game, Docking, CommandPanel));
+        app.add_plugins((Game, Docking, CommandPanel, Editing));
     }
 }
 
@@ -24,7 +25,7 @@ impl Plugin for ExtensionsPlugin {
 pub struct EditorMenuEntrys(ItemGroup);
 
 pub trait MenuExt {
-    fn menu_context(&mut self, add_menu: impl FnOnce(MenuContext));
+    fn menu_context(&mut self, add_menu: impl FnOnce(MenuContext)) -> &mut Self;
 }
 
 pub struct MenuContext<'w> {
@@ -88,10 +89,11 @@ impl MenuContext<'_> {
 }
 
 impl MenuExt for App {
-    fn menu_context(&mut self, add_menu: impl FnOnce(MenuContext)) {
+    fn menu_context(&mut self, add_menu: impl FnOnce(MenuContext)) -> &mut Self {
         let mut entrys = self.world.resource_mut::<EditorMenuEntrys>();
         let container = entrys.as_container();
         add_menu(MenuContext { item: container });
+        self
     }
 }
 
