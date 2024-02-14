@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use bevy::ecs::system::{CommandQueue, SystemBuffer, SystemMeta, SystemParam};
 use bevy::prelude::*;
-use bevy::reflect::{GetTypeRegistration, TypeInfo, Typed};
+use bevy::reflect::{TypeInfo, Typed};
 use bevy::utils::HashMap;
 use bevy_persistent::Persistent;
 use egui::mutex::Mutex;
