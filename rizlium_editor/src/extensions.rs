@@ -2,6 +2,7 @@ pub mod command_panel;
 pub mod docking;
 mod game;
 mod editing;
+mod inspector;
 
 use bevy::prelude::{App, Deref, DerefMut, Plugin, Resource};
 use snafu::Snafu;
@@ -10,14 +11,14 @@ use crate::menu::{
     Category, ItemAsContainer, ItemGroup, MenuItem, MenuItemProvider, MenuItemVariant, SubMenu,
 };
 
-use self::{command_panel::CommandPanel, docking::Docking, editing::Editing, game::Game};
+use self::{command_panel::CommandPanel, docking::Docking, editing::Editing, game::Game, inspector::Inspector};
 
 pub struct ExtensionsPlugin;
 
 impl Plugin for ExtensionsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<EditorMenuEntrys>();
-        app.add_plugins((Game, Docking, CommandPanel, Editing));
+        app.add_plugins((Game, Docking, CommandPanel, Editing, Inspector));
     }
 }
 

@@ -1,20 +1,30 @@
-use crate::{tab_system::TabRegistrationExt, EditorCommands};
+use crate::tab_system::TabRegistrationExt;
 
 use self::{note::note_editor_vertical, spline::spline_editor_horizontal};
 use bevy::prelude::*;
 use egui::Ui;
-use rizlium_render::{GameChart, GameChartCache, GameTime, TimeControlEvent};
+use rizlium_render::{GameChart, GameTime, TimeControlEvent};
 
-mod spline;
 mod note;
+mod spline;
 mod timeline;
 
 pub struct Editing;
 
 impl Plugin for Editing {
     fn build(&self, app: &mut App) {
-        app.register_tab("editing.note".into(), "Notes", note_window, resource_exists::<GameChart>())
-            .register_tab("editing.spline".into(), "Splines", spline_edit, resource_exists::<GameChart>());
+        app.register_tab(
+            "editing.note".into(),
+            "Notes",
+            note_window,
+            resource_exists::<GameChart>(),
+        )
+        .register_tab(
+            "editing.spline".into(),
+            "Splines",
+            spline_edit,
+            resource_exists::<GameChart>(),
+        );
     }
 }
 
@@ -61,16 +71,14 @@ fn note_window(
     )
 }
 
-
 pub fn spline_edit(
     In(ui): In<&mut Ui>,
     chart: Res<GameChart>,
-    cache: Res<GameChartCache>,
     mut current: Local<usize>,
     mut cache_range: Local<(f32, f32)>,
     mut scale: Local<[f32; 2]>,
     time: Res<GameTime>,
-    mut editor_commands: EditorCommands,
+    mut ev: EventWriter<TimeControlEvent>,
 ) {
     if *scale == [0., 0.] {
         *scale = [200., 200.];
@@ -94,7 +102,7 @@ pub fn spline_edit(
         let response =
             spline_editor_horizontal(ui, spline, Some(0), **time, &mut scale, show_first);
         if let Some(to) = response.seek_to {
-            editor_commands.time_control(TimeControlEvent::Seek(cache.remap_beat(to)));
+            ev.send(TimeControlEvent::Seek(to));
         }
         let range = response.view_rect;
         cache_range.0 = range.x_range().min;

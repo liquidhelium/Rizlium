@@ -114,7 +114,6 @@ impl Actions<'_, '_> {
         input: I,
     ) -> Result<(), ActionError> {
         if self.storages.0.contains_key(id) {
-            let _owned_id = id.to_owned();
             self.commands.add(
                 self.storages
                     .0

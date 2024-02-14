@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 use bevy_egui::EguiUserTextures;
 use egui::Ui;
-use rizlium_render::{GameTime, GameView, LoadChartEvent, TimeManager};
+use rizlium_render::{GameTime, GameView, LoadChartEvent, TimeControlEvent, TimeManager};
 
 use crate::{
-    extensions::MenuExt, hotkeys::{Hotkey, HotkeysExt}, menu::{self, Custom}, open_dialog, tab_system::TabRegistrationExt, widgets::{widget, RecentButtons}, ActionsExt, EditorCommands, PendingDialog
+    extensions::MenuExt, hotkeys::{Hotkey, HotkeysExt}, menu::{self, Custom}, open_dialog, tab_system::TabRegistrationExt, widgets::{widget, RecentButtons}, ActionsExt, PendingDialog
 };
 pub struct Game;
 
@@ -25,6 +25,7 @@ impl Plugin for Game {
                 "Pause or resume game",
                 toggle_pause,
             )
+            .register_action("game.time.control", "Control game time", time_control)
             .register_hotkey("game.open_dialog", [Hotkey::new_global([ControlLeft, O])])
             .register_hotkey("game.time.advance", [Hotkey::new_global([Right])])
             .register_hotkey("game.time.rewind", [Hotkey::new_global([Left])])
@@ -67,17 +68,19 @@ fn open_dialog_and_load_chart(mut dialog: ResMut<PendingDialog>) {
 
 mod time_systems {
     const SINGLE_TIME: f32 = 1.0;
-    use rizlium_render::TimeControlEvent::*;
-
-    use crate::EditorCommands;
-    pub fn advance_time(mut commands: EditorCommands) {
-        commands.time_control(Advance(SINGLE_TIME))
+    use bevy::ecs::{event::EventWriter, system::In};
+    use rizlium_render::TimeControlEvent::{self, *};
+    pub fn advance_time(mut ev: EventWriter<TimeControlEvent>) {
+        ev.send(Advance(SINGLE_TIME));
     }
-    pub fn rewind_time(mut commands: EditorCommands) {
-        commands.time_control(Advance(-SINGLE_TIME))
+    pub fn rewind_time(mut ev: EventWriter<TimeControlEvent>) {
+        ev.send(Advance(-SINGLE_TIME));
     }
-    pub fn toggle_pause(mut commands: EditorCommands) {
-        commands.time_control(Toggle)
+    pub fn toggle_pause(mut ev: EventWriter<TimeControlEvent>) {
+        ev.send(Toggle);
+    }
+    pub fn time_control(In(event): In<TimeControlEvent>,mut ev: EventWriter<TimeControlEvent>) {
+        ev.send(event);
     }
 }
 
@@ -101,7 +104,7 @@ pub fn game_view_tab(
     textures: Res<EguiUserTextures>,
     time: Res<TimeManager>,
     game_time: Res<GameTime>,
-    mut commands: EditorCommands,
+    mut ev: EventWriter<TimeControlEvent>
 ) {
     let img = textures
             .image_id(&gameview.0)
@@ -129,7 +132,7 @@ pub fn game_view_tab(
                         .add(Button::new("⏪").frame(false).min_size([30.; 2].into()))
                         .clicked()
                     {
-                        commands.time_control(Advance(-1.));
+                        ev.send(Advance(-1.));
                     }
                     let pause_play_icon = if time.paused() { "▶" } else { "⏸" };
                     if ui
@@ -140,13 +143,13 @@ pub fn game_view_tab(
                         )
                         .clicked()
                     {
-                        commands.time_control(Toggle);
+                        ev.send(Toggle);
                     }
                     if ui
                         .add(Button::new("⏩").frame(false).min_size([30.; 2].into()))
                         .clicked()
                     {
-                        commands.time_control(Advance(1.));
+                        ev.send(Advance(1.));
                     }
                 },
             );

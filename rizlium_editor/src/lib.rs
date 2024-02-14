@@ -9,6 +9,7 @@ use bevy::{
 };
 use egui::{Color32, Rect, RichText, Ui};
 use egui_dock::DockState;
+use egui_tracing::EventCollector;
 use rizlium_render::GameTime;
 
 use ui::tab_system::TabId;
@@ -32,6 +33,9 @@ pub struct EditorState {
 pub struct DebugResources {
     pub show_cursor: bool,
 }
+
+#[derive(Resource)]
+pub struct EventCollectorResource(pub EventCollector);
 
 #[derive(Debug, Resource)]
 pub struct RizDockState {
