@@ -1,9 +1,9 @@
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use egui::Ui;
 use rizlium_render::{GameChart, GameChartCache, GameTime, TimeControlEvent};
 
-use crate::{ui::editing::spline_editor_horizontal, EditorCommands, TabProvider,
-};
+use crate::{ui::editing::spline_editor_horizontal, EditorCommands, TabProvider};
 
 #[derive(SystemParam)]
 pub struct SplineWindow<'w, 's> {

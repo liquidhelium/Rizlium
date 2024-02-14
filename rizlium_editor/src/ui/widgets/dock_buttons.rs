@@ -1,14 +1,15 @@
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 
-use crate::{RizDockState, RizTabs};
+use crate::{tab_system::TabRegistry, RizDockState};
 
 use super::WidgetSystem;
 
 #[derive(SystemParam)]
 pub struct DockButtons<'w> {
     state: ResMut<'w, RizDockState>,
-    tabs: Res<'w, RizTabs>,
+    // tabs: Res<'w, RizTabs>,
+    registry: Res<'w, TabRegistry>
 }
 
 impl WidgetSystem for DockButtons<'static> {
@@ -19,20 +20,28 @@ impl WidgetSystem for DockButtons<'static> {
         ui: &mut egui::Ui,
         _extra: Self::Extra<'_>,
     ) {
-        let DockButtons::<'_> { tabs, mut state } = state.get_mut(world);
+        let DockButtons::<'_> { mut state , registry} = state.get_mut(world);
         let state = &mut state.state;
-        let opened:Vec<_> = state.iter_all_tabs().map(|(_, t)| t).copied().collect();
-        for (i, tab) in tabs.tabs.iter().enumerate() {
+        let opened:Vec<_> = state.iter_all_tabs().map(|i| i.1).collect();
+        let mut to_remove = None;
+        let mut to_add = None;
+        for (i, tab) in registry.iter() {
             let is_opened = opened.contains(&i);
-            if ui.selectable_label(is_opened, tab.name()).clicked() {
+            if ui.selectable_label(is_opened, tab.title()).clicked() {
                 if is_opened {
-                    state.remove_tab(state.find_tab(&i).expect("i is opened but then not found?"));
+                    to_remove = Some(state.find_tab(i).expect("i is opened but then not found?"));
                     ui.close_menu();
                 } else {
-                    state.add_window(vec![i]);
+                    to_add = Some(i.clone());
                     ui.close_menu();
                 }
             }
+        }
+        if let Some(to) = to_remove {
+            state.remove_tab(to);
+        }
+        if let Some(to) = to_add {
+            state.add_window(vec![to]);
         }
     }
 }

@@ -120,13 +120,13 @@ impl Hotkey {
 }
 
 #[derive(Resource, Default, Deref)]
-pub struct Hotkeys(HashMap<ActionId, SmallVec<[Hotkey; 3]>>);
+pub struct HotkeyRegistry(HashMap<ActionId, SmallVec<[Hotkey; 3]>>);
 
 pub struct HotkeyPlugin;
 
 impl Plugin for HotkeyPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Hotkeys>();
+        app.init_resource::<HotkeyRegistry>();
         app.add_systems(
             PostUpdate,
             dispatch_hotkey.after(bevy_egui::EguiSet::ProcessOutput),
@@ -135,7 +135,7 @@ impl Plugin for HotkeyPlugin {
 }
 
 fn dispatch_hotkey(world: &mut World) {
-    world.resource_scope(|world: &mut World, mut hotkeys: Mut<'_, Hotkeys>| {
+    world.resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyRegistry>| {
         for (id, listeners) in hotkeys.0.iter_mut() {
             for listener in listeners {
                 if listener.should_trigger(world) {
@@ -168,7 +168,7 @@ impl HotkeysExt for App {
         hotkey_list: impl IntoIterator<Item = Hotkey>,
     ) -> &mut Self {
         self.world
-            .resource_scope(|world: &mut World, mut hotkeys: Mut<'_, Hotkeys>| {
+            .resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyRegistry>| {
                 let mut hotkey_list: SmallVec<[Hotkey; 3]> = hotkey_list
                     .into_iter()
                     .map(|mut k| {

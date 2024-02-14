@@ -1,5 +1,6 @@
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use egui::Ui;
 use rizlium_render::{GameChart, GameTime};
 
 use crate::{ui::editing::note_editor_vertical, TabProvider};

@@ -2,7 +2,7 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 use egui::{Align2, Layout};
 
 use crate::{
-    hotkeys::{Hotkey, Hotkeys, HotkeysExt},
+    hotkeys::{Hotkey, HotkeyRegistry, HotkeysExt},
     utils::dot_path::DotPath,
     widgets::WidgetSystem,
     ActionRegistry, ActionsExt,
@@ -44,7 +44,7 @@ fn toggle_open_command_panel(mut state: ResMut<CommandPanelState>) {
 pub struct CommandPanelImpl<'w> {
     state: ResMut<'w, CommandPanelState>,
     action_storage: Res<'w, ActionRegistry>,
-    hotkeys: Res<'w, Hotkeys>,
+    hotkeys: Res<'w, HotkeyRegistry>,
 }
 
 impl WidgetSystem for CommandPanelImpl<'static> {
