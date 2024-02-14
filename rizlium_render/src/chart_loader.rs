@@ -1,4 +1,4 @@
-use std::io::{Cursor, Read};
+use std::{borrow::Cow, io::{Cursor, Read}};
 
 use bevy::{
     prelude::{ResMut, *},
@@ -10,6 +10,7 @@ use bevy_kira_audio::{
 };
 use rizlium_chart::prelude::{Chart, RizlineChart};
 use serde::Deserialize;
+use snafu::{ResultExt, Snafu};
 use zip::ZipArchive;
 
 use crate::{GameAudioSource, GameChart};
@@ -54,22 +55,41 @@ pub struct BundledGameChart {
 }
 
 #[derive(Resource, Default)]
-pub struct PendingChart(Option<Task<Result<BundledGameChart, String>>>);
+pub struct PendingChart(Option<Task<Result<BundledGameChart, ChartLoadingError>>>);
+
+#[derive(Snafu, Debug)]
+pub enum ChartLoadingError {
+    UnzipFileFailed {source: zip::result::ZipError,},
+    ReadingFileFailed {source: std::io::Error},
+    NoFileInZip {
+        file_name: Cow<'static, str>,
+        source: zip::result::ZipError,
+    },
+    FileFormatInvalid {
+        source: serde_yaml::Error,
+    },
+    ChartConvertingFailed {
+        source: rizlium_chart::parse::ConvertError,
+    },
+    MusicConvertingFailed {
+        source: kira::sound::FromFileError,
+    },
+}
 
 fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
-    let r: Task<Result<BundledGameChart, String>> = IoTaskPool::get().spawn(async {
+    let r: Task<Result<BundledGameChart, _>> = IoTaskPool::get().spawn(async {
         #[cfg(feature = "trace")]
         let span = info_span!("load chart");
         #[cfg(feature = "trace")]
         let _enter = span.enter();
-        let mut file = async_fs::read(path).await.map_err(|_| "")?;
-        let mut res = ZipArchive::new(Cursor::new(file.as_mut_slice())).map_err(|_| "")?;
+        let mut file = async_fs::read(path).await.context(ReadingFileFailedSnafu)?;
+        let mut res = ZipArchive::new(Cursor::new(file.as_mut_slice())).context(UnzipFileFailedSnafu)?;
         #[cfg(feature = "trace")]
         let span = info_span!("load info");
         #[cfg(feature = "trace")]
         let _enter = span.enter();
-        let info_file = res.by_name("info.yml").map_err(|_| "")?;
-        let info: ChartInfo = serde_yaml::from_reader(info_file).map_err(|_| "")?;
+        let info_file = res.by_name("info.yml").context(NoFileInZipSnafu { file_name: "info.yml"})?;
+        let info: ChartInfo = serde_yaml::from_reader(info_file).context(FileFormatInvalidSnafu)?;
         #[cfg(feature = "trace")]
         drop(_enter);
         #[cfg(feature = "trace")]
@@ -83,14 +103,14 @@ fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
         #[cfg(feature = "trace")]
         let _enter1 = span.enter();
         let chart: RizlineChart =
-            serde_yaml::from_reader(res.by_name(chart_path).map_err(|_| "")?).map_err(|_| "")?;
+            serde_yaml::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {file_name: chart_path.clone()})?).context(FileFormatInvalidSnafu)?;
         #[cfg(feature = "trace")]
         drop(_enter1);
         #[cfg(feature = "trace")]
         let span = info_span!("Convert chart");
         #[cfg(feature = "trace")]
         let _enter1 = span.enter();
-        let chart: Chart = chart.try_into().map_err(|_| "")?;
+        let chart: Chart = chart.try_into().context(ChartConvertingFailedSnafu)?;
         #[cfg(feature = "trace")]
         drop(_enter1);
         #[cfg(feature = "trace")]
@@ -105,9 +125,9 @@ fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
         let _enter1 = span.enter();
         let mut sound_data = Vec::new();
         res.by_name(music_path)
-            .map_err(|_| "")?
+            .context(NoFileInZipSnafu {file_name: music_path.clone()})?
             .read_to_end(&mut sound_data)
-            .map_err(|_| "")?;
+            .context(ReadingFileFailedSnafu)?;
         #[cfg(feature = "trace")]
         drop(_enter1);
         #[cfg(feature = "trace")]
@@ -119,7 +139,7 @@ fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
                 Cursor::new(sound_data),
                 StaticSoundSettings::default(),
             )
-            .map_err(|_| "")?,
+            .context(MusicConvertingFailedSnafu)?,
         };
         #[cfg(feature = "trace")]
         drop(_enter1);
@@ -173,7 +193,7 @@ fn unpack_chart(
     };
     pending_chart.0 = None;
     match chart {
-        Err(err) => error!(err), // todo: err handling insted of ""
+        Err(err) => error!("{:?}",err),
         Ok(bundle) => {
             commands.insert_resource(GameChart::new(bundle.chart));
             let audio_handle = audio_sources.add(bundle.music);
