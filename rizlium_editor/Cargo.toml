@@ -11,6 +11,7 @@ bevy_egui = {git = "https://github.com/liquidhelium/bevy_egui"}
 egui = "0.26"
 egui_dock = {version = "0.11.1", features = ["serde"]}
 egui_tracing = {git = "https://github.com/liquidhelium/egui_tracing"}
+egui-notify = "0.13"
 tracing-subscriber = "*"
 bevy-inspector-egui = "*"
 # Todo: split x11, wayland and webgl2
@@ -41,7 +42,7 @@ serde ={ version = "*", features = ["derive"]}
 dirs = "*"
 rfd = "*"
 # Needed to poll Task
-futures-lite = "1"
+futures-lite = "2"
 indexmap = {version = "*", features = ["serde"]}
 enum_dispatch = "*"
 snafu = "*"

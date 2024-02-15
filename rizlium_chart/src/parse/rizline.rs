@@ -221,7 +221,7 @@ impl Line {
 }
 
 fn scale_x(x: f32) -> f32 {
-    (x + 0.5) * (VIEW_RECT[1][0] - VIEW_RECT[0][0])
+    x * (VIEW_RECT[1][0] - VIEW_RECT[0][0])
 }
 fn scale_y(y: f32) -> f32 {
     y * (VIEW_RECT[1][1] - VIEW_RECT[0][1]) * 1.

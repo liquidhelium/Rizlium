@@ -26,7 +26,7 @@ pub use line_rendering::ShowLines;
 mod chart_loader;
 mod theme;
 mod time_and_audio;
-pub use chart_loader::LoadChartEvent;
+pub use chart_loader::{LoadChartEvent, LoadChartErrorEvent};
 
 mod notes;
 
@@ -98,7 +98,7 @@ fn spawn_game_camera(mut commands: Commands) {
                 ..default()
             },
             transform: Transform {
-                translation: [900., 0., 999.0].into(),
+                translation: [0., 0., 999.0].into(),
                 ..default()
             },
             ..default()
@@ -106,6 +106,7 @@ fn spawn_game_camera(mut commands: Commands) {
         .insert(GameCamera);
 }
 
+// TODO: don't run continuously
 fn bind_gameview(
     gameview: Option<Res<GameView>>,
     mut game_cameras: Query<&mut Camera, With<GameCamera>>,

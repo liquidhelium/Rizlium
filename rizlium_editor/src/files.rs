@@ -7,7 +7,8 @@ use indexmap::IndexSet;
 use rfd::AsyncFileDialog;
 use serde::{Deserialize, Serialize};
 
-use crate::EditorCommands;
+use crate::{notification::ToastsStorage, EditorCommands};
+use rizlium_render::LoadChartErrorEvent;
 
 
 pub struct FilePlugin;
@@ -15,7 +16,7 @@ pub struct FilePlugin;
 impl Plugin for FilePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PendingDialog>()
-            .add_systems(PostUpdate, open_chart);
+            .add_systems(PostUpdate, (open_chart, report_error));
     }
 }
 
@@ -44,6 +45,12 @@ fn open_chart(mut dialog: ResMut<PendingDialog>, mut editor_command: EditorComma
         if let Some(chart) = chart {
             editor_command.load_chart(chart);
         }
+    }
+}
+
+fn report_error(mut events: EventReader<LoadChartErrorEvent>, mut toasts: ResMut<ToastsStorage>) {
+    for event in events.read() {
+        toasts.error(format!("Failed while loading chart: {:?}", event.0));
     }
 }
 

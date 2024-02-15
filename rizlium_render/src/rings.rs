@@ -33,7 +33,7 @@ pub fn rings(
     rings
         .par_iter_mut()
         .batching_strategy(BatchingStrategy::new().batches_per_thread(40))
-        .for_each_mut(|(mut stroke, mut transform, mut vis, ring)| {
+        .for_each(|(mut stroke, mut transform, mut vis, ring)| {
             #[cfg(feature = "trace")]
             let span = info_span!("single ring");
             #[cfg(feature = "trace")]

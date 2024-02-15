@@ -19,6 +19,7 @@ pub mod hotkeys;
 mod files;
 pub mod extensions;
 pub mod utils;
+pub mod notification;
 pub use files::*;
 pub use editor_actions::*;
 mod ui;
@@ -45,7 +46,7 @@ pub struct RizDockState {
 impl Default for RizDockState {
     fn default() -> Self {
         Self {
-            state: DockState::new(vec![]),
+            state: DockState::new(vec!["game.view".into()]),
         }
     }
 }
