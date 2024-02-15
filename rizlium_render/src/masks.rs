@@ -32,7 +32,7 @@ pub(crate) fn init_mask(mut commands: Commands) {
     commands
         .spawn((
             ShapeBundle {
-                transform: Transform::from_xyz(900., 0., 10.),
+                transform: Transform::from_xyz(0., 0., 10.),
                 aabb: Aabb {
                     center: default(),
                     half_extents: Vec3A::MAX,
@@ -46,7 +46,7 @@ pub(crate) fn init_mask(mut commands: Commands) {
     commands
         .spawn((
             ShapeBundle {
-                transform: Transform::from_xyz(900., 0., 10.),
+                transform: Transform::from_xyz(0., 0., 10.),
                 aabb: Aabb {
                     center: default(),
                     half_extents: Vec3A::MAX,

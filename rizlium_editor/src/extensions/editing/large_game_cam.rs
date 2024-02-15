@@ -8,7 +8,7 @@ use bevy::{
     },
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
-use egui::{Color32, Ui};
+use egui::{Color32, Sense, Ui};
 
 use crate::tab_system::TabRegistrationExt;
 pub struct LargeGameCamPlugin;
@@ -104,10 +104,8 @@ fn large_game_cam_tab(
         return;
     };
     let size2d = ui.available_size_before_wrap();
-    let pixel_size2d = Vec2::new(
-        size2d.x * ui.ctx().pixels_per_point(),
-        size2d.y * ui.ctx().pixels_per_point(),
-    );
+    let rect = ui.available_rect_before_wrap();
+    let pixel_size2d = size2d * ui.ctx().pixels_per_point();
     let size = Extent3d {
         width: pixel_size2d.x as u32,
         height: pixel_size2d.y as u32,
@@ -120,6 +118,19 @@ fn large_game_cam_tab(
     transform.translation = *center;
 
     let img = textures.image_id(&large_view).expect("texture not found");
-
     ui.centered_and_justified(|ui| ui.add(egui::Image::new((img, size2d))));
+    let response = ui.interact(rect, ui.next_auto_id(), Sense::click_and_drag());
+    let delta: [f32; 2] = response.drag_delta().into();
+    let delta: Vec2 = delta.into();
+    *center -= to_game_pixel(ui.ctx().pixels_per_point(), **scale, delta).extend(0.);
+
+}
+
+fn to_game_pixel(ui_pixel_per_point: f32, scale: f32, vec: Vec2) -> Vec2 {
+    // 输入是point
+    let ui_pixel = vec * ui_pixel_per_point;
+
+    let result = ui_pixel / scale;
+    // y轴反转
+    result * Vec2::new(1., -1.)
 }
