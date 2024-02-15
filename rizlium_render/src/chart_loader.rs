@@ -20,6 +20,7 @@ pub struct ChartLoadingPlugin;
 impl Plugin for ChartLoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<LoadChartEvent>()
+            .add_event::<LoadChartErrorEvent>()
             .init_resource::<PendingChart>()
             .add_systems(
                 PostUpdate,
@@ -46,6 +47,9 @@ pub enum ChartFormat {
 
 #[derive(Event)]
 pub struct LoadChartEvent(pub String);
+
+#[derive(Event)]
+pub struct LoadChartErrorEvent(pub ChartLoadingError);
 
 pub struct BundledGameChart {
     music: AudioSource,
@@ -183,6 +187,7 @@ fn unpack_chart(
     mut pending_chart: ResMut<PendingChart>,
     mut commands: Commands,
     mut audio_sources: ResMut<Assets<AudioSource>>,
+    mut ev: EventWriter<LoadChartErrorEvent>,
 ) {
     let Some(chart) = pending_chart
         .0
@@ -193,7 +198,7 @@ fn unpack_chart(
     };
     pending_chart.0 = None;
     match chart {
-        Err(err) => error!("{:?}",err),
+        Err(err) => {ev.send(LoadChartErrorEvent(err))},
         Ok(bundle) => {
             commands.insert_resource(GameChart::new(bundle.chart));
             let audio_handle = audio_sources.add(bundle.music);

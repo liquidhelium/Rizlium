@@ -1,10 +1,16 @@
-use bevy::prelude::*;
-use bevy_egui::EguiUserTextures;
+use bevy::{prelude::*, render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages}};
+use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::Ui;
 use rizlium_render::{GameTime, GameView, LoadChartEvent, TimeControlEvent, TimeManager};
 
 use crate::{
-    extensions::MenuExt, hotkeys::{Hotkey, HotkeysExt}, menu::{self, Custom}, open_dialog, tab_system::TabRegistrationExt, widgets::{widget, RecentButtons}, ActionsExt, PendingDialog
+    extensions::MenuExt,
+    hotkeys::{Hotkey, HotkeysExt},
+    menu::{self, Custom},
+    open_dialog,
+    tab_system::TabRegistrationExt,
+    widgets::{widget, RecentButtons},
+    ActionsExt, PendingDialog,
 };
 pub struct Game;
 
@@ -42,15 +48,18 @@ impl Plugin for Game {
                         ctx.add(
                             "recent_files_inner",
                             "_".into(),
-                            Custom(Box::new(
-                                |ui, world, _| widget::<RecentButtons>(world, ui),
-                            )),
+                            Custom(Box::new(|ui, world, _| widget::<RecentButtons>(world, ui))),
                             0,
                         );
                     })
                 });
             })
             .register_tab("game.view".into(), "Game view", game_view_tab, || true);
+        // bevy systems
+        app.add_systems(
+            Startup,
+            setup_game_view.after(bevy_egui::EguiStartupSet::InitContexts),
+        );
     }
 }
 
@@ -79,7 +88,7 @@ mod time_systems {
     pub fn toggle_pause(mut ev: EventWriter<TimeControlEvent>) {
         ev.send(Toggle);
     }
-    pub fn time_control(In(event): In<TimeControlEvent>,mut ev: EventWriter<TimeControlEvent>) {
+    pub fn time_control(In(event): In<TimeControlEvent>, mut ev: EventWriter<TimeControlEvent>) {
         ev.send(event);
     }
 }
@@ -104,59 +113,91 @@ pub fn game_view_tab(
     textures: Res<EguiUserTextures>,
     time: Res<TimeManager>,
     game_time: Res<GameTime>,
-    mut ev: EventWriter<TimeControlEvent>
+    mut ev: EventWriter<TimeControlEvent>,
 ) {
     let img = textures
-            .image_id(&gameview.0)
-            .expect("no gameview image found!");
-        egui::TopBottomPanel::top("gameview top bar").show_inside(ui, |ui| {
-            ui.horizontal_top(|ui| {
-                ui.label(format!("Real: {:.2}", time.current()));
-                ui.separator();
-                ui.label(format!("Game: {:.2}", **game_time));
-                ui.separator();
-                ui.menu_button("title", |ui| {
-                    ui.label("text");
-                });
+        .image_id(&gameview.0)
+        .expect("no gameview image found!");
+    egui::TopBottomPanel::top("gameview top bar").show_inside(ui, |ui| {
+        ui.horizontal_top(|ui| {
+            ui.label(format!("Real: {:.2}", time.current()));
+            ui.separator();
+            ui.label(format!("Game: {:.2}", **game_time));
+            ui.separator();
+            ui.menu_button("title", |ui| {
+                ui.label("text");
             });
         });
-        use egui::*;
-        // video_control(ui, &mut false, 0.0..=100.0, &mut 50.);
-        ui.with_layout(Layout::bottom_up(egui::Align::Center), |ui| {
-            ui.allocate_ui_with_layout(
-                [90., 30.].into(),
-                Layout::left_to_right(egui::Align::Center),
-                |ui| {
-                    use rizlium_render::TimeControlEvent::*;
-                    if ui
-                        .add(Button::new("⏪").frame(false).min_size([30.; 2].into()))
-                        .clicked()
-                    {
-                        ev.send(Advance(-1.));
-                    }
-                    let pause_play_icon = if time.paused() { "▶" } else { "⏸" };
-                    if ui
-                        .add(
-                            Button::new(pause_play_icon)
-                                .frame(false)
-                                .min_size([30.; 2].into()),
-                        )
-                        .clicked()
-                    {
-                        ev.send(Toggle);
-                    }
-                    if ui
-                        .add(Button::new("⏩").frame(false).min_size([30.; 2].into()))
-                        .clicked()
-                    {
-                        ev.send(Advance(1.));
-                    }
-                },
-            );
-            keep_ratio(ui, 16. / 9., |ui, size| {
-                ui.centered_and_justified(|ui| {
-                    ui.add(egui::Image::new((img, size)).fit_to_exact_size(size))
-                });
+    });
+    use egui::*;
+    // video_control(ui, &mut false, 0.0..=100.0, &mut 50.);
+    ui.with_layout(Layout::bottom_up(egui::Align::Center), |ui| {
+        ui.allocate_ui_with_layout(
+            [90., 30.].into(),
+            Layout::left_to_right(egui::Align::Center),
+            |ui| {
+                use rizlium_render::TimeControlEvent::*;
+                if ui
+                    .add(Button::new("⏪").frame(false).min_size([30.; 2].into()))
+                    .clicked()
+                {
+                    ev.send(Advance(-1.));
+                }
+                let pause_play_icon = if time.paused() { "▶" } else { "⏸" };
+                if ui
+                    .add(
+                        Button::new(pause_play_icon)
+                            .frame(false)
+                            .min_size([30.; 2].into()),
+                    )
+                    .clicked()
+                {
+                    ev.send(Toggle);
+                }
+                if ui
+                    .add(Button::new("⏩").frame(false).min_size([30.; 2].into()))
+                    .clicked()
+                {
+                    ev.send(Advance(1.));
+                }
+            },
+        );
+        keep_ratio(ui, 16. / 9., |ui, size| {
+            ui.centered_and_justified(|ui| {
+                ui.add(egui::Image::new((img, size)).fit_to_exact_size(size))
             });
         });
+    });
+}
+
+fn setup_game_view(
+    mut commands: Commands,
+    mut egui_context: EguiContexts,
+    mut images: ResMut<Assets<Image>>,
+) {
+    let size = Extent3d {
+        width: 1080,
+        height: 1920,
+        ..default()
+    };
+    // This is the texture that will be rendered to.
+    let mut image = Image {
+        texture_descriptor: TextureDescriptor {
+            label: None,
+            size,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Bgra8UnormSrgb,
+            mip_level_count: 1,
+            sample_count: 1,
+            usage: TextureUsages::TEXTURE_BINDING
+                | TextureUsages::COPY_DST
+                | TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        },
+        ..default()
+    };
+    image.resize(size);
+    let image_handle = images.add(image);
+    egui_context.add_image(image_handle.clone());
+    commands.insert_resource(GameView(image_handle));
 }
