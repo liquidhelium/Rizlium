@@ -8,7 +8,7 @@ use rizlium_render::{GameChart, GameTime, TimeControlEvent};
 mod note;
 mod spline;
 mod timeline;
-mod large_game_cam;
+mod world_view;
 
 pub struct Editing;
 
@@ -27,7 +27,7 @@ impl Plugin for Editing {
             resource_exists::<GameChart>(),
         );
 
-        app.add_plugins(large_game_cam::LargeGameCamPlugin);
+        app.add_plugins(world_view::LargeGameCamPlugin);
     }
 }
 

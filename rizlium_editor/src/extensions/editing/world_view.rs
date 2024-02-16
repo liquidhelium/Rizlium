@@ -1,3 +1,5 @@
+use std::ops::ControlFlow;
+
 use bevy::{
     prelude::*,
     render::{
@@ -8,9 +10,15 @@ use bevy::{
     },
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
-use egui::{Color32, Sense, Ui};
+use egui::{Response, Sense, Ui};
 
 use crate::tab_system::TabRegistrationExt;
+
+use self::cam_response::{
+    ClickEventType, DragEventType, MouseEvent, MouseEventType, RaycastPlugin, ScreenMouseEvent,
+};
+
+mod cam_response;
 pub struct LargeGameCamPlugin;
 
 impl Plugin for LargeGameCamPlugin {
@@ -19,6 +27,7 @@ impl Plugin for LargeGameCamPlugin {
             PreStartup,
             setup_large_game_cam.after(bevy_egui::EguiStartupSet::InitContexts),
         )
+        .add_plugins(RaycastPlugin)
         .register_tab("edit.large_cam".into(), "World", large_game_cam_tab, || {
             true
         });
@@ -89,6 +98,7 @@ fn large_game_cam_tab(
     mut camera: Query<(&mut OrthographicProjection, &mut Transform), With<LargeGameCam>>,
     mut scale: Local<Scale>,
     mut center: Local<Vec3>,
+    mut event_writer: EventWriter<ScreenMouseEvent>,
 ) {
     egui::TopBottomPanel::top("view_control").show_inside(ui, |ui| {
         ui.horizontal_centered(|ui| {
@@ -103,9 +113,10 @@ fn large_game_cam_tab(
     let Some(img) = images.get_mut(large_view.0.id()) else {
         return;
     };
+    let ui_pixels_per_point = ui.ctx().pixels_per_point();
     let size2d = ui.available_size_before_wrap();
     let rect = ui.available_rect_before_wrap();
-    let pixel_size2d = size2d * ui.ctx().pixels_per_point();
+    let pixel_size2d = size2d * 1.;
     let size = Extent3d {
         width: pixel_size2d.x as u32,
         height: pixel_size2d.y as u32,
@@ -120,17 +131,87 @@ fn large_game_cam_tab(
     let img = textures.image_id(&large_view).expect("texture not found");
     ui.centered_and_justified(|ui| ui.add(egui::Image::new((img, size2d))));
     let response = ui.interact(rect, ui.next_auto_id(), Sense::click_and_drag());
-    let delta: [f32; 2] = response.drag_delta().into();
-    let delta: Vec2 = delta.into();
-    *center -= to_game_pixel(ui.ctx().pixels_per_point(), **scale, delta).extend(0.);
-
+    let delta = egui_to_glam(response.drag_delta());
+    *center -= to_game_pixel(**scale, delta).extend(0.);
+    ui.ctx().input(|input| {
+        if response.contains_pointer() {
+            if let Some(pos) = input.pointer.hover_pos() {
+                let releative_pos = pos - rect.left_top();
+                let releative_pos = egui_to_glam(releative_pos);
+                event_writer.send(ScreenMouseEvent(MouseEvent {
+                    event_type: get_event_type(&response),
+                    button: response
+                        .interact_pointer_pos()
+                        .is_some()
+                        .then(|| {
+                            iter_pointer(response.triple_clicked)
+                                .or_else(|| iter_pointer(response.double_clicked))
+                                .or_else(|| iter_pointer(response.clicked))
+                        })
+                        .flatten(),
+                    pos: releative_pos.extend(0.),
+                }))
+            }
+        }
+    })
 }
 
-fn to_game_pixel(ui_pixel_per_point: f32, scale: f32, vec: Vec2) -> Vec2 {
-    // 输入是point
-    let ui_pixel = vec * ui_pixel_per_point;
-
-    let result = ui_pixel / scale;
+fn to_game_pixel(scale: f32, vec: Vec2) -> Vec2 {
+    let result = scale_to_pixel(vec, scale);
     // y轴反转
     result * Vec2::new(1., -1.)
+}
+
+fn scale_to_pixel(vec: Vec2, scale: f32) -> Vec2 {
+    vec / scale
+}
+
+fn egui_to_glam(vec2: egui::Vec2) -> Vec2 {
+    Vec2::new(vec2.x, vec2.y)
+}
+
+fn iter_pointer(pointer: [bool; egui::NUM_POINTER_BUTTONS]) -> Option<MouseButton> {
+    if let ControlFlow::Break(button) = pointer
+        .iter()
+        .zip([
+            MouseButton::Left,
+            MouseButton::Right,
+            MouseButton::Middle,
+            MouseButton::Other(0),
+            MouseButton::Other(1),
+        ])
+        .try_for_each(|(is_clicked, button)| {
+            if !*is_clicked {
+                ControlFlow::Continue(())
+            } else {
+                ControlFlow::Break(button)
+            }
+        })
+    {
+        Some(button)
+    } else {
+        None
+    }
+}
+
+fn get_event_type(response: &Response) -> MouseEventType {
+    if any_true(&response.triple_clicked) {
+        MouseEventType::Click(ClickEventType::Triple)
+    } else if any_true(&response.double_clicked) {
+        MouseEventType::Click(ClickEventType::Double)
+    } else if any_true(&response.clicked) {
+        MouseEventType::Click(ClickEventType::Single)
+    } else if response.drag_started() {
+        MouseEventType::Drag(DragEventType::DragStarted)
+    } else if response.dragged() {
+        MouseEventType::Drag(DragEventType::Dragging)
+    } else if response.drag_released() {
+        MouseEventType::Drag(DragEventType::DragEnded)
+    } else {
+        MouseEventType::Hover
+    }
+}
+
+fn any_true(slice: &[bool]) -> bool {
+    slice.iter().any(|i| *i)
 }

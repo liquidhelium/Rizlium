@@ -34,9 +34,11 @@ bevy = { version = "0.12", default-features = false, features = [
     "tonemapping_luts",
     "webgl2",
     "wayland",
-    "multi-threaded"
+    "multi-threaded",
+    "bevy_gizmos"
 ] }
 rizlium_chart ={ path = "../rizlium_chart"}
+bevy_mod_raycast = "*"
 bevy-persistent = {version = "0.4", features = ["json","toml"]}
 serde ={ version = "*", features = ["derive"]}
 dirs = "*"
