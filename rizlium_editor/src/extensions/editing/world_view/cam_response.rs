@@ -4,7 +4,7 @@ use bevy_mod_raycast::{
     primitives::Ray3d,
 };
 
-use super::LargeGameCam;
+use super::WorldCam;
 
 pub struct RaycastPlugin;
 
@@ -32,17 +32,12 @@ pub enum MouseEventType {
     Drag(DragEventType),
 }
 
-impl MouseEventType {
-    fn is_hover(&self) -> bool {
-        matches!(self, &Self::Hover)
-    }
-}
 
 #[derive(Clone, Debug)]
 pub enum DragEventType {
     DragStarted,
     DragEnded,
-    Dragging,
+    Dragging(Vec2),
 }
 
 #[derive(Clone, Debug)]
@@ -61,7 +56,7 @@ fn to_ray(pixel: Vec2, cam: &Camera, trans: &GlobalTransform) -> Option<Ray3d> {
 
 fn ray_cast(
     mut raycast: Raycast,
-    camera: Query<(&Camera, &GlobalTransform), With<LargeGameCam>>,
+    camera: Query<(&Camera, &GlobalTransform), With<WorldCam>>,
     mut meshes: Query<(Entity, &mut CamResponse)>,
     mut screen_mouse_events: EventReader<ScreenMouseEvent>,
 ) {

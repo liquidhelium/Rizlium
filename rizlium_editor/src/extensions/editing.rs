@@ -27,7 +27,7 @@ impl Plugin for Editing {
             resource_exists::<GameChart>(),
         );
 
-        app.add_plugins(world_view::LargeGameCamPlugin);
+        app.add_plugins(world_view::WorldViewPlugin);
     }
 }
 

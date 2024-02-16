@@ -32,18 +32,48 @@ pub enum TriggerType {
     Repeat,
 }
 
+#[derive(Clone, Copy, Reflect, Debug)]
+pub enum RuntimeTrigger {
+    Pressed,
+    Pressing,
+    Released,
+}
+
+impl RuntimeTrigger {
+    pub fn is_pressed(&self) -> bool {
+        matches!(self, Self::Pressed)
+    }
+    pub fn is_pressing(&self) -> bool {
+        matches!(self, Self::Pressing)
+    }
+    pub fn is_released(&self) -> bool {
+        matches!(self, Self::Released)
+    }
+}
+
 impl TriggerType {
-    fn check_trigger(&self, code: KeyCode, input: &mut Input<KeyCode>) -> bool {
+    fn check_trigger(&self, code: KeyCode, input: &mut Input<KeyCode>) -> Option<RuntimeTrigger> {
         use TriggerType::*;
-        let triggered = match self {
-            Pressed => input.just_pressed(code),
-            Released => input.just_released(code),
-            PressAndRelease => input.just_pressed(code) || input.just_released(code),
-            Repeat => input.pressed(code),
+        let runtime_trigger = match self {
+            Pressed if input.just_pressed(code) => Some(RuntimeTrigger::Pressed),
+            Released if input.just_released(code) => Some(RuntimeTrigger::Released),
+            PressAndRelease => input
+                .just_pressed(code)
+                .then_some(RuntimeTrigger::Pressed)
+                .or_else(|| {
+                    input
+                        .just_released(code)
+                        .then_some(RuntimeTrigger::Released)
+                }),
+            Repeat if input.pressed(code) => Some(RuntimeTrigger::Pressing),
+            _ => None,
         };
+        if input.just_released(code) {
+            debug!("just released {code:?};");
+        }
         input.clear_just_pressed(code);
         input.clear_just_released(code);
-        return triggered;
+        runtime_trigger
     }
 }
 
@@ -68,8 +98,15 @@ const fn always() -> bool {
 }
 impl Hotkey {
     pub fn new<M>(key: impl IntoIterator<Item = KeyCode>, trigger_when: impl Condition<M>) -> Self {
+        Self::new_advanced(key, trigger_when, TriggerType::Pressed)
+    }
+    pub fn new_advanced<M>(
+        key: impl IntoIterator<Item = KeyCode>,
+        trigger_when: impl Condition<M>,
+        trigger_type: TriggerType,
+    ) -> Self {
         Self {
-            trigger_type: TriggerType::Pressed,
+            trigger_type,
             trigger_when: new_condition(trigger_when),
             key: key.into_iter().collect(),
         }
@@ -82,21 +119,23 @@ impl Hotkey {
         self.trigger_when.initialize(world);
     }
 
-    pub fn is_triggered_by_keyboard(&self, world: &mut World) -> bool {
+    pub fn keyboard_trigger(&self, world: &mut World) -> Option<RuntimeTrigger> {
         if self.key.is_empty() {
-            return false;
+            return None;
         }
         let mut input = world.resource_mut::<Input<KeyCode>>();
         let mut other_all_pressed = true;
-        for code in self.key.iter().copied() {
+        for code in self.key.iter().take(self.key.len()-1).copied() {
             other_all_pressed &= input.pressed(code);
         }
         other_all_pressed
-            && self
-                .trigger_type
-                .check_trigger(*self.key.last().unwrap(), &mut *input)
+            .then(|| {
+                self.trigger_type
+                    .check_trigger(*self.key.last().unwrap(), &mut input)
+            })
+            .flatten()
     }
-    pub fn should_trigger(&mut self, world: &mut World) -> bool {
+    pub fn trigger_result(&mut self, world: &mut World) -> Option<RuntimeTrigger> {
         let not_editing_text = !world
             .query_filtered::<&EguiOutput, With<PrimaryWindow>>()
             .get_single(world)
@@ -105,9 +144,10 @@ impl Hotkey {
             || self.key.contains(&KeyCode::AltRight)
             || self.key.contains(&KeyCode::ControlLeft)
             || self.key.contains(&KeyCode::ControlRight);
-        self.is_triggered_by_keyboard(world)
-            && self.trigger_when.run_readonly((), world)
-            && (not_editing_text || has_modifier)
+
+        (self.trigger_when.run_readonly((), world) && (not_editing_text || has_modifier))
+            .then(|| self.keyboard_trigger(world))
+            .flatten()
     }
 
     pub fn hotkey_text(&self) -> String {
@@ -138,12 +178,12 @@ fn dispatch_hotkey(world: &mut World) {
     world.resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyRegistry>| {
         for (id, listeners) in hotkeys.0.iter_mut() {
             for listener in listeners {
-                if listener.should_trigger(world) {
+                if let Some(trigger) = listener.trigger_result(world) {
                     // todo: error handling
                     world
                         .resource_scope(
                             |world: &mut World, mut actions: Mut<'_, ActionRegistry>| {
-                                actions.run_instant(id, (), world)
+                                actions.run_instant(id, trigger, world).or_else(|_| actions.run_instant(id, (), world))
                             },
                         )
                         .expect("encountered err (todo handle this)");
