@@ -1,8 +1,9 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_mod_raycast::{
     immediate::{Raycast, RaycastSettings},
     primitives::Ray3d,
 };
+use rizlium_render::ChartLine;
 
 use super::WorldCam;
 
@@ -11,12 +12,23 @@ pub struct RaycastPlugin;
 impl Plugin for RaycastPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ScreenMouseEvent>()
-            .add_systems(PreUpdate, ray_cast.run_if(resource_exists_and_changed::<Events<ScreenMouseEvent>>()));
+            .add_event::<WorldMouseEvent>()
+            .add_systems(
+                PreUpdate,
+                ray_cast.run_if(resource_exists_and_changed::<Events<ScreenMouseEvent>>()),
+            )
+            .add_systems(PostUpdate, add_pick_to_lines);
     }
 }
 
 #[derive(Event, Debug)]
 pub struct ScreenMouseEvent(pub MouseEvent);
+
+#[derive(Event, Debug)]
+pub struct WorldMouseEvent {
+    pub event: MouseEvent,
+    pub casted_on_entity: bool,
+}
 
 #[derive(Clone, Debug)]
 pub struct MouseEvent {
@@ -31,7 +43,6 @@ pub enum MouseEventType {
     Click(ClickEventType),
     Drag(DragEventType),
 }
-
 
 #[derive(Clone, Debug)]
 pub enum DragEventType {
@@ -56,32 +67,58 @@ fn to_ray(pixel: Vec2, cam: &Camera, trans: &GlobalTransform) -> Option<Ray3d> {
 
 fn ray_cast(
     mut raycast: Raycast,
-    camera: Query<(&Camera, &GlobalTransform), With<WorldCam>>,
-    mut meshes: Query<(Entity, &mut CamResponse)>,
+    camera: Query<(&Camera, &GlobalTransform, Option<&RenderLayers>), With<WorldCam>>,
+    mut meshes: Query<(Entity, Option<&RenderLayers>, &mut CamResponse)>,
     mut screen_mouse_events: EventReader<ScreenMouseEvent>,
+    mut world_mouse_events: EventWriter<WorldMouseEvent>,
 ) {
-    let (cam, trans) = camera.single();
+    let (cam, trans, cam_layers) = camera.single();
     screen_mouse_events.read().for_each(|ev| {
+        let mut owned_event;
         let [(cast_entity, cast_data)] = raycast.cast_ray(
             {
                 let Some(ray) = to_ray(ev.0.pos.xy(), cam, trans) else {
                     return;
                 };
+                owned_event = ev.0.clone();
+                owned_event.pos = ray.origin();
                 ray
             },
-            &RaycastSettings::default().always_early_exit(),
+            &RaycastSettings::default()
+                .always_early_exit()
+                .with_filter(&|entity| {
+                    meshes.get(entity).is_ok_and(|(_, layers, _)| {
+                        let default_layer = RenderLayers::layer(0);
+                        let layers = layers.unwrap_or(&default_layer);
+                        let cam_layers = cam_layers.unwrap_or(&default_layer);
+                        layers.intersects(cam_layers)
+                    })
+                }),
         ) else {
+            world_mouse_events.send(WorldMouseEvent {
+                event: owned_event.clone(),
+                casted_on_entity: false,
+            });
             return;
         };
-        let mut owned_event = ev.0.clone();
+        world_mouse_events.send(WorldMouseEvent {
+            event: owned_event.clone(),
+            casted_on_entity: true,
+        });
         owned_event.pos = cast_data.position();
-        meshes.par_iter_mut().for_each(|(entity,mut response)| {
+        meshes.par_iter_mut().for_each(|(entity, _, mut response)| {
             if entity == *cast_entity {
                 response.0 = Some(owned_event.clone());
-            }
-            else if response.0.is_some() {
+            } else if response.0.is_some() {
                 response.0 = None;
             }
         });
     })
+}
+
+
+fn add_pick_to_lines(mut commands: Commands, lines: Query<Entity,Added<ChartLine>>) {
+    lines.for_each(|entity| {
+        commands.entity(entity).insert(CamResponse(None));
+    });
 }

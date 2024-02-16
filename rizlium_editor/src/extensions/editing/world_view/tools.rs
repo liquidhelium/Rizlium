@@ -6,7 +6,7 @@ use crate::{
 };
 
 use super::{
-    cam_response::{DragEventType, MouseEvent, MouseEventType, ScreenMouseEvent},
+    cam_response::{DragEventType, MouseEvent, MouseEventType, ScreenMouseEvent, WorldMouseEvent},
     edit_view_focused, WorldCam,
 };
 
@@ -25,7 +25,7 @@ impl Plugin for ToolsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Tool>()
             .init_resource::<OriginalTool>()
-            .add_systems(Update, view_tool);
+            .add_systems(Update, (view_tool, pencil_tool));
         app.register_action(
             "edit.world_view.temp_toggle_view",
             "Temporarily switch to tool View.",
@@ -123,5 +123,17 @@ fn temp_toggle_view(
     } else if trigger.is_released() {
         previous.0 = None;
         now.set(Tool::Pencil);
+    }
+}
+
+fn pencil_tool(mut events: EventReader<WorldMouseEvent>, tool: Res<Tool>, mut gizmos: Gizmos) {
+    if *tool != Tool::Pencil {
+        events.clear();
+        return;
+    }
+    for event in events.read() {
+        if !event.casted_on_entity {
+            gizmos.circle_2d(event.event.pos.xy(), 20., Color::ALICE_BLUE);
+        }
     }
 }

@@ -1,3 +1,4 @@
+use bevy::render::view::RenderLayers;
 use bevy_prototype_lyon::shapes::Rectangle;
 
 use crate::GameChart;
@@ -12,6 +13,8 @@ use bevy::math::Vec3A;
 use bevy::prelude::*;
 use bevy::render::primitives::Aabb;
 use bevy_prototype_lyon::prelude::*;
+
+pub const MASK_LAYER: u8 = 1;
 
 pub struct MaskPlugin;
 
@@ -40,6 +43,7 @@ pub(crate) fn init_mask(mut commands: Commands) {
                 ..default()
             },
             Fill::default(),
+            RenderLayers::layer(MASK_LAYER)
         ))
         .insert(Name::new("mask_bottom"))
         .insert(MaskBottom);
@@ -54,6 +58,7 @@ pub(crate) fn init_mask(mut commands: Commands) {
                 ..default()
             },
             Fill::default(),
+            RenderLayers::layer(MASK_LAYER)
         ))
         .insert(Name::new("mask_top"))
         .insert(MaskTop);

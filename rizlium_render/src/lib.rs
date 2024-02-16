@@ -1,4 +1,7 @@
-use bevy::{prelude::*, render::camera::RenderTarget};
+use bevy::{
+    prelude::*,
+    render::{camera::RenderTarget, view::RenderLayers},
+};
 
 use bevy_prototype_lyon::prelude::*;
 use chart_loader::ChartLoadingPlugin;
@@ -7,6 +10,7 @@ use notes::ChartNotePlugin;
 use rings::RingPlugin;
 use rizlium_chart::{chart::Chart, prelude::ColorRGBA};
 
+pub use masks::MASK_LAYER;
 use theme::BackgroundThemePlugin;
 pub use time_and_audio::TimeManager;
 
@@ -22,11 +26,11 @@ macro_rules! chart_update {
 
 mod chart;
 mod line_rendering;
-pub use line_rendering::ShowLines;
+pub use line_rendering::{ShowLines, ChartLine};
 mod chart_loader;
 mod theme;
 mod time_and_audio;
-pub use chart_loader::{LoadChartEvent, LoadChartErrorEvent};
+pub use chart_loader::{LoadChartErrorEvent, LoadChartEvent};
 
 mod notes;
 
@@ -88,21 +92,24 @@ mod rings;
 
 fn spawn_game_camera(mut commands: Commands) {
     commands
-        .spawn(Camera2dBundle {
-            projection: OrthographicProjection {
-                viewport_origin: [0.5, masks::RING_OFFSET].into(),
-                scaling_mode: bevy::render::camera::ScalingMode::Fixed {
-                    width: 900.,
-                    height: 1600.,
+        .spawn((
+            Camera2dBundle {
+                projection: OrthographicProjection {
+                    viewport_origin: [0.5, masks::RING_OFFSET].into(),
+                    scaling_mode: bevy::render::camera::ScalingMode::Fixed {
+                        width: 900.,
+                        height: 1600.,
+                    },
+                    ..default()
+                },
+                transform: Transform {
+                    translation: [0., 0., 999.0].into(),
+                    ..default()
                 },
                 ..default()
             },
-            transform: Transform {
-                translation: [0., 0., 999.0].into(),
-                ..default()
-            },
-            ..default()
-        })
+            RenderLayers::layer(MASK_LAYER).with(0),
+        ))
         .insert(GameCamera);
 }
 
