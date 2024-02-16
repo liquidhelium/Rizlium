@@ -1,9 +1,6 @@
 
 use bevy::{
-    ecs::{
-        schedule::BoxedCondition,
-        system::{SystemParam, SystemState},
-    },
+    ecs::schedule::BoxedCondition,
     prelude::*,
     utils::HashMap,
 };
@@ -11,53 +8,6 @@ use egui::Ui;
 use snafu::Snafu;
 
 use crate::utils::dot_path::DotPath;
-pub trait TabProvider: SystemParam + Send + Sync {
-    fn ui(world: &mut World, state: &mut SystemState<Self>, ui: &mut Ui, has_focus: bool);
-    fn name() -> String {
-        // TODO: i18n
-        default()
-    }
-    fn avaliable(_world: &World) -> bool {
-        true
-    }
-}
-
-pub struct TabInstace<T: TabProvider + 'static> {
-    state: Option<SystemState<T>>,
-}
-
-impl<T: TabProvider + 'static> Default for TabInstace<T> {
-    fn default() -> Self {
-        Self { state: None }
-    }
-}
-
-pub trait CachedTab: Send + Sync {
-    fn ui(&mut self, world: &mut World, ui: &mut Ui, has_focus: bool);
-    fn name(&self) -> String;
-    fn avaliable(&self, world: &World) -> bool;
-}
-
-impl<T: TabProvider> CachedTab for TabInstace<T> {
-    fn ui(&mut self, world: &mut World, ui: &mut Ui, has_focus: bool) {
-        let mut state = self
-            .state
-            .take()
-            .unwrap_or_else(|| SystemState::<T>::from_world(world));
-        T::ui(world, &mut state, ui, has_focus);
-        state.apply(world);
-        if self.state.is_none() {
-            self.state = Some(state);
-        }
-    }
-    fn name(&self) -> String {
-        T::name()
-    }
-    fn avaliable(&self, world: &World) -> bool {
-        T::avaliable(world)
-    }
-}
-
 pub type TabId = DotPath;
 
 pub struct TabStorage {
@@ -65,6 +15,14 @@ pub struct TabStorage {
     avalible_condition: BoxedCondition,
     tab_title: &'static str,
 }
+
+#[derive(Resource, Default, PartialEq, Eq)]
+pub struct FocusedTab(pub Option<DotPath>);
+
+pub fn tab_focused(tab: impl Into<DotPath>) -> impl Condition<()> {
+    resource_exists_and_equals(FocusedTab(Some(tab.into()))).and_then(||true)
+}
+
 
 impl TabStorage {
     pub fn run_with(&mut self, world: &mut World, ui: &mut Ui) -> TabResult {
@@ -166,6 +124,7 @@ pub struct TabPlugin;
 
 impl Plugin for TabPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<TabRegistry>();
+        app.init_resource::<TabRegistry>()
+            .init_resource::<FocusedTab>();
     }
 }

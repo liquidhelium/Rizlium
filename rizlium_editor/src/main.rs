@@ -4,7 +4,7 @@ use rizlium_editor::extensions::{EditorMenuEntrys, ExtensionsPlugin};
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
 use rizlium_editor::hotkeys::HotkeyPlugin;
 use rizlium_editor::notification::NotificationPlugin;
-use rizlium_editor::tab_system::{TabPlugin, TabRegistry};
+use rizlium_editor::tab_system::{FocusedTab, TabPlugin, TabRegistry};
 use rizlium_editor::widgets::{widget, LayoutPresetEdit};
 use rizlium_editor::{
     ActionPlugin, EventCollectorResource, FilePlugin, RizTabViewerNext, WindowUpdateControlPlugin,
@@ -144,14 +144,14 @@ fn egui_render(world: &mut World) {
                     );
                 });
             }
-            // let focused_tab = state.state.find_active_focused().unzip().1.copied();
             DockArea::new(&mut state.state).show(
                 ctx,
                 &mut RizTabViewerNext {
-                    registry: &mut *registry,
+                    registry: &mut registry,
                     world,
                 },
             );
+            world.resource_mut::<FocusedTab>().0 = state.state.find_active_focused().unzip().1.cloned(); // todo: move this into proper file
         });
     });
     editor_state.is_editing_text = ctx.output(|out| out.mutable_text_under_cursor);

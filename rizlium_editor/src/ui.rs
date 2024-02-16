@@ -7,7 +7,6 @@ pub mod menu;
 pub mod tab_system;
 pub mod widgets;
 use serde::{Deserialize, Serialize};
-pub use tab_system::{CachedTab, TabInstace, TabProvider};
 
 use self::tab_system::{TabId, TabRegistry};
 
