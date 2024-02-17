@@ -1,4 +1,5 @@
 use bevy::{input::mouse::MouseWheel, math::vec2, prelude::*};
+use egui::Ui;
 use rizlium_chart::{
     chart::Line,
     editing::commands::InsertLine,
@@ -62,6 +63,27 @@ pub enum Tool {
     View,
     Pencil,
     Select,
+}
+
+impl Tool {
+    pub fn config_ui(&self, ui: &mut Ui, world: &mut World) {
+        use Tool::*;
+        match self {
+            Pencil => world.resource_mut::<PencilToolConfig>().ui(ui),
+            _ => (),
+        }
+    }
+}
+
+#[derive(Resource, Default)]
+pub struct PencilToolConfig {
+    canvas: usize,
+}
+
+impl PencilToolConfig {
+    fn ui(&mut self, ui: &mut Ui) {
+        ui.label("text");
+    }
 }
 
 impl Tool {

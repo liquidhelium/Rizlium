@@ -19,8 +19,8 @@ use self::{
     tools::ToolsPlugin,
 };
 
-mod cam_response;
-mod tools;
+pub(super) mod cam_response;
+pub(super) mod tools;
 pub struct WorldViewPlugin;
 
 impl Plugin for WorldViewPlugin {
@@ -30,7 +30,7 @@ impl Plugin for WorldViewPlugin {
             setup_world_cam.after(bevy_egui::EguiStartupSet::InitContexts),
         )
         .add_plugins((RaycastPlugin, ToolsPlugin))
-        .register_tab("edit.world_view".into(), "World", world_tab, || true);
+        .register_tab("edit.world_view", "World", world_tab, || true);
     }
 }
 

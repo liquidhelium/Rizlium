@@ -54,7 +54,7 @@ impl Plugin for Game {
                     })
                 });
             })
-            .register_tab("game.view".into(), "Game view", game_view_tab, || true);
+            .register_tab("game.view", "Game view", game_view_tab, || true);
         // bevy systems
         app.add_systems(
             Startup,

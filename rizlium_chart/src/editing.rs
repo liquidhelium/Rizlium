@@ -16,6 +16,8 @@ pub mod commands;
 pub enum ChartConflictError {
     InvalidNotePath { note_path: NotePath },
     InvalidLinePath { line_path: LinePath },
+    NoSuchPoint {line_path: LinePath, point: usize},
+    TimeOutBound {line_path: LinePath, point: usize, time: f32}
 }
 
 type Result<T> = std::result::Result<T, ChartConflictError>;
