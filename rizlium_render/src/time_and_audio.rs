@@ -130,7 +130,7 @@ fn sync_audio(
 fn init_time_manager(mut commands: Commands, time: Res<Time>) {
     commands.insert_resource(TimeManager {
         start_time: time.elapsed_seconds(),
-        paused_since: None,
+        paused_since: Some(time.elapsed_seconds()),
         now: time.elapsed_seconds(),
     });
 }
