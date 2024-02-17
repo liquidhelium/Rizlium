@@ -51,9 +51,9 @@ impl MenuContext<'_> {
         });
         Ok(())
     }
-    pub fn with_category<'a>(
+    pub fn with_category(
         &mut self,
-        id: &'a str,
+        id: &str,
         name: String,
         piority: usize,
         add_sub: impl FnOnce(MenuContext),
@@ -61,9 +61,9 @@ impl MenuContext<'_> {
         self.add(id, name, Category::default(), piority);
         self.inside_sub(id, add_sub).unwrap();
     }
-    pub fn with_sub_menu<'a>(
+    pub fn with_sub_menu(
         &mut self,
-        id: &'a str,
+        id: &str,
         name: String,
         piority: usize,
         add_sub: impl FnOnce(MenuContext),

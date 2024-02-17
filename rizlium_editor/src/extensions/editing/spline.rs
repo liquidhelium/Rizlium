@@ -27,8 +27,8 @@ pub fn spline_editor_horizontal<R>(
             let max_time = view.right() / scale_x;
             let min_value = view.bottom() / scale_y;
             let max_value = view.top() / scale_y;
-            let remap_x = |i: f32| egui::emath::remap(i, min_time..=max_time, x_range.clone());
-            let remap_y = |i: f32| egui::emath::remap(i, min_value..=max_value, y_range.clone());
+            let remap_x = |i: f32| egui::emath::remap(i, min_time..=max_time, x_range);
+            let remap_y = |i: f32| egui::emath::remap(i, min_value..=max_value, y_range);
             let remap_point = |pos: Pos2| Pos2::new(remap_x(pos.x), remap_y(pos.y));
             if let Some(point) = spline.last() {
                 ui.set_width(point.time * scale_x);

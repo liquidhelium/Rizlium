@@ -90,9 +90,7 @@ fn dispatch_events(
             TimeControlEvent::Seek(pos) => {
                 let pos = pos.clamp(0., audio_data.sound.duration().as_secs_f32() - 0.01);
                 time.seek(pos);
-                audio.seek_to(pos.into()).map(|e| {
-                    warn!("error when seeking: {}", e);
-                });
+                if let Some(e) = audio.seek_to(pos.into()) { warn!("error when seeking: {}", e) }
             }
             TimeControlEvent::Toggle => time.toggle_paused(),
             TimeControlEvent::SetPaused(paused) => time.set_paused(*paused),
@@ -102,9 +100,7 @@ fn dispatch_events(
                     audio_data.sound.duration().as_secs_f32() - 0.01 - time.current(),
                 );
                 time.advance(duration);
-                audio.seek_by(duration.into()).map(|e| {
-                    warn!("error when seeking: {}", e);
-                });
+                if let Some(e) = audio.seek_by(duration.into()) { warn!("error when seeking: {}", e) }
             }
         }
     }

@@ -3,12 +3,9 @@ use std::ops::ControlFlow;
 use bevy::{
     math::vec2,
     prelude::*,
-    render::{
-        camera::ScalingMode,
-        render_resource::{
+    render::render_resource::{
             Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
         },
-    },
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::{Response, Sense, Ui};

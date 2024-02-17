@@ -19,7 +19,7 @@ impl Debug for DotPath {
 
 impl FromIterator<String> for DotPath {
     fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
-        Self { inner: iter.into_iter().map(|s| {assert!(!s.contains(".")); s}).collect()}
+        Self { inner: iter.into_iter().map(|s| {assert!(!s.contains('.')); s}).collect()}
     }
 }
 
@@ -33,7 +33,7 @@ impl FromStr for DotPath {
 
 impl From<&str> for DotPath {
     fn from(s: &str) -> Self {
-        Self{inner: s.split(".").map(|s| s.to_owned()).collect()}
+        Self{inner: s.split('.').map(|s| s.to_owned()).collect()}
     }
 }
 
@@ -51,11 +51,11 @@ impl DotPath {
         self.inner
     }
     pub fn push(&mut self, name: String) {
-        assert!(!name.contains("."));
+        assert!(!name.contains('.'));
         self.inner.push(name);
     }
     pub fn push_dotted(&mut self, names: &str) {
-        self.inner.append(&mut names.split(".").map(|s| s.to_owned()).collect::<SmallVec<[String;6]>>())
+        self.inner.append(&mut names.split('.').map(|s| s.to_owned()).collect::<SmallVec<[String;6]>>())
     }
     pub fn pop(&mut self) -> Option<String> {
         self.inner.pop()

@@ -84,7 +84,7 @@ fn update_pos(
 ) {
     notes
         .par_iter_mut()
-        .for_each_mut(|(mut transform, note_id)| {
+        .for_each(|(mut transform, note_id)| {
             let time;
             {
                 let Some(line) = chart.lines.get(note_id.line_idx) else {
