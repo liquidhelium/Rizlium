@@ -37,8 +37,8 @@ pub trait MenuItemProvider {
         None
     }
     fn find_subitem_recursive(&mut self, id: &str) -> Option<&mut MenuItem> {
-        let split: Vec<&str> = id.splitn(2, ".").collect();
-        let id = *split.get(0)?;
+        let split: Vec<&str> = id.splitn(2, '.').collect();
+        let id = *split.first()?;
         let item = self.find_subitem_mut(id)?;
         if let Some(trailing) = split.get(1) {
             item.source.find_subitem_recursive(trailing)
@@ -186,7 +186,7 @@ impl MenuItemProvider for SubMenu {
     fn find_subitem_mut(&mut self, sub_id: &str) -> Option<&mut MenuItem> {
         self.group.items.get_mut(sub_id)
     }
-    fn as_container<'a>(&'a mut self) -> Option<ItemAsContainer<'a>> {
+    fn as_container(&mut self) -> Option<ItemAsContainer<'_>> {
         Some(self.group.as_container())
     }
 }
@@ -235,7 +235,8 @@ mod test {
             .into(),
             piority: 0,
         };
-        let sub_menu = MenuItem {
+        
+        MenuItem {
             name: "menu".into(),
             source: SubMenu {
                 group: ItemGroup {
@@ -249,8 +250,7 @@ mod test {
             }
             .into(),
             piority: 1,
-        };
-        sub_menu
+        }
     }
 
     fn button_with_name(name: String) -> MenuItem {

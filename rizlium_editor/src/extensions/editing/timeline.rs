@@ -15,9 +15,9 @@ pub fn timeline_horizontal(
 ) -> TimeLineResponse {
     let range_x = timeline_zone.x_range();
     let anoter_time = time_range.clone();
-    let another_range = range_x.clone();
-    let remap = |i| egui::remap(i, anoter_time.clone(), another_range.clone());
-    let remap_reversed = |i| egui::remap(i, another_range.clone(), anoter_time.clone());
+    let another_range = range_x;
+    let remap = |i| egui::remap(i, anoter_time.clone(), another_range);
+    let remap_reversed = |i| egui::remap(i, another_range, anoter_time.clone());
     cursor_v(ui, remap(cursor), view);
     for (time, x) in timeline_pos_iter(*scale, time_range.clone(), range_x.into()) {
         line_v(ui, remap(time), view, Stroke::new(1., Color32::DARK_GRAY));
@@ -55,9 +55,9 @@ pub fn timeline_vertical(
     let range_x = timeline_zone.x_range();
     let range_y = timeline_zone.y_range();
     let another_time = time_range.clone();
-    let another_range = range_y.clone();
-    let remap = |i| egui::remap(i, another_time.clone(), another_range.clone());
-    let remap_reversed = |i| egui::remap(i, another_range.clone(), another_time.clone());
+    let another_range = range_y;
+    let remap = |i| egui::remap(i, another_time.clone(), another_range);
+    let remap_reversed = |i| egui::remap(i, another_range, another_time.clone());
     cursor_h(ui, remap(cursor), view);
     for (time, y) in timeline_pos_iter(*scale, time_range.clone(), range_y.into()) {
         line_h(ui, remap(time), view, Stroke::new(1., Color32::DARK_GRAY));

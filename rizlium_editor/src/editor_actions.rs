@@ -29,7 +29,7 @@ impl BoxedStorage {
     fn get_command(
         &self,
         input: Box<dyn Reflect>,
-    ) -> Result<Box<dyn FnOnce(&mut World) + Send + Sync + 'static>, String> {
+    ) -> Result<BoxedFn, String> {
         self.boxed_action.get_command(input)
     }
     pub fn get_description(&self) -> &str {
@@ -68,11 +68,13 @@ impl ActionRegistry {
     }
 }
 
+type BoxedFn = Box<dyn FnOnce(&mut World) + Send + Sync + 'static>;
+
 pub trait DynActionStorage: Send + Sync {
     fn get_command(
         &self,
         input: Box<dyn Reflect>,
-    ) -> Result<Box<dyn FnOnce(&mut World) + Send + Sync + 'static>, String>;
+    ) -> Result<BoxedFn, String>;
     fn input_type_info(&self) -> &'static TypeInfo;
 }
 
@@ -108,9 +110,9 @@ pub struct Actions<'w, 's> {
 }
 
 impl Actions<'_, '_> {
-    pub fn run_action<'id, I: ActionArgument>(
+    pub fn run_action<I: ActionArgument>(
         &mut self,
-        id: &'id ActionId,
+        id: &ActionId,
         input: I,
     ) -> Result<(), ActionError> {
         if self.storages.0.contains_key(id) {

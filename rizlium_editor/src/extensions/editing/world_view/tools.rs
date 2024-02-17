@@ -1,9 +1,9 @@
 use bevy::{input::mouse::MouseWheel, math::vec2, prelude::*};
 use rizlium_chart::{
-    chart::{Canvas, Line},
-    editing::{commands::InsertLine, ChartCommands},
+    chart::Line,
+    editing::commands::InsertLine,
 };
-use rizlium_render::{GameChart, GameChartCache, GameTime};
+use rizlium_render::GameChart;
 
 use crate::{
     extensions::editing::ChartEditHistory, hotkeys::{Hotkey, HotkeysExt, RuntimeTrigger, TriggerType}, utils::WorldToGame, ActionsExt
