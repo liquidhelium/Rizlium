@@ -146,7 +146,7 @@ impl ChartCache {
     /// 一个正值, 表示canvas所处的高度.
     pub fn canvas_y_at(&self, index: usize, time: f32) -> Option<f32> {
         let canvas = self.canvas_y_by_real.get(index)?;
-        let real_time = self.beat_remap.value_padding(time).unwrap();
+        let real_time = self.beat_remap.value_padding(time)?;
         canvas.value_padding(real_time)
     }
 
