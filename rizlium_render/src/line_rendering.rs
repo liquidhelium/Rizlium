@@ -1,4 +1,3 @@
-
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
 use rizlium_chart::chart::{EasingId, Tween};
 
@@ -55,11 +54,14 @@ impl Plugin for ChartLinePlugin {
         app.init_resource::<ShowLines>()
             .add_systems(
                 First,
-                add_segments.in_set(LineRenderingSystemSet::SyncChart)
-                    .run_if(resource_exists_and_changed::<GameChart>())
-                    
+                add_segments
+                    .in_set(LineRenderingSystemSet::SyncChart)
+                    .run_if(resource_exists_and_changed::<GameChart>()),
             )
-            .add_systems(PreUpdate, associate_segment.run_if(resource_exists_and_changed::<GameChart>()))
+            .add_systems(
+                PreUpdate,
+                associate_segment.run_if(resource_exists_and_changed::<GameChart>()),
+            )
             .add_systems(
                 Update,
                 (change_bounding, update_shape, update_color, update_layer)
@@ -167,7 +169,7 @@ fn update_shape(
             if pos1[1].approx_eq(&0.) && pos2[1].approx_eq(&0.) {
                 warn!(
                     "Possible wrong segment: line {}, point {}, canvas {}",
-                    id.line_idx, id.keypoint_idx, keypoint1.relevent
+                    id.line_idx, id.keypoint_idx, keypoint1.relevant
                 );
             }
             if !(keypoint1.ease_type == EasingId::Linear
@@ -236,8 +238,34 @@ fn update_color(
                 gradient.end = pos2.into();
             }
 
-            let mut color1 = colorrgba_to_color(line.point_color.points()[keypoint_idx].value);
-            let mut color2 = colorrgba_to_color(line.point_color.points()[keypoint_idx + 1].value);
+            let mut color1 = colorrgba_to_color(
+                line.point_color
+                    .points()
+                    .get(keypoint_idx)
+                    .map(|point| point.value)
+                    .unwrap_or_else(|| {
+                        warn!("line {line_idx}, point {keypoint_idx} have no color. at {pos1:?}");
+                        rizlium_chart::prelude::ColorRGBA {
+                            r:0.,
+                            g:0.,
+                            b:0.,
+                            a:1.,
+                        }
+                    }),
+            );
+            let mut color2 = colorrgba_to_color(line.point_color
+                .points()
+                .get(keypoint_idx + 1)
+                .map(|point| point.value)
+                .unwrap_or_else(|| {
+                    warn!("line {line_idx}, point {keypoint_idx} have no color. at {pos2:?}");
+                    rizlium_chart::prelude::ColorRGBA {
+                        r:0.,
+                        g:0.,
+                        b:0.,
+                        a:1.,
+                    }
+                }));
             if color1.a().approx_eq(&0.) && color2.a().approx_eq(&0.) {
                 color1 = DEBUG_INVISIBLE;
                 color2 = DEBUG_INVISIBLE;

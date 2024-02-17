@@ -1,11 +1,15 @@
-use crate::prelude::{Note, Chart};
+use crate::editing::chart_path::{ChartPath, LinePath};
+use crate::prelude::{Chart, Note};
 
-use crate::editing::{chart_path::NotePath, Result, ChartConflictError, commands::{ChartCommands, ChartCommand}};
-
+use crate::editing::{
+    chart_path::NotePath,
+    commands::{ChartCommand, ChartCommands},
+    Result,
+};
 
 pub struct ChangeNoteTime {
-    pub(crate) modify_to: f32,
-    pub(crate) note_path: NotePath,
+    pub modify_to: f32,
+    pub note_path: NotePath,
 }
 
 impl ChartCommand for ChangeNoteTime {
@@ -22,35 +26,26 @@ impl ChartCommand for ChangeNoteTime {
 }
 
 pub struct InsertNote {
-    pub(crate) note: Note,
-    pub(crate) note_path: NotePath,
+    pub note: Note,
+    pub line: LinePath,
+    pub at: Option<usize>,
 }
 
 impl ChartCommand for InsertNote {
     fn apply(self, chart: &mut Chart) -> Result<ChartCommands> {
-        let Self {
-            note,
-            note_path: NotePath(line_idx, note_idx),
-        } = self;
-        let notes = chart
-            .lines
-            .get_mut(line_idx)
-            .and_then(|line| (note_idx <= line.notes.len()).then_some(&mut line.notes))
-            .ok_or(ChartConflictError::InvalidNotePath {
-                note_path: (line_idx, note_idx).into(),
-            })?;
-        notes.push(note);
-        let len = notes.len();
-        notes.swap(note_idx, len - 1);
+        let Self { note, line, at } = self;
+        let notes = &mut line.get_mut(chart)?.notes;
+        let at_clamped = at.unwrap_or(notes.len()).clamp(0, notes.len());
+        notes.insert(at_clamped, note);
         Ok(RemoveNote {
-            note_path: self.note_path,
+            note_path: NotePath(line, at_clamped),
         }
         .into())
     }
 }
 
 pub struct RemoveNote {
-    pub(crate) note_path: NotePath,
+    pub note_path: NotePath,
 }
 
 impl ChartCommand for RemoveNote {
@@ -58,31 +53,29 @@ impl ChartCommand for RemoveNote {
         let Self {
             note_path: NotePath(line_idx, note_idx),
         } = self;
-        let note = chart
-            .lines
-            .get_mut(line_idx)
-            .and_then(|line| {
-                (note_idx < line.notes.len()).then(|| line.notes.swap_remove(note_idx))
-            })
-            .ok_or(ChartConflictError::InvalidNotePath {
-                note_path: (line_idx, note_idx).into(),
-            })?;
+        let note = self.note_path.remove(chart)?;
+
         Ok(InsertNote {
             note,
-            note_path: self.note_path,
+            line: line_idx,
+            at: Some(note_idx),
         }
         .into())
     }
 }
 #[cfg(test)]
 mod test {
-    use crate::editing::{test_resources::CHART, chart_path::NotePath, commands::ChartCommand};
+    use crate::editing::{
+        chart_path::{ChartPath as _, NotePath},
+        commands::ChartCommand,
+        test_resources::CHART,
+    };
 
-    use super::{ChangeNoteTime, RemoveNote, InsertNote};
+    use super::{ChangeNoteTime, InsertNote, RemoveNote};
     #[test]
     fn change_time() {
         let mut chart = CHART.clone();
-        let note_path = NotePath(7,0);
+        let note_path = (7, 0).into();
         let command = ChangeNoteTime {
             modify_to: 3.0,
             note_path,
@@ -99,23 +92,24 @@ mod test {
     #[test]
     #[should_panic]
     fn invalid_note() {
-        let path = NotePath(0,0);
+        let path = NotePath::new(0, 0);
         path.get(&CHART).unwrap();
     }
 
     #[test]
     fn insert_and_remove_note() {
         let mut chart = CHART.clone();
-        let note_path = NotePath(7,0);
+        let note_path = NotePath::new(7, 0);
         let previous_len = chart.lines[7].notes.len();
-        let insert: InsertNote = RemoveNote {
-            note_path
-        }.apply(&mut chart).unwrap().try_into().unwrap();
+        let insert: InsertNote = RemoveNote { note_path }
+            .apply(&mut chart)
+            .unwrap()
+            .try_into()
+            .unwrap();
         println!("{:?}", insert.note);
         assert_eq!(chart.lines[7].notes.len(), previous_len - 1);
         let remove: RemoveNote = insert.apply(&mut chart).unwrap().try_into().unwrap();
-        assert_eq!(remove.note_path, note_path); 
+        assert_eq!(remove.note_path, note_path);
         assert_eq!(chart.lines[7].notes.len(), previous_len);
-
     }
 }

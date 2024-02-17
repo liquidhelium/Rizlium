@@ -52,7 +52,7 @@ pub fn rings(
             let Some(line) = chart.lines.get(ring.0)else {
                 return;
             };
-            let mut color = line.ring_color.value_padding(**time).unwrap();
+            let mut color = line.ring_color.value_padding(**time).unwrap_or_default();
             if let Some(line_color) = line.line_color.value_padding(**time) {
                 color = color + line_color;
             }

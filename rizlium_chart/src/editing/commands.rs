@@ -2,13 +2,17 @@ use super::Result;
 use enum_dispatch::enum_dispatch;
 use crate::prelude::Chart;
 mod note;
-use note::*;
+pub use note::*;
+mod lines;
+pub use lines::*;
 
 #[enum_dispatch(ChartCommand)]
 pub enum ChartCommands {
     ChangeNoteTime,
     InsertNote,
     RemoveNote,
+    InsertLine,
+    RemoveLine,
     CommandSequence,
 }
 

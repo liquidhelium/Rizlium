@@ -3,6 +3,7 @@ use crate::tab_system::TabRegistrationExt;
 use self::{note::note_editor_vertical, spline::spline_editor_horizontal};
 use bevy::prelude::*;
 use egui::Ui;
+use rizlium_chart::editing::EditHistory;
 use rizlium_render::{GameChart, GameTime, TimeControlEvent};
 
 mod note;
@@ -27,9 +28,13 @@ impl Plugin for Editing {
             resource_exists::<GameChart>(),
         );
 
-        app.add_plugins(world_view::WorldViewPlugin);
+        app.add_plugins(world_view::WorldViewPlugin)
+            .init_resource::<ChartEditHistory>();
     }
 }
+
+#[derive(Deref, DerefMut, Resource, Default)]
+pub struct ChartEditHistory(EditHistory);
 
 fn note_window(
     In(ui): In<&mut Ui>,

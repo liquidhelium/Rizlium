@@ -3,7 +3,8 @@ use crate::prelude::Chart;
 use crate::test_resources;
 use snafu::Snafu;
 
-use self::{
+use self::chart_path::LinePath;
+pub use self::{
     chart_path::NotePath,
     commands::{ChartCommand, ChartCommands},
 };
@@ -14,10 +15,12 @@ pub mod commands;
 #[derive(Snafu, Debug)]
 pub enum ChartConflictError {
     InvalidNotePath { note_path: NotePath },
+    InvalidLinePath { line_path: LinePath },
 }
 
 type Result<T> = std::result::Result<T, ChartConflictError>;
 
+#[derive(Default)]
 pub struct EditHistory {
     _history_descriptions: Vec<String>,
     inverse_history: Vec<ChartCommands>,
@@ -25,14 +28,14 @@ pub struct EditHistory {
 }
 
 impl EditHistory {
-    pub fn push(&mut self, edit: ChartCommands, chart: &mut Chart) -> Result<()> {
+    pub fn push(&mut self, edit: impl Into<ChartCommands>, chart: &mut Chart) -> Result<()> {
         // TODO: desc
-        let inversed = edit.apply(chart)?;
+        let inversed = edit.into().apply(chart)?;
         self.inverse_history.push(inversed);
         Ok(())
     }
-    pub fn push_preedit(&mut self, edit: ChartCommands, chart: &mut Chart) -> Result<()> {
-        let current_inverse = edit.apply(chart)?;
+    pub fn push_preedit(&mut self, edit: impl Into<ChartCommands>, chart: &mut Chart) -> Result<()> {
+        let current_inverse = edit.into().apply(chart)?;
         if let Some(last) = self.last_preedit_inverse.take() {
             last.apply(chart)?;
         }
