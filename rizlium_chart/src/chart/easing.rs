@@ -293,7 +293,7 @@ impl<T: Tween, R> FromIterator<KeyPoint<T, R>> for Spline<T, R> {
 }
 
 impl<R: Clone> Spline<f32, R> {
-    /// 不一定正确
+    /// 仅当可逆才正确
     pub fn clone_inverted(&self) -> Self {
         let mut ret = (*self).clone();
         ret.points
@@ -302,16 +302,27 @@ impl<R: Clone> Spline<f32, R> {
         ret
     }
     pub fn is_invertible(&self) -> bool {
-        self.points.windows(2).try_for_each(|i| {
-            let a = &i[0];
-            let b = &i[1];
-            if b.value >= a.value {
-                ControlFlow::Continue(())
-            }
-            else {
-                ControlFlow::Break(())
-            }
-        }).is_continue()
+        // 只需单调性不变
+        self.points
+            .windows(2)
+            .try_fold(None, |is_increase, i| {
+                use ControlFlow::*;
+                let a = &i[0];
+                let b = &i[1];
+                match is_increase {
+                    Some(true) if b.value > a.value => Continue(Some(true)),
+                    Some(false) if b.value < a.value => Continue(Some(false)),
+                    None => {
+                        if b.value > a.value {
+                            Continue(Some(true))
+                        } else {
+                            Continue(Some(false))
+                        }
+                    }
+                    _ => Break(())
+                }
+            })
+            .is_continue()
     }
 }
 

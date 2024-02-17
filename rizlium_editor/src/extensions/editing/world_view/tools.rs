@@ -1,14 +1,12 @@
 use bevy::{input::mouse::MouseWheel, math::vec2, prelude::*};
 use rizlium_chart::{
-    chart::Line,
+    chart::{Canvas, Line},
     editing::{commands::InsertLine, ChartCommands},
 };
 use rizlium_render::{GameChart, GameChartCache, GameTime};
 
 use crate::{
-    extensions::editing::ChartEditHistory,
-    hotkeys::{Hotkey, HotkeysExt, RuntimeTrigger, TriggerType},
-    ActionsExt,
+    extensions::editing::ChartEditHistory, hotkeys::{Hotkey, HotkeysExt, RuntimeTrigger, TriggerType}, utils::WorldToGame, ActionsExt
 };
 
 use super::{
@@ -136,15 +134,14 @@ fn pencil_tool(
     mut events: EventReader<WorldMouseEvent>,
     tool: Res<Tool>,
     chart: Option<ResMut<GameChart>>,
-    cache: Option<Res<GameChartCache>>,
-    time: Option<Res<GameTime>>,
     mut history: ResMut<ChartEditHistory>,
+    to_game: WorldToGame
 ) {
-    if *tool != Tool::Pencil {
+    if *tool != Tool::Pencil || !to_game.avalible() {
         events.clear();
         return;
     }
-    let (Some(mut chart), Some(cache), Some(time)) = (chart, cache, time) else {
+    let Some(mut chart) = chart else {
         return;
     };
     for event in events.read() {
@@ -154,8 +151,8 @@ fn pencil_tool(
                 .push(
                     InsertLine {
                         line: Line::new_two_points(
-                            map_to_game(&cache, event.pos.xy(), **time),
-                            map_to_game(&cache, event.pos.xy() + vec2(0., 60.), **time),
+                            map_to_game(&to_game, event.pos.xy(), 0),
+                            map_to_game(&to_game, event.pos.xy() + vec2(0., 60.), 0),
                         ),
                         at: None,
                     },
@@ -166,11 +163,9 @@ fn pencil_tool(
     }
 }
 
-fn map_to_game(cache: &GameChartCache, pos: Vec2, time: f32) -> [f32; 2] {
+fn map_to_game(to_game: &WorldToGame, pos: Vec2, canvas: usize) -> [f32; 2] {
     [
-        cache
-            .canvas_y_to_time(0, pos.y + cache.canvas_y_at(0, time).unwrap())
-            .unwrap(),
+        to_game.time_at_y(pos.y, canvas).unwrap(),
         pos.x,
     ] // time, value
 }
