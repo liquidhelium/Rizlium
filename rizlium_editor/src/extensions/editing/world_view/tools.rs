@@ -1,6 +1,12 @@
-use bevy::{input::mouse::MouseWheel, prelude::*};
+use bevy::{input::mouse::MouseWheel, math::vec2, prelude::*};
+use rizlium_chart::{
+    chart::Line,
+    editing::{commands::InsertLine, ChartCommands},
+};
+use rizlium_render::{GameChart, GameChartCache, GameTime};
 
 use crate::{
+    extensions::editing::ChartEditHistory,
     hotkeys::{Hotkey, HotkeysExt, RuntimeTrigger, TriggerType},
     ActionsExt,
 };
@@ -126,14 +132,45 @@ fn temp_toggle_view(
     }
 }
 
-fn pencil_tool(mut events: EventReader<WorldMouseEvent>, tool: Res<Tool>, mut gizmos: Gizmos) {
+fn pencil_tool(
+    mut events: EventReader<WorldMouseEvent>,
+    tool: Res<Tool>,
+    chart: Option<ResMut<GameChart>>,
+    cache: Option<Res<GameChartCache>>,
+    time: Option<Res<GameTime>>,
+    mut history: ResMut<ChartEditHistory>,
+) {
     if *tool != Tool::Pencil {
         events.clear();
         return;
     }
+    let (Some(mut chart), Some(cache), Some(time)) = (chart, cache, time) else {
+        return;
+    };
     for event in events.read() {
-        if !event.casted_on_entity {
-            gizmos.circle_2d(event.event.pos.xy(), 20., Color::ALICE_BLUE);
+        if !event.casted_on_entity && matches!(event.event.event_type, MouseEventType::Click(_)) {
+            let event = &event.event;
+            history
+                .push(
+                    InsertLine {
+                        line: Line::new_two_points(
+                            map_to_game(&cache, event.pos.xy(), **time),
+                            map_to_game(&cache, event.pos.xy() + vec2(0., 60.), **time),
+                        ),
+                        at: None,
+                    },
+                    &mut chart,
+                )
+                .unwrap();
         }
     }
+}
+
+fn map_to_game(cache: &GameChartCache, pos: Vec2, time: f32) -> [f32; 2] {
+    [
+        cache
+            .canvas_y_to_time(0, pos.y + cache.canvas_y_at(0, time).unwrap())
+            .unwrap(),
+        pos.x,
+    ] // time, value
 }

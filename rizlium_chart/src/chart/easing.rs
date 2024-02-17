@@ -1,4 +1,4 @@
-use std::mem::swap;
+use std::{mem::swap, ops::ControlFlow};
 
 use log::{error, warn};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -37,7 +37,7 @@ pub struct KeyPoint<T: Tween, R = ()> {
         any(feature = "serialize", feature = "deserialize"),
         serde(skip_serializing_if = "is_empty", default)
     )]
-    pub relevent: R,
+    pub relevant: R,
 }
 
 fn is_empty<T>(_: &T) -> bool {
@@ -48,11 +48,27 @@ impl<T: Tween, R> KeyPoint<T, R> {
     pub fn ease_to(&self, next: &Self, t: f32) -> T {
         T::ease(self.value.clone(), next.value.clone(), t, self.ease_type)
     }
+    pub fn with_relevant<R1>(self, relevant: R1) -> KeyPoint<T, R1> {
+        KeyPoint {
+            time: self.time,
+            value: self.value,
+            ease_type: self.ease_type,
+            relevant,
+        }
+    }
 }
 
 impl<R> KeyPoint<f32, R> {
     pub const fn as_slice(&self) -> [f32; 2] {
         [self.time, self.value]
+    }
+    pub const fn from_slice(slice: [f32; 2], ease_type: EasingId, relevent: R) -> Self {
+        Self {
+            time: slice[0],
+            value: slice[1],
+            ease_type,
+            relevant: relevent,
+        }
     }
 }
 
@@ -72,11 +88,12 @@ pub struct Spline<T: Tween, R = ()> {
 }
 
 impl<T: Tween, R> Spline<T, R> {
+    pub const EMPTY: Self = Self { points: vec![] };
     pub fn with_relevant<R2: Default>(self) -> Spline<T, R2> {
         self.points
             .into_iter()
             .map(|point| KeyPoint {
-                relevent: R2::default(),
+                relevant: R2::default(),
                 time: point.time,
                 value: point.value,
                 ease_type: point.ease_type,
@@ -277,12 +294,24 @@ impl<T: Tween, R> FromIterator<KeyPoint<T, R>> for Spline<T, R> {
 
 impl<R: Clone> Spline<f32, R> {
     /// 不一定正确
-    pub fn clone_reversed(&self) -> Self {
+    pub fn clone_inverted(&self) -> Self {
         let mut ret = (*self).clone();
         ret.points
             .iter_mut()
             .for_each(|a| swap(&mut a.time, &mut a.value));
         ret
+    }
+    pub fn is_invertible(&self) -> bool {
+        self.points.windows(2).try_for_each(|i| {
+            let a = &i[0];
+            let b = &i[1];
+            if b.value >= a.value {
+                ControlFlow::Continue(())
+            }
+            else {
+                ControlFlow::Break(())
+            }
+        }).is_continue()
     }
 }
 

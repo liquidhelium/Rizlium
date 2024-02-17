@@ -125,10 +125,9 @@ pub struct LinePoint {
 impl LinePoint {
     fn convert(
         self,
-        line_index: usize,
     ) -> ConvertResult<(
         chart::KeyPoint<f32, usize>,
-        chart::KeyPoint<chart::ColorRGBA, usize>,
+        chart::KeyPoint<chart::ColorRGBA>,
     )> {
         let point = chart::KeyPoint {
             time: self.time,
@@ -139,7 +138,7 @@ impl LinePoint {
                 .or(Err(ConvertError::UnknownEaseKind {
                     raw_kind: self.ease_type,
                 }))?,
-            relevent: self.canvas_index,
+            relevant: self.canvas_index,
         };
         let color = chart::KeyPoint {
             time: self.time,
@@ -150,7 +149,7 @@ impl LinePoint {
                 .or(Err(ConvertError::UnknownEaseKind {
                     raw_kind: self.ease_type,
                 }))?,
-            relevent: line_index,
+            relevant: (),
         };
         Ok((point, color))
     }
@@ -171,7 +170,7 @@ impl From<ColorKeyPoint> for chart::KeyPoint<chart::ColorRGBA> {
             time: val.time,
             value: val.start_color.into(),
             ease_type: chart::EasingId::Linear,
-            relevent: (),
+            relevant: (),
         }
     }
 }
@@ -193,7 +192,7 @@ impl Line {
         let a = self
             .line_points
             .into_iter()
-            .map(|p| p.convert(line_index))
+            .map(|p| p.convert())
             .collect::<ConvertResult<Vec<_>>>()?;
         let (points, colors): (Vec<_>, Vec<_>) = a.into_iter().unzip();
         let points: Spline<_, _> = points
@@ -291,7 +290,7 @@ impl TryInto<chart::KeyPoint<f32>> for KeyPoint {
                 .or(Err(ConvertError::UnknownEaseKind {
                     raw_kind: self.ease_type,
                 }))?,
-            relevent: (),
+            relevant: (),
         })
     }
 }
@@ -340,7 +339,7 @@ impl TryInto<chart::Chart> for RizlineChart {
         let bpm = convert_bpm_to_timemap(self.bpm, self.bpm_shifts)?;
         let mut beat_cache = ChartCache::default();
         beat_cache.update_beat(&bpm);
-        let beat_spline = beat_cache.beat.clone_reversed();
+        let beat_spline = beat_cache.beat.clone_inverted();
         info!("chart convert started");
         Ok(chart::Chart {
             themes: vec![normal.convert(false), challenge.convert(true)],
@@ -417,7 +416,7 @@ fn convert_bpm_to_timemap(bpm: f32, bpm_shifts: Vec<KeyPoint>) -> ConvertResult<
             time: s.time,
             value: bpm * s.value,
             ease_type: chart::EasingId::Start,
-            relevent: (),
+            relevant: (),
         })
         .collect())
 }

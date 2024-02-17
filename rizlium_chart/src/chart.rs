@@ -92,8 +92,10 @@ pub struct ChartCache {
     /// 缓存的从实际时间转换为beat的数据.
     pub beat: Spline<f32>,
     pub beat_remap: Spline<f32>,
-    /// 所有 [`Canvas`] 在某时间对应的高度 (从速度计算而来)
+    /// 所有 [`Canvas`] 在某时间对应的高度 (从速度计算而来).
     pub canvas_y_by_real: Vec<Spline<f32>>,
+    /// 由时间计算对应的 [`Canvas`] 高度.
+    pub real_to_canvas_y: Vec<Option<Spline<f32>>>
 }
 
 const LARGE: f32 = 1.0e10;
@@ -108,17 +110,17 @@ impl ChartCache {
     /// 用给定的 [`Chart`] 更新此 [`ChartCache`] .
     pub fn update_from_chart(&mut self, chart: &Chart) {
         self.update_beat(&chart.bpm);
-        self.beat_remap = self.beat.clone_reversed();
+        self.beat_remap = self.beat.clone_inverted();
         self.canvas_y_by_real = chart
             .canvases
             .iter()
             .map(|canvas| {
-                let mut points = canvas.speed.clone().with_relevant::<f32>().points;
+                let mut points = canvas.speed.clone().points;
                 points.push(KeyPoint {
                     time: points.last().unwrap().time + LARGE,
                     value: 0.,
                     ease_type: EasingId::Start,
-                    relevent: 0.,
+                    relevant: (),
                 });
                 points.iter_mut().fold(
                     (0., 0., 0.0f32),
@@ -134,21 +136,25 @@ impl ChartCache {
 
                 points
                     .into_iter()
-                    .map(|k| KeyPoint {
-                        time: k.time,
-                        value: k.value,
-                        ease_type: k.ease_type,
-                        relevent: (),
-                    })
+                    // .map(|k| k.with_relevant(()))
                     .collect()
             })
             .collect();
+        self.real_to_canvas_y = self.canvas_y_by_real.iter().map(|s| s.is_invertible().then(|| s.clone_inverted())).collect();
     }
 
+    /// 一个正值, 表示canvas所处的高度.
     pub fn canvas_y_at(&self, index: usize, time: f32) -> Option<f32> {
         let canvas = self.canvas_y_by_real.get(index)?;
         let real_time = self.beat_remap.value_padding(time).unwrap();
         canvas.value_padding(real_time)
+    }
+
+    pub fn canvas_y_to_time(&self, index: usize, y: f32) -> Option<f32> {
+        // todo: error handling
+        let canvas_inverted = self.real_to_canvas_y.get(index)?.as_ref()?;
+        let real_time = canvas_inverted.value_padding(y)?;
+        self.beat.value_padding(real_time)
     }
 
     pub(crate) fn update_beat(&mut self, spline: &Spline<f32>) {
@@ -156,7 +162,7 @@ impl ChartCache {
             time: spline.points().last().unwrap().time + LARGE,
             value: 0.,
             ease_type: EasingId::Start,
-            relevent: (),
+            relevant: (),
         };
         let mut iter = spline.iter().chain(Some(&last));
         let mut last_time = 0.;
@@ -166,12 +172,12 @@ impl ChartCache {
             let Some(last) = last_key else {
                 last_key = Some(point);
                 return Some(KeyPoint {
-                                    time:0.,
-                                    value:0.0f32,
-                                    ease_type: EasingId::Linear,
-                                    relevent: ()
-                                })
-            } ;
+                    time: 0.,
+                    value: 0.0f32,
+                    ease_type: EasingId::Linear,
+                    relevant: (),
+                });
+            };
             last_key = Some(point);
             Some(KeyPoint {
                 time: {
@@ -181,7 +187,7 @@ impl ChartCache {
                 },
                 value: point.time,
                 ease_type: EasingId::Linear,
-                relevent: (),
+                relevant: (),
             })
         })
         .collect();
@@ -217,10 +223,11 @@ impl ChartAndCache<'_, '_> {
             .get(point_idx)?;
         Some([
             self.keypoint_releated_x(point, game_time)?,
-            self.cache.canvas_y_at(point.relevent, point.time)?
-                - self.cache.canvas_y_at(point.relevent, game_time)?,
+            self.cache.canvas_y_at(point.relevant, point.time)?
+                - self.cache.canvas_y_at(point.relevant, game_time)?,
         ])
     }
+
     pub fn line_pos_at(&self, line_idx: usize, time: f32, game_time: f32) -> Option<[f32; 2]> {
         let line = self.chart.lines.get(line_idx)?;
         let index = line.points.keypoint_at(time).ok()?;
@@ -233,8 +240,8 @@ impl ChartAndCache<'_, '_> {
         let pos2 = self
             .pos_for_linepoint_at(line_idx, index + 1, game_time)
             .unwrap();
-        let point_y = self.cache.canvas_y_at(point1.relevent, time)?
-        - self.cache.canvas_y_at(point1.relevent, game_time)?;
+        let point_y = self.cache.canvas_y_at(point1.relevant, time)?
+            - self.cache.canvas_y_at(point1.relevant, game_time)?;
         Some([
             f32::ease(
                 pos1[0],
@@ -242,7 +249,7 @@ impl ChartAndCache<'_, '_> {
                 invlerp(pos1[1], pos2[1], point_y),
                 point1.ease_type,
             ),
-            point_y
+            point_y,
         ])
     }
     pub fn line_pos_at_clamped(
@@ -260,7 +267,7 @@ impl ChartAndCache<'_, '_> {
     }
 
     fn keypoint_releated_x(&self, point: &KeyPoint<f32, usize>, time: f32) -> Option<f32> {
-        Some(point.value + self.chart.canvas_x(point.relevent, time)?)
+        Some(point.value + self.chart.canvas_x(point.relevant, time)?)
     }
     pub fn has_speed_mutation(&self, line_index: usize, segment_start: usize) -> Option<bool> {
         let (this, next) = self.chart.lines.get(line_index).and_then(|l| {
@@ -269,10 +276,10 @@ impl ChartAndCache<'_, '_> {
                 .get(segment_start)
                 .zip(l.points.points.get(segment_start + 1))
         })?;
-        if this.relevent != next.relevent {
+        if this.relevant != next.relevant {
             Some(false)
         } else {
-            let canvas = self.cache.canvas_y_by_real.get(this.relevent)?;
+            let canvas = self.cache.canvas_y_by_real.get(this.relevant)?;
             if canvas.keypoint_at(this.time) != canvas.keypoint_at(next.time) {
                 use log::info;
                 info!("return true");

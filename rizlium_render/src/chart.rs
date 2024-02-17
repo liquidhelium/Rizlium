@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rizlium_chart::prelude::*;
 #[derive(Resource, Deref, DerefMut)]
-pub struct GameChart(Chart);
+pub struct GameChart(Chart); // TODO gate edit history behind this, so that invalid edit won't appear
 
 impl GameChart {
     pub fn new(chart: Chart) -> Self {
