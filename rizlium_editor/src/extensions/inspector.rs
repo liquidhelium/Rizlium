@@ -7,7 +7,7 @@ pub struct Inspector;
 
 impl Plugin for Inspector {
     fn build(&self, app: &mut App) {
-        app.register_tab("inspector".into(), "Inspector", logs, ||true);
+        app.register_tab("inspector", "Inspector", logs, ||true);
     }
 }
 

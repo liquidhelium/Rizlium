@@ -71,7 +71,7 @@ impl TabRegistry {
 pub trait TabRegistrationExt {
     fn register_tab<M1, M2>(
         &mut self,
-        id: TabId,
+        id: impl Into<TabId>,
         name: &'static str,
         system: impl IntoSystem<&'static mut Ui, (), M1>,
         avalible_when: impl Condition<M2>,
@@ -81,7 +81,7 @@ pub trait TabRegistrationExt {
 impl TabRegistrationExt for App {
     fn register_tab<M1, M2>(
         &mut self,
-        id: TabId,
+        id: impl Into<TabId>,
         name: &'static str,
         system: impl IntoSystem<&'static mut Ui, (), M1>,
         avalible_when: impl Condition<M2>,
@@ -89,7 +89,7 @@ impl TabRegistrationExt for App {
         self.world
             .resource_scope(|world, mut registry: Mut<TabRegistry>| {
                 registry.0.insert(
-                    id,
+                    id.into(),
                     TabStorage {
                         boxed: Box::new({
                             let mut sys = IntoSystem::into_system(system);

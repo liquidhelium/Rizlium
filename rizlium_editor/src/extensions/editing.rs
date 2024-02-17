@@ -1,6 +1,6 @@
 use crate::tab_system::TabRegistrationExt;
 
-use self::{note::note_editor_vertical, spline::spline_editor_horizontal};
+use self::{note::note_editor_vertical, spline::spline_editor_horizontal, tool_config_window::tool_config};
 use bevy::prelude::*;
 use egui::Ui;
 use rizlium_chart::editing::EditHistory;
@@ -10,23 +10,25 @@ mod note;
 mod spline;
 mod timeline;
 mod world_view;
+mod tool_config_window;
 
 pub struct Editing;
 
 impl Plugin for Editing {
     fn build(&self, app: &mut App) {
         app.register_tab(
-            "editing.note".into(),
+            "editing.note",
             "Notes",
             note_window,
             resource_exists::<GameChart>(),
         )
         .register_tab(
-            "editing.spline".into(),
+            "editing.spline",
             "Splines",
             spline_edit,
             resource_exists::<GameChart>(),
-        );
+        )
+        .register_tab("editing.tool_config", "Tool", tool_config, || true);
 
         app.add_plugins(world_view::WorldViewPlugin)
             .init_resource::<ChartEditHistory>();

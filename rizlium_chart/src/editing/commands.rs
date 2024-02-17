@@ -13,6 +13,7 @@ pub enum ChartCommands {
     RemoveNote,
     InsertLine,
     RemoveLine,
+    MovePoint,
     CommandSequence,
 }
 
