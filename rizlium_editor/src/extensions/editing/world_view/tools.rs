@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use bevy::{input::mouse::MouseWheel, math::vec2, prelude::*};
 use egui::Ui;
 use rizlium_chart::{
@@ -9,6 +11,8 @@ use rizlium_render::GameChart;
 use crate::{
     extensions::editing::ChartEditHistory, hotkeys::{Hotkey, HotkeysExt, RuntimeTrigger, TriggerType}, utils::WorldToGame, ActionsExt
 };
+
+use self::tool_configs::ToolConfigExt;
 
 use super::{
     cam_response::{DragEventType, MouseEvent, MouseEventType, ScreenMouseEvent, WorldMouseEvent},
@@ -30,6 +34,7 @@ impl Plugin for ToolsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Tool>()
             .init_resource::<OriginalTool>()
+            .init_tool_config::<tool_configs::PencilToolConfig>()
             .add_systems(Update, (view_tool, pencil_tool));
         app.register_action(
             "edit.world_view.temp_toggle_view",
@@ -67,24 +72,14 @@ pub enum Tool {
 
 impl Tool {
     pub fn config_ui(&self, ui: &mut Ui, world: &mut World) {
-        use Tool::*;
         match self {
-            Pencil => world.resource_mut::<PencilToolConfig>().ui(ui),
-            _ => (),
+            Self::Pencil => tool_configs::show_window::<tool_configs::PencilToolConfig>(ui, world),
+            _ =>()
         }
     }
 }
 
-#[derive(Resource, Default)]
-pub struct PencilToolConfig {
-    canvas: usize,
-}
-
-impl PencilToolConfig {
-    fn ui(&mut self, ui: &mut Ui) {
-        ui.label("text");
-    }
-}
+mod tool_configs;
 
 impl Tool {
     pub fn set(&mut self, tool: Tool) {
