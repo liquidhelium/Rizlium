@@ -28,7 +28,7 @@ impl Plugin for Editing {
             spline_edit,
             resource_exists::<GameChart>(),
         )
-        .register_tab("editing.tool_config", "Tool", tool_config, || true);
+        .register_tab("editing.tool_config", "Tool", tool_config, resource_exists::<GameChart>());
 
         app.add_plugins(world_view::WorldViewPlugin)
             .init_resource::<ChartEditHistory>();
