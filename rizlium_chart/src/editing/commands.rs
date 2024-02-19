@@ -13,8 +13,10 @@ pub enum ChartCommands {
     RemoveNote,
     InsertLine,
     RemoveLine,
+    InsertPoint,
     MovePoint,
-    CommandSequence,
+    RemovePoint,
+    CommandSequence
 }
 
 #[enum_dispatch]

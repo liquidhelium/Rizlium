@@ -102,25 +102,61 @@ impl ChartCommand for MovePoint {
 pub struct InsertPoint {
     pub line_path: LinePath,
     pub point_idx: Option<usize>,
-    pub point: KeyPoint<f32, usize>
+    pub point: KeyPoint<f32, LinePointData>,
 }
 
-// impl ChartCommand for InsertPoint {
-//     fn apply(self,chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
-//         let canvas_len = chart.canvases.len();
-//         let line = self.line_path.get_mut(chart)?;
-//         let at = self.point_idx.unwrap_or(line.points.len()).clamp(0, line.points.len());
-//         let prev_time = line
-//             .points
-//             .points
-//             .get(self.point_idx - 1)
-//             .map(|point| point.time)
-//             .unwrap_or(f32::NEG_INFINITY);
-//         let next_time = line
-//             .points
-//             .points
-//             .get(self.point_idx + 1)
-//             .map(|point| point.time)
-//             .unwrap_or(f32::INFINITY);
-//     }
-// }
+impl ChartCommand for InsertPoint {
+    fn apply(mut self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+        let canvas_len = chart.canvases.len();
+        if self.point.relevant.canvas >= canvas_len {
+            return Err(ChartConflictError::NoSuchCanvas { canvas:self.point.relevant.canvas });
+        }
+
+        let line = self.line_path.get_mut(chart)?;
+        let at = self
+            .point_idx
+            .unwrap_or(line.points.len())
+            .clamp(0, line.points.len());
+        let prev_time = line
+            .points
+            .points
+            .get(at - 1)
+            .map(|point| point.time)
+            .unwrap_or(f32::NEG_INFINITY);
+        let next_time = line
+            .points
+            .points
+            .get(at + 1)
+            .map(|point| point.time)
+            .unwrap_or(f32::INFINITY);
+        self.point.time = self.point.time.clamp(prev_time, next_time);
+        line.points.points.insert(at, self.point);
+        Ok(RemovePoint {
+            line_path: self.line_path,
+            point_idx: at
+        }.into())
+    }
+}
+
+pub struct RemovePoint {
+    pub line_path: LinePath,
+    pub point_idx: usize,
+}
+
+impl ChartCommand for RemovePoint {
+    fn apply(self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+        let point = self.line_path
+            .get_mut(chart)?
+            .points
+            .remove(self.point_idx)
+            .ok_or(ChartConflictError::NoSuchPoint {
+                line_path: self.line_path,
+                point: self.point_idx,
+            })?;
+        Ok(InsertPoint {
+            line_path: self.line_path,
+            point_idx: Some(self.point_idx),
+            point
+        }.into())
+    }
+}
