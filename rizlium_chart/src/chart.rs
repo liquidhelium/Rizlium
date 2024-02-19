@@ -223,8 +223,8 @@ impl ChartAndCache<'_, '_> {
             .get(point_idx)?;
         Some([
             self.keypoint_releated_x(point, game_time)?,
-            self.cache.canvas_y_at(point.relevant, point.time)?
-                - self.cache.canvas_y_at(point.relevant, game_time)?,
+            self.cache.canvas_y_at(point.relevant.canvas, point.time)?
+                - self.cache.canvas_y_at(point.relevant.canvas, game_time)?,
         ])
     }
 
@@ -240,8 +240,8 @@ impl ChartAndCache<'_, '_> {
         let pos2 = self
             .pos_for_linepoint_at(line_idx, index + 1, game_time)
             .unwrap();
-        let point_y = self.cache.canvas_y_at(point1.relevant, time)?
-            - self.cache.canvas_y_at(point1.relevant, game_time)?;
+        let point_y = self.cache.canvas_y_at(point1.relevant.canvas, time)?
+            - self.cache.canvas_y_at(point1.relevant.canvas, game_time)?;
         Some([
             f32::ease(
                 pos1[0],
@@ -266,8 +266,8 @@ impl ChartAndCache<'_, '_> {
         self.line_pos_at(line_idx, time, game_time)
     }
 
-    fn keypoint_releated_x(&self, point: &KeyPoint<f32, usize>, time: f32) -> Option<f32> {
-        Some(point.value + self.chart.canvas_x(point.relevant, time)?)
+    fn keypoint_releated_x(&self, point: &KeyPoint<f32, LinePointData>, time: f32) -> Option<f32> {
+        Some(point.value + self.chart.canvas_x(point.relevant.canvas, time)?)
     }
     pub fn has_speed_mutation(&self, line_index: usize, segment_start: usize) -> Option<bool> {
         let (this, next) = self.chart.lines.get(line_index).and_then(|l| {
@@ -276,10 +276,10 @@ impl ChartAndCache<'_, '_> {
                 .get(segment_start)
                 .zip(l.points.points.get(segment_start + 1))
         })?;
-        if this.relevant != next.relevant {
+        if this.relevant.canvas != next.relevant.canvas {
             Some(false)
         } else {
-            let canvas = self.cache.canvas_y_by_real.get(this.relevant)?;
+            let canvas = self.cache.canvas_y_by_real.get(this.relevant.canvas)?;
             if canvas.keypoint_at(this.time) != canvas.keypoint_at(next.time) {
                 use log::info;
                 info!("return true");

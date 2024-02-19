@@ -2,7 +2,7 @@ use crate::VIEW_RECT;
 
 use crate::chart::{self, Spline};
 use crate::parse::EmptyBPMSnafu;
-use chart::ChartCache;
+use chart::{ChartCache, LinePointData};
 use log::info;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
@@ -126,9 +126,10 @@ impl LinePoint {
     fn convert(
         self,
     ) -> ConvertResult<(
-        chart::KeyPoint<f32, usize>,
+        chart::KeyPoint<f32, chart::LinePointData>,
         chart::KeyPoint<chart::ColorRGBA>,
     )> {
+        let color: chart::ColorRGBA = self.color.into();
         let point = chart::KeyPoint {
             time: self.time,
             value: self.x_position,
@@ -138,11 +139,14 @@ impl LinePoint {
                 .or(Err(ConvertError::UnknownEaseKind {
                     raw_kind: self.ease_type,
                 }))?,
-            relevant: self.canvas_index,
+            relevant: LinePointData {
+                canvas: self.canvas_index,
+                color
+            },
         };
         let color = chart::KeyPoint {
             time: self.time,
-            value: self.color.into(),
+            value: color,
             ease_type: self
                 .ease_type
                 .try_into()

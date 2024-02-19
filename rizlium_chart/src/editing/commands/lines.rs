@@ -75,8 +75,8 @@ impl ChartCommand for MovePoint {
         let mut old_canvas = None;
         if let Some(canvas) = self.new_canvas {
             if canvas < len {
-                old_canvas = Some(point.relevant);
-                point.relevant = canvas;
+                old_canvas = Some(point.relevant.canvas);
+                point.relevant.canvas = canvas;
             } else {
                 return Err(ChartConflictError::NoSuchCanvas { canvas });
             }
@@ -98,3 +98,29 @@ impl ChartCommand for MovePoint {
         .into())
     }
 }
+
+pub struct InsertPoint {
+    pub line_path: LinePath,
+    pub point_idx: Option<usize>,
+    pub point: KeyPoint<f32, usize>
+}
+
+// impl ChartCommand for InsertPoint {
+//     fn apply(self,chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+//         let canvas_len = chart.canvases.len();
+//         let line = self.line_path.get_mut(chart)?;
+//         let at = self.point_idx.unwrap_or(line.points.len()).clamp(0, line.points.len());
+//         let prev_time = line
+//             .points
+//             .points
+//             .get(self.point_idx - 1)
+//             .map(|point| point.time)
+//             .unwrap_or(f32::NEG_INFINITY);
+//         let next_time = line
+//             .points
+//             .points
+//             .get(self.point_idx + 1)
+//             .map(|point| point.time)
+//             .unwrap_or(f32::INFINITY);
+//     }
+// }
