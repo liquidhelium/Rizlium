@@ -176,7 +176,31 @@ fn pencil_tool(
         return;
     };
     for event in events.read() {
-        if !event.casted_on_entity && matches!(event.event.event_type, MouseEventType::Click(_)) && current_edit.is_none() {
+        if let Some(data) = current_edit.as_ref() {
+            let event = &event.event;
+            if matches!(event.event_type, MouseEventType::Click(_)) {
+                // 已经编辑时, 点击可进行下一个的编辑
+                history.submit_preedit();
+
+            } else {
+                history
+                    .push_preedit(
+                        MovePoint {
+                            line_path: data.line_idx.into(),
+                            point_idx: data.point_idx,
+                            new_time: to_game
+                                .time_at_y(event.pos.y, pencil_config.canvas)
+                                .unwrap(),
+                            new_x: event.pos.x,
+                            new_canvas: Some(pencil_config.canvas),
+                        },
+                        &mut chart,
+                    )
+                    .unwrap();
+            }
+        } else if !event.casted_on_entity
+            && matches!(event.event.event_type, MouseEventType::Click(_))
+        {
             let event = &event.event;
             history
                 .push(
@@ -198,23 +222,6 @@ fn pencil_tool(
                 line_idx: chart.lines.len() - 1,
                 point_idx: 1,
             })
-        }
-        if let Some(data) = current_edit.as_ref() {
-            let event = &event.event;
-            history
-                .push_preedit(
-                    MovePoint {
-                        line_path: data.line_idx.into(),
-                        point_idx: data.point_idx,
-                        new_time: to_game
-                            .time_at_y(event.pos.y, pencil_config.canvas)
-                            .unwrap(),
-                        new_x: event.pos.x,
-                        new_canvas: Some(pencil_config.canvas),
-                    },
-                    &mut chart,
-                )
-                .unwrap();
         }
     }
 }

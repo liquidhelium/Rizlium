@@ -169,7 +169,7 @@ fn update_shape(
             if pos1[1].approx_eq(&0.) && pos2[1].approx_eq(&0.) {
                 warn!(
                     "Possible wrong segment: line {}, point {}, canvas {}",
-                    id.line_idx, id.keypoint_idx, keypoint1.relevant
+                    id.line_idx, id.keypoint_idx, keypoint1.relevant.canvas
                 );
             }
             if !(keypoint1.ease_type == EasingId::Linear

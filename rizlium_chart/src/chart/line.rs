@@ -10,11 +10,20 @@ use serde::Serialize;
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Line {
-    pub points: Spline<f32, usize>,
+    pub points: Spline<f32, LinePointData>,
     pub point_color: Spline<ColorRGBA>,
     pub notes: Vec<Note>,
     pub ring_color: Spline<ColorRGBA>,
     pub line_color: Spline<ColorRGBA>,
+}
+
+/// 线上的点的相关数据.
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
+pub struct LinePointData {
+    pub canvas: usize,
+    pub color: ColorRGBA,
 }
 
 impl Line {
@@ -27,8 +36,18 @@ impl Line {
         Self {
             points: Spline {
                 points: vec![
-                    KeyPoint::from_slice(former, EasingId::Linear, 0),
-                    KeyPoint::from_slice(latter, EasingId::Linear, 0),
+                    KeyPoint::from_slice(
+                        former,
+                        EasingId::Linear,
+                        LinePointData {
+                            canvas: 0,
+                            color: ColorRGBA::BLACK,
+                        },
+                    ),
+                    KeyPoint::from_slice(latter, EasingId::Linear, LinePointData {
+                        canvas: 0,
+                        color: ColorRGBA::BLACK,
+                    }),
                 ],
             },
             line_color: Spline::EMPTY,
@@ -39,15 +58,15 @@ impl Line {
                         time: former[0],
                         value: ColorRGBA::BLACK,
                         ease_type: EasingId::Linear,
-                        relevant: ()
+                        relevant: (),
                     },
                     KeyPoint {
                         time: latter[0],
                         value: ColorRGBA::BLACK,
                         ease_type: EasingId::Linear,
-                        relevant: ()
-                    }
-                ]
+                        relevant: (),
+                    },
+                ],
             },
             ring_color: Spline::EMPTY,
         }
