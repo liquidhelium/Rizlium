@@ -206,7 +206,6 @@ impl Line {
                 x
             })
             .collect();
-        let colors = colors.into(); // todo: color mix
         let notes: Vec<chart::Note> = self
             .notes
             .into_iter()
@@ -215,7 +214,6 @@ impl Line {
             .collect::<Result<Vec<_>, _>>()?;
         Ok(chart::Line {
             points,
-            point_color: colors,
             notes,
             ring_color: self.judge_ring_color.into_iter().map(Into::into).collect(),
             line_color,

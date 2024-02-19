@@ -11,7 +11,6 @@ use serde::Serialize;
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Line {
     pub points: Spline<f32, LinePointData>,
-    pub point_color: Spline<ColorRGBA>,
     pub notes: Vec<Note>,
     pub ring_color: Spline<ColorRGBA>,
     pub line_color: Spline<ColorRGBA>,
@@ -52,22 +51,6 @@ impl Line {
             },
             line_color: Spline::EMPTY,
             notes: vec![],
-            point_color: Spline {
-                points: vec![
-                    KeyPoint {
-                        time: former[0],
-                        value: ColorRGBA::BLACK,
-                        ease_type: EasingId::Linear,
-                        relevant: (),
-                    },
-                    KeyPoint {
-                        time: latter[0],
-                        value: ColorRGBA::BLACK,
-                        ease_type: EasingId::Linear,
-                        relevant: (),
-                    },
-                ],
-            },
             ring_color: Spline::EMPTY,
         }
     }
