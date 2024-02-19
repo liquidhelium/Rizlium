@@ -125,10 +125,9 @@ pub struct LinePoint {
 impl LinePoint {
     fn convert(
         self,
-    ) -> ConvertResult<(
+    ) -> ConvertResult<
         chart::KeyPoint<f32, chart::LinePointData>,
-        chart::KeyPoint<chart::ColorRGBA>,
-    )> {
+        > {
         let color: chart::ColorRGBA = self.color.into();
         let point = chart::KeyPoint {
             time: self.time,
@@ -144,18 +143,7 @@ impl LinePoint {
                 color
             },
         };
-        let color = chart::KeyPoint {
-            time: self.time,
-            value: color,
-            ease_type: self
-                .ease_type
-                .try_into()
-                .or(Err(ConvertError::UnknownEaseKind {
-                    raw_kind: self.ease_type,
-                }))?,
-            relevant: (),
-        };
-        Ok((point, color))
+        Ok(point,)
     }
 }
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -193,12 +181,11 @@ pub struct Line {
 impl Line {
     fn convert(self, line_index: usize) -> ConvertResult<chart::Line> {
         let line_color: Spline<_> = self.line_color.into_iter().map(Into::into).collect();
-        let a = self
+        let points = self
             .line_points
             .into_iter()
             .map(|p| p.convert())
             .collect::<ConvertResult<Vec<_>>>()?;
-        let (points, colors): (Vec<_>, Vec<_>) = a.into_iter().unzip();
         let points: Spline<_, _> = points
             .into_iter()
             .map(|mut x| {

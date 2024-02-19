@@ -27,15 +27,15 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
 
 fn main() {
-    // let collector = egui_tracing::EventCollector::default().with_level(Level::DEBUG);
-    // let default_filter = { format!("{},{}", Level::DEBUG, "wgpu=error,naga=warn") };
-    //     let filter_layer = EnvFilter::try_from_default_env()
-    //         .or_else(|_| EnvFilter::try_new(&default_filter))
-    //         .unwrap();
-    // tracing_subscriber::registry().with(filter_layer).with(collector.clone()).with(tracing_subscriber::fmt::Layer::default()).init();
+    let collector = egui_tracing::EventCollector::default().with_level(Level::DEBUG);
+    let default_filter = { format!("{},{}", Level::DEBUG, "wgpu=error,naga=warn") };
+        let filter_layer = EnvFilter::try_from_default_env()
+            .or_else(|_| EnvFilter::try_new(&default_filter))
+            .unwrap();
+    tracing_subscriber::registry().with(filter_layer).with(collector.clone()).with(tracing_subscriber::fmt::Layer::default()).init();
     App::new()
         .add_plugins((
-            DefaultPlugins.build()/* .disable::<LogPlugin>() */,
+            DefaultPlugins.build().disable::<LogPlugin>(),
             EguiPlugin,
             RizliumRenderingPlugin {
                 config: (),
@@ -55,7 +55,7 @@ fn main() {
         .init_resource::<EditorState>()
         .init_resource::<RizDockState>()
         .add_event::<DragWindowRequested>()
-        // .insert_resource(EventCollectorResource(collector))
+        .insert_resource(EventCollectorResource(collector))
         .add_systems(Startup, setup_persistent)
         .add_systems(Update, egui_render)
         .run();
