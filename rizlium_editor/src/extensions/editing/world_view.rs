@@ -34,8 +34,8 @@ impl Plugin for WorldViewPlugin {
     }
 }
 
-pub fn edit_view_focused() -> impl Condition<()>{
-    tab_focused("edit.world_view")
+pub fn edit_view_or_tool_focused() -> impl Condition<()>{
+    tab_focused("edit.world_view").or_else(tab_focused("edit.tool_config"))
 }
 
 #[derive(Deref, Resource)]

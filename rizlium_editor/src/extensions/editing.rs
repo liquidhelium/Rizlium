@@ -17,18 +17,18 @@ pub struct Editing;
 impl Plugin for Editing {
     fn build(&self, app: &mut App) {
         app.register_tab(
-            "editing.note",
+            "edit.note",
             "Notes",
             note_window,
             resource_exists::<GameChart>(),
         )
         .register_tab(
-            "editing.spline",
+            "edit.spline",
             "Splines",
             spline_edit,
             resource_exists::<GameChart>(),
         )
-        .register_tab("editing.tool_config", "Tool", tool_config, resource_exists::<GameChart>());
+        .register_tab("edit.tool_config", "Tool", tool_config, resource_exists::<GameChart>());
 
         app.add_plugins(world_view::WorldViewPlugin)
             .init_resource::<ChartEditHistory>();

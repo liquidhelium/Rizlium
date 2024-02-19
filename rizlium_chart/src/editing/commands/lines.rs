@@ -45,10 +45,12 @@ pub struct MovePoint {
     pub point_idx: usize,
     pub new_time: f32,
     pub new_x: f32,
+    pub new_canvas: Option<usize>,
 }
 
 impl ChartCommand for MovePoint {
-    fn apply(self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+    fn apply(mut self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+        let len = chart.canvases.len();
         let line = self.line_path.get_mut(chart)?;
         let prev_time = line
             .points
@@ -70,26 +72,29 @@ impl ChartCommand for MovePoint {
                     line_path: self.line_path,
                     point: self.point_idx,
                 })?;
-
-        if prev_time - f32::EPSILON < self.new_time && self.new_time < next_time + f32::EPSILON {
-            // swap 也许好一点
-            let old_time = point.time;
-            let old_x = point.value;
-            point.time = self.new_time;
-            point.value = self.new_x;
-            Ok(Self {
-                line_path: self.line_path,
-                point_idx: self.point_idx,
-                new_time: old_time,
-                new_x: old_x,
+        let mut old_canvas = None;
+        if let Some(canvas) = self.new_canvas {
+            if canvas < len {
+                old_canvas = Some(point.relevant);
+                point.relevant = canvas;
+            } else {
+                return Err(ChartConflictError::NoSuchCanvas { canvas });
             }
-            .into())
-        } else {
-            Err(ChartConflictError::TimeOutBound {
-                line_path: self.line_path,
-                point: self.point_idx,
-                time: self.new_time,
-            })
         }
+
+        self.new_time = self.new_time.clamp(prev_time, next_time);
+        // swap 也许好一点
+        let old_time = point.time;
+        let old_x = point.value;
+        point.time = self.new_time;
+        point.value = self.new_x;
+        Ok(Self {
+            line_path: self.line_path,
+            point_idx: self.point_idx,
+            new_time: old_time,
+            new_x: old_x,
+            new_canvas: old_canvas,
+        }
+        .into())
     }
 }

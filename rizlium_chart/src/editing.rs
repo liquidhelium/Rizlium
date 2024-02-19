@@ -17,7 +17,8 @@ pub enum ChartConflictError {
     InvalidNotePath { note_path: NotePath },
     InvalidLinePath { line_path: LinePath },
     NoSuchPoint {line_path: LinePath, point: usize},
-    TimeOutBound {line_path: LinePath, point: usize, time: f32}
+    TimeOutBound {line_path: LinePath, point: usize, time: f32},
+    NoSuchCanvas {canvas: usize},
 }
 
 type Result<T> = std::result::Result<T, ChartConflictError>;
@@ -37,12 +38,21 @@ impl EditHistory {
         Ok(())
     }
     pub fn push_preedit(&mut self, edit: impl Into<ChartCommands>, chart: &mut Chart) -> Result<()> {
+        self.discard_preedit(chart)?;
         let current_inverse = edit.into().apply(chart)?;
+        self.last_preedit_inverse = Some(current_inverse);
+        Ok(())
+    }
+    pub fn discard_preedit(&mut self, chart: &mut Chart) -> Result<()> {
         if let Some(last) = self.last_preedit_inverse.take() {
             last.apply(chart)?;
         }
-        self.last_preedit_inverse = Some(current_inverse);
         Ok(())
+    }
+    pub fn submit_preedit(&mut self) {
+        if let Some(last) = self.last_preedit_inverse.take() {
+            self.inverse_history.push(last)
+        }
     }
 }
 
