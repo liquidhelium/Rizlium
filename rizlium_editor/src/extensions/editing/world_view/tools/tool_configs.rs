@@ -1,19 +1,24 @@
-use std::marker::PhantomData;
 use bevy::prelude::*;
+use strum::IntoEnumIterator;
+use std::fmt::Debug;
+use std::marker::PhantomData;
 
 use egui::{Slider, Ui};
 use rizlium_render::GameChart;
 
+use super::Tool;
+
 pub(crate) fn show_window<T: ToolConfig>(ui: &mut Ui, world: &mut World) {
     world.resource_scope(|world, mut stroage: Mut<'_, ToolConfigStorage<T>>| {
-        stroage.0.run(unsafe {
-            &mut *(ui as *mut Ui)
-        }, world);
+        stroage.0.run(unsafe { &mut *(ui as *mut Ui) }, world);
     });
 }
 
 #[derive(Resource)]
-pub struct ToolConfigStorage<T: ToolConfig>(Box<dyn System<In = &'static mut Ui, Out = ()>>, PhantomData<T>);
+pub struct ToolConfigStorage<T: ToolConfig>(
+    Box<dyn System<In = &'static mut Ui, Out = ()>>,
+    PhantomData<T>,
+);
 
 impl<T: ToolConfig> ToolConfigStorage<T> {
     pub(crate) fn init_with(mut self, world: &mut World) -> Self {
@@ -29,27 +34,30 @@ impl<T: ToolConfig> Default for ToolConfigStorage<T> {
 }
 
 pub trait ToolConfigExt {
-    fn init_tool_config<T>(&mut self) -> &mut Self where T: ToolConfig + Resource + Default;
+    fn init_tool_config<T>(&mut self) -> &mut Self
+    where
+        T: ToolConfig + Resource + Default;
 }
 
 impl ToolConfigExt for App {
-    fn init_tool_config<T>(&mut self) -> &mut Self where T: ToolConfig + Resource + Default {
+    fn init_tool_config<T>(&mut self) -> &mut Self
+    where
+        T: ToolConfig + Resource + Default,
+    {
         let resource = ToolConfigStorage::<T>::default().init_with(&mut self.world);
-        self.init_resource::<T>()
-            .insert_resource(resource)
+        self.init_resource::<T>().insert_resource(resource)
     }
 }
 
-pub trait ToolConfig: Send + Sync + 'static{
+pub trait ToolConfig: Send + Sync + 'static {
     fn config_system() -> impl System<In = &'static mut Ui, Out = ()>;
 }
 
 impl ToolConfig for PencilToolConfig {
-    fn config_system() -> impl System<In = &'static mut Ui, Out = ()>{
+    fn config_system() -> impl System<In = &'static mut Ui, Out = ()> {
         IntoSystem::into_system(Self::system)
     }
 }
-
 
 #[derive(Resource, Default)]
 pub struct PencilToolConfig {
@@ -57,13 +65,22 @@ pub struct PencilToolConfig {
 }
 
 impl PencilToolConfig {
-    pub(crate) fn system(In(ui): In<&'static mut Ui>, mut this: ResMut<Self>, chart: Res<GameChart>) {
+    pub(crate) fn system(
+        In(ui): In<&'static mut Ui>,
+        mut this: ResMut<Self>,
+        chart: Res<GameChart>,
+    ) {
         ui.columns(2, |uis| {
-            let [uil, uir] = uis else { // must be two
+            let [uil, uir] = uis else {
+                // must be two
                 return;
             };
             uil.label("Canvas index:");
-            uir.add(Slider::new(&mut this.canvas, 0..=(chart.canvases.len()-1)));
+            uir.add(Slider::new(
+                &mut this.canvas,
+                0..=(chart.canvases.len() - 1),
+            ));
         })
     }
 }
+

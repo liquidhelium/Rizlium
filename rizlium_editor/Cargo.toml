@@ -50,6 +50,7 @@ enum_dispatch = "*"
 snafu = "*"
 dyn-clone = "1"
 smallvec = "1"
+strum = { version = "0.26", features = ["derive"] }
 
 [dev-dependencies]
 serde_json = "*"

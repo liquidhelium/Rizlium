@@ -1,13 +1,8 @@
-
-use bevy::{
-    ecs::schedule::BoxedCondition,
-    prelude::*,
-    utils::HashMap,
-};
+use bevy::{ecs::schedule::BoxedCondition, prelude::*, utils::HashMap};
 use egui::Ui;
 use snafu::Snafu;
 
-use crate::utils::dot_path::DotPath;
+use crate::{utils::dot_path::DotPath, RizDockState};
 pub type TabId = DotPath;
 
 pub struct TabStorage {
@@ -20,9 +15,16 @@ pub struct TabStorage {
 pub struct FocusedTab(pub Option<DotPath>);
 
 pub fn tab_focused(tab: impl Into<DotPath>) -> impl Condition<()> {
-    resource_exists_and_equals(FocusedTab(Some(tab.into()))).and_then(||true)
+    resource_exists_and_equals(FocusedTab(Some(tab.into()))).and_then(|| true)
 }
 
+pub fn tab_opened(tab: impl Into<DotPath>) -> impl Condition<()> {
+    let tab = tab.into();
+    (move |res: Option<Res<RizDockState>>| {
+        res.is_some_and(|res| res.state.find_tab(&tab).is_some())
+    })
+    .and_then(|| true)
+}
 
 impl TabStorage {
     pub fn run_with(&mut self, world: &mut World, ui: &mut Ui) -> TabResult {

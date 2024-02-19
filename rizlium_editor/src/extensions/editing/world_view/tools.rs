@@ -1,26 +1,30 @@
-use std::marker::PhantomData;
+use strum::EnumIter;
 
 use bevy::{input::mouse::MouseWheel, math::vec2, prelude::*};
 use egui::Ui;
 use rizlium_chart::{
     chart::Line,
-    editing::commands::InsertLine,
+    editing::commands::{InsertLine, MovePoint},
 };
 use rizlium_render::GameChart;
 
 use crate::{
-    extensions::editing::ChartEditHistory, hotkeys::{Hotkey, HotkeysExt, RuntimeTrigger, TriggerType}, utils::WorldToGame, ActionsExt
+    extensions::editing::ChartEditHistory,
+    hotkeys::{Hotkey, HotkeysExt, RuntimeTrigger, TriggerType},
+    tab_system::tab_opened,
+    utils::WorldToGame,
+    ActionsExt,
 };
 
-use self::tool_configs::ToolConfigExt;
+use self::tool_configs::{PencilToolConfig, ToolConfigExt};
 
 use super::{
     cam_response::{DragEventType, MouseEvent, MouseEventType, ScreenMouseEvent, WorldMouseEvent},
-    edit_view_focused, WorldCam,
+    edit_view_or_tool_focused, WorldCam,
 };
 
 pub fn is_tool(tool: Tool) -> impl Condition<()> {
-    edit_view_focused().and_then(resource_exists_and_equals(tool))
+    edit_view_or_tool_focused().and_then(resource_exists_and_equals(tool))
 }
 
 pub fn previous_tool(tool: Tool) -> impl Condition<()> {
@@ -35,7 +39,10 @@ impl Plugin for ToolsPlugin {
         app.init_resource::<Tool>()
             .init_resource::<OriginalTool>()
             .init_tool_config::<tool_configs::PencilToolConfig>()
-            .add_systems(Update, (view_tool, pencil_tool));
+            .add_systems(
+                Update,
+                (view_tool, pencil_tool).run_if(tab_opened("edit.world_view")),
+            );
         app.register_action(
             "edit.world_view.temp_toggle_view",
             "Temporarily switch to tool View.",
@@ -48,7 +55,7 @@ impl Plugin for ToolsPlugin {
         );
         app.register_hotkey(
             "edit.world_view.to_pencil",
-            [Hotkey::new([KeyCode::P], edit_view_focused())],
+            [Hotkey::new([KeyCode::P], edit_view_or_tool_focused())],
         )
         .register_hotkey(
             "edit.world_view.temp_toggle_view",
@@ -62,7 +69,7 @@ impl Plugin for ToolsPlugin {
     }
 }
 
-#[derive(Resource, Default, PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(Resource, Default, PartialEq, Eq, Clone, Copy, Debug, EnumIter)]
 pub enum Tool {
     #[default]
     View,
@@ -74,7 +81,7 @@ impl Tool {
     pub fn config_ui(&self, ui: &mut Ui, world: &mut World) {
         match self {
             Self::Pencil => tool_configs::show_window::<tool_configs::PencilToolConfig>(ui, world),
-            _ =>()
+            _ => (),
         }
     }
 }
@@ -147,12 +154,19 @@ fn temp_toggle_view(
     }
 }
 
+struct PencilToolEditData {
+    line_idx: usize,
+    point_idx: usize,
+}
+
 fn pencil_tool(
     mut events: EventReader<WorldMouseEvent>,
     tool: Res<Tool>,
+    pencil_config: Res<PencilToolConfig>,
     chart: Option<ResMut<GameChart>>,
     mut history: ResMut<ChartEditHistory>,
-    to_game: WorldToGame
+    to_game: WorldToGame,
+    mut current_edit: Local<Option<PencilToolEditData>>,
 ) {
     if *tool != Tool::Pencil || !to_game.avalible() {
         events.clear();
@@ -162,16 +176,41 @@ fn pencil_tool(
         return;
     };
     for event in events.read() {
-        if !event.casted_on_entity && matches!(event.event.event_type, MouseEventType::Click(_)) {
+        if !event.casted_on_entity && matches!(event.event.event_type, MouseEventType::Click(_)) && current_edit.is_none() {
             let event = &event.event;
             history
                 .push(
                     InsertLine {
                         line: Line::new_two_points(
-                            map_to_game(&to_game, event.pos.xy(), 0),
-                            map_to_game(&to_game, event.pos.xy() + vec2(0., 60.), 0),
+                            map_to_game(&to_game, event.pos.xy(), pencil_config.canvas),
+                            map_to_game(
+                                &to_game,
+                                event.pos.xy() + vec2(0., 60.),
+                                pencil_config.canvas,
+                            ),
                         ),
                         at: None,
+                    },
+                    &mut chart,
+                )
+                .unwrap();
+            *current_edit = Some(PencilToolEditData {
+                line_idx: chart.lines.len() - 1,
+                point_idx: 1,
+            })
+        }
+        if let Some(data) = current_edit.as_ref() {
+            let event = &event.event;
+            history
+                .push_preedit(
+                    MovePoint {
+                        line_path: data.line_idx.into(),
+                        point_idx: data.point_idx,
+                        new_time: to_game
+                            .time_at_y(event.pos.y, pencil_config.canvas)
+                            .unwrap(),
+                        new_x: event.pos.x,
+                        new_canvas: Some(pencil_config.canvas),
                     },
                     &mut chart,
                 )
@@ -182,7 +221,7 @@ fn pencil_tool(
 
 fn map_to_game(to_game: &WorldToGame, pos: Vec2, canvas: usize) -> [f32; 2] {
     [
-        to_game.time_at_y(pos.y, canvas).unwrap(),
+        to_game.time_at_y(pos.y, canvas).unwrap(), // todo: properly handle non-invertble canvas
         pos.x,
     ] // time, value
 }
