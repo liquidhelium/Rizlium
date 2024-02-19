@@ -276,7 +276,7 @@ pub struct ShowLines(pub Option<usize>);
 
 fn update_layer(show_lines: Res<ShowLines>, mut lines: Query<(&mut RenderLayers, &ChartLineId)>) {
     // todo: able to only display one line.
-    lines.for_each_mut(|(mut layer, line)| {
+    lines.iter_mut().for_each(|(mut layer, line)| {
         if let Some(idx) = show_lines.0 {
             // info!("changing {},{}",line.line_idx, line.keypoint_idx);
             if line.line_idx == idx {
