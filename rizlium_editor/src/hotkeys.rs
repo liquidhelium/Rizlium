@@ -52,7 +52,7 @@ impl RuntimeTrigger {
 }
 
 impl TriggerType {
-    fn check_trigger(&self, code: KeyCode, input: &mut Input<KeyCode>) -> Option<RuntimeTrigger> {
+    fn check_trigger(&self, code: KeyCode, input: &mut ButtonInput<KeyCode>) -> Option<RuntimeTrigger> {
         use TriggerType::*;
         let runtime_trigger = match self {
             Pressed if input.just_pressed(code) => Some(RuntimeTrigger::Pressed),
@@ -123,7 +123,7 @@ impl Hotkey {
         if self.key.is_empty() {
             return None;
         }
-        let mut input = world.resource_mut::<Input<KeyCode>>();
+        let mut input = world.resource_mut::<ButtonInput<KeyCode>>();
         let mut other_all_pressed = true;
         for code in self.key.iter().take(self.key.len()-1).copied() {
             other_all_pressed &= input.pressed(code);

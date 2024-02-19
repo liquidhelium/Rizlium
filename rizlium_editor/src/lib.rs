@@ -143,7 +143,7 @@ impl Plugin for WindowUpdateControlPlugin {
         app.add_systems(Startup, change_render_type)
             .add_systems(
                 PostUpdate,
-                update_type_changing.run_if(resource_changed::<GameTime>()),
+                update_type_changing.run_if(resource_changed::<GameTime>),
             )
             .insert_resource(WinitSettings::desktop_app());
     }

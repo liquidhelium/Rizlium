@@ -1,8 +1,5 @@
-use bevy::{prelude::*, render::view::RenderLayers};
-use bevy_mod_raycast::{
-    immediate::{Raycast, RaycastSettings},
-    primitives::Ray3d,
-};
+use bevy::{prelude::*, render::view::RenderLayers, math::Ray3d};
+use bevy_mod_raycast::immediate::{Raycast, RaycastSettings};
 use rizlium_render::ChartLine;
 
 use super::WorldCam;
@@ -15,7 +12,7 @@ impl Plugin for RaycastPlugin {
             .add_event::<WorldMouseEvent>()
             .add_systems(
                 PreUpdate,
-                ray_cast.run_if(resource_exists_and_changed::<Events<ScreenMouseEvent>>()),
+                ray_cast.run_if(resource_exists_and_changed::<Events<ScreenMouseEvent>>),
             )
             .add_systems(PostUpdate, add_pick_to_lines);
     }
@@ -81,7 +78,7 @@ fn ray_cast(
                     return;
                 };
                 owned_event = ev.0.clone();
-                owned_event.pos = ray.origin();
+                owned_event.pos = ray.origin;
                 ray
             },
             &RaycastSettings::default()
@@ -116,9 +113,8 @@ fn ray_cast(
     })
 }
 
-
-fn add_pick_to_lines(mut commands: Commands, lines: Query<Entity,Added<ChartLine>>) {
-    lines.for_each(|entity| {
+fn add_pick_to_lines(mut commands: Commands, lines: Query<Entity, Added<ChartLine>>) {
+    lines.iter().for_each(|entity| {
         commands.entity(entity).insert(CamResponse(None));
     });
 }

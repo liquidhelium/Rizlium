@@ -21,7 +21,7 @@ impl Plugin for CommandPanel {
         .register_hotkey(
             "command_panel.toggle_open",
             [
-                Hotkey::new_global([ControlLeft, P]),
+                Hotkey::new_global([ControlLeft, KeyP]),
                 Hotkey::new([Escape], |r: Res<CommandPanelState>| r.opened),
             ],
         )

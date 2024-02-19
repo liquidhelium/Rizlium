@@ -85,8 +85,8 @@ fn setup_persistent(mut commands: Commands) {
     );
 }
 fn egui_render(world: &mut World) {
-    let mut egui_context = world.query::<(&mut EguiContext, With<PrimaryWindow>)>();
-    let mut binding = egui_context.single_mut(world).0;
+    let mut egui_context = world.query_filtered::<&mut EguiContext, With<PrimaryWindow>>();
+    let mut binding = egui_context.single_mut(world);
     let ctx = &binding.get_mut().clone();
     let mut editor_state = world
         .remove_resource::<EditorState>()

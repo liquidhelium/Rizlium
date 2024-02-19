@@ -20,3 +20,6 @@ You're right, but this is an editor. (?)
     解决方案: 使用`pipeware`可以解决.
  2. 使用bevy 0.12 和opengl后端时, 有时会出现奇怪的渲染问题 (见 bevyengine/bevy#10917 )
     解决方案: 使用vulkan做后端, 权宜之计.
+
+ ## MSRV
+   bevy 0.13 及以上需要 rustc 1.76 及以上, 请使用足够新的rust编译器.

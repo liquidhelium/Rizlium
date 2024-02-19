@@ -9,13 +9,13 @@ impl Plugin for ChartNotePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            (add_notes,).run_if(resource_exists_and_changed::<GameChart>()),
+            (add_notes,).run_if(resource_exists_and_changed::<GameChart>),
         )
         .add_systems(
             Update,
             (
                 update_pos.run_if(chart_update!()),
-                assocate_note.run_if(resource_exists_and_changed::<GameChart>()),
+                assocate_note.run_if(resource_exists_and_changed::<GameChart>),
             ),
         );
     }

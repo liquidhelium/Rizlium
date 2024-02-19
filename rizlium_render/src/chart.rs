@@ -30,7 +30,7 @@ impl Plugin for ChartCachePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            chart_cache.run_if(resource_exists_and_changed::<GameChart>()),
+            chart_cache.run_if(resource_exists_and_changed::<GameChart>),
         );
     }
 }

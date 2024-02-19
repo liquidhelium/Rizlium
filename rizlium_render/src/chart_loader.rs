@@ -198,7 +198,7 @@ fn unpack_chart(
     };
     pending_chart.0 = None;
     match chart {
-        Err(err) => {ev.send(LoadChartErrorEvent(err))},
+        Err(err) => {ev.send(LoadChartErrorEvent(err));},
         Ok(bundle) => {
             commands.insert_resource(GameChart::new(bundle.chart));
             let audio_handle = audio_sources.add(bundle.music);

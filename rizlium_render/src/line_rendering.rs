@@ -56,11 +56,11 @@ impl Plugin for ChartLinePlugin {
                 First,
                 add_segments
                     .in_set(LineRenderingSystemSet::SyncChart)
-                    .run_if(resource_exists_and_changed::<GameChart>()),
+                    .run_if(resource_exists_and_changed::<GameChart>),
             )
             .add_systems(
                 PreUpdate,
-                associate_segment.run_if(resource_exists_and_changed::<GameChart>()),
+                associate_segment.run_if(resource_exists_and_changed::<GameChart>),
             )
             .add_systems(
                 Update,
@@ -187,7 +187,7 @@ fn update_shape(
                     .map(|t| {
                         [
                             f32::ease(pos1[0], pos2[0], t, keypoint1.ease_type),
-                            f32::lerp(pos1[1], pos2[1], t),
+                            <f32 as rizlium_chart::chart::Tween>::lerp(pos1[1], pos2[1], t),
                         ]
                     })
                     .for_each(|p| {
