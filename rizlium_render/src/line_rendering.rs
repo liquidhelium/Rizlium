@@ -216,8 +216,8 @@ fn update_color(
     mut lines: Query<(&mut Stroke, &mut Path, &ViewVisibility, &ChartLineId)>,
 ) {
     lines
-        // .par_iter_mut()
-        .for_each_mut(|(mut stroke, _, vis, id)| {
+        .par_iter_mut()
+        .for_each(|(mut stroke, _, vis, id)| {
             if !vis.get() {
                 return;
             }
@@ -238,34 +238,8 @@ fn update_color(
                 gradient.end = pos2.into();
             }
 
-            let mut color1 = colorrgba_to_color(
-                line.point_color
-                    .points()
-                    .get(keypoint_idx)
-                    .map(|point| point.value)
-                    .unwrap_or_else(|| {
-                        warn!("line {line_idx}, point {keypoint_idx} have no color. at {pos1:?}");
-                        rizlium_chart::prelude::ColorRGBA {
-                            r:0.,
-                            g:0.,
-                            b:0.,
-                            a:1.,
-                        }
-                    }),
-            );
-            let mut color2 = colorrgba_to_color(line.point_color
-                .points()
-                .get(keypoint_idx + 1)
-                .map(|point| point.value)
-                .unwrap_or_else(|| {
-                    warn!("line {line_idx}, point {keypoint_idx} have no color. at {pos2:?}");
-                    rizlium_chart::prelude::ColorRGBA {
-                        r:0.,
-                        g:0.,
-                        b:0.,
-                        a:1.,
-                    }
-                }));
+            let mut color1 = get_color_of(line, keypoint_idx);
+            let mut color2 = get_color_of(line, keypoint_idx + 1);
             if color1.a().approx_eq(&0.) && color2.a().approx_eq(&0.) {
                 color1 = DEBUG_INVISIBLE;
                 color2 = DEBUG_INVISIBLE;
@@ -277,6 +251,24 @@ fn update_color(
             };
             stroke.brush = Brush::Gradient(gradient.into());
         });
+}
+
+fn get_color_of(line: &rizlium_chart::prelude::Line, keypoint_idx: usize) -> Color {
+    colorrgba_to_color(
+        line.points
+            .points()
+            .get(keypoint_idx)
+            .map(|point| point.relevant.color)
+            .unwrap_or_else(|| {
+                warn!("point {keypoint_idx} have no color.");
+                rizlium_chart::prelude::ColorRGBA {
+                    r:0.,
+                    g:0.,
+                    b:0.,
+                    a:1.,
+                }
+            }),
+    )
 }
 
 #[derive(Resource, Default)]
