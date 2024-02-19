@@ -3,8 +3,8 @@ use strum::EnumIter;
 use bevy::{input::mouse::MouseWheel, math::vec2, prelude::*};
 use egui::Ui;
 use rizlium_chart::{
-    chart::Line,
-    editing::commands::{InsertLine, MovePoint},
+    chart::{ColorRGBA, EasingId, KeyPoint, Line, LinePointData},
+    editing::commands::{InsertLine, InsertPoint, MovePoint},
 };
 use rizlium_render::GameChart;
 
@@ -181,6 +181,23 @@ fn pencil_tool(
             if matches!(event.event_type, MouseEventType::Click(_)) {
                 // 已经编辑时, 点击可进行下一个的编辑
                 history.submit_preedit();
+                history.push(InsertPoint {
+                    line_path: data.line_idx.into(),
+                    point_idx: None,
+                    point: KeyPoint {
+                        time: to_game.time_at_y(event.pos.y, pencil_config.canvas).unwrap(),
+                        value: event.pos.x,
+                        ease_type: EasingId::Linear,
+                        relevant: LinePointData {
+                            canvas: pencil_config.canvas,
+                            color: ColorRGBA::BLACK,
+                        }
+                    }
+                }, &mut chart).unwrap();
+                *current_edit = Some(PencilToolEditData {
+                    line_idx: data.line_idx,
+                    point_idx: chart.lines[data.line_idx].points.len() - 1,
+                })
 
             } else {
                 history

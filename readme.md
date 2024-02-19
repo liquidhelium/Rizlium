@@ -5,6 +5,8 @@ You're right, but this is an editor. (?)
  - [ ] ring colors
  - [x] fix strange ring y position
  - [x] fix strange ring x position
+ - [ ] fix strange line width
+   - 在横线后会出现.
  - [x] top and bottom mask 
  - [x] single notes
  - [ ] note textures
