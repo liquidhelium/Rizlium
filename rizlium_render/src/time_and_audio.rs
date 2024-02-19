@@ -40,14 +40,14 @@ impl Plugin for TimeAndAudioPlugin {
             .add_systems(
                 Update,
                 (
-                    dispatch_events.run_if(resource_exists::<CurrentGameAudio>()),
+                    dispatch_events.run_if(resource_exists::<CurrentGameAudio>),
                     update_timemgr,
-                    sync_audio.run_if(resource_exists_and_changed::<GameAudioSource>()),
-                    align_or_restart_audio.run_if(resource_exists::<CurrentGameAudio>()),
+                    sync_audio.run_if(resource_exists_and_changed::<GameAudioSource>),
+                    align_or_restart_audio.run_if(resource_exists::<CurrentGameAudio>),
                     game_time.run_if(
-                        resource_exists::<GameChartCache>().and_then(
-                            resource_changed::<GameChartCache>()
-                                .or_else(resource_exists_and_changed::<TimeManager>()),
+                        resource_exists::<GameChartCache>.and_then(
+                            resource_changed::<GameChartCache>
+                                .or_else(resource_exists_and_changed::<TimeManager>),
                         ),
                     ),
                 ),

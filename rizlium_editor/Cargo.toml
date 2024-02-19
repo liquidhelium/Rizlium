@@ -15,7 +15,7 @@ egui-notify = "0.13"
 tracing-subscriber = "*"
 bevy-inspector-egui = "*"
 # Todo: split x11, wayland and webgl2
-bevy = { version = "0.12", default-features = false, features = [
+bevy = { version = "0.13", default-features = false, features = [
     # "animation",
     "bevy_asset",
     # "bevy_scene",
@@ -38,8 +38,8 @@ bevy = { version = "0.12", default-features = false, features = [
     "bevy_gizmos"
 ] }
 rizlium_chart ={ path = "../rizlium_chart"}
-bevy_mod_raycast = "*"
-bevy-persistent = {version = "0.4", features = ["json","toml"]}
+bevy_mod_raycast = { git = "https://github.com/aevyrie/bevy_mod_raycast", branch = "bevy-0.13"}
+bevy-persistent = {git = "https://github.com/liquidhelium/bevy-persistent", features = ["json","toml"]}
 serde ={ version = "*", features = ["derive"]}
 dirs = "*"
 rfd = "*"

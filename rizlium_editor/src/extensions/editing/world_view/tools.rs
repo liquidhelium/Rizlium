@@ -55,7 +55,7 @@ impl Plugin for ToolsPlugin {
         );
         app.register_hotkey(
             "edit.world_view.to_pencil",
-            [Hotkey::new([KeyCode::P], edit_view_or_tool_focused())],
+            [Hotkey::new([KeyCode::KeyP], edit_view_or_tool_focused())],
         )
         .register_hotkey(
             "edit.world_view.temp_toggle_view",

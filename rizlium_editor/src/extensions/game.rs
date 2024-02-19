@@ -32,9 +32,9 @@ impl Plugin for Game {
                 toggle_pause,
             )
             .register_action("game.time.control", "Control game time", time_control)
-            .register_hotkey("game.open_dialog", [Hotkey::new_global([ControlLeft, O])])
-            .register_hotkey("game.time.advance", [Hotkey::new_global([Right])])
-            .register_hotkey("game.time.rewind", [Hotkey::new_global([Left])])
+            .register_hotkey("game.open_dialog", [Hotkey::new_global([ControlLeft, KeyO])])
+            .register_hotkey("game.time.advance", [Hotkey::new_global([ArrowRight])])
+            .register_hotkey("game.time.rewind", [Hotkey::new_global([ArrowLeft])])
             .register_hotkey("game.time.toggle_pause", [Hotkey::new_global([Space])])
             .menu_context(|mut ctx| {
                 ctx.with_sub_menu("file", "File".into(), 0, |mut ctx| {

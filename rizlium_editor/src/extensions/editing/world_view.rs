@@ -166,7 +166,7 @@ fn world_tab(
                         })
                         .flatten(),
                     pos: releative_pos.extend(0.),
-                }))
+                }));
             }
         }
     })

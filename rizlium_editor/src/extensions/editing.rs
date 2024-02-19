@@ -20,15 +20,15 @@ impl Plugin for Editing {
             "edit.note",
             "Notes",
             note_window,
-            resource_exists::<GameChart>(),
+            resource_exists::<GameChart>,
         )
         .register_tab(
             "edit.spline",
             "Splines",
             spline_edit,
-            resource_exists::<GameChart>(),
+            resource_exists::<GameChart>,
         )
-        .register_tab("edit.tool_config", "Tool", tool_config, resource_exists::<GameChart>());
+        .register_tab("edit.tool_config", "Tool", tool_config, resource_exists::<GameChart>);
 
         app.add_plugins(world_view::WorldViewPlugin)
             .init_resource::<ChartEditHistory>();

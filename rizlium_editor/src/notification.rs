@@ -1,7 +1,11 @@
 use bevy::{
     app::{Plugin, Update},
-    ecs::{query::With, system::{Query, ResMut, Resource}},
-    prelude::{Deref, DerefMut}, window::PrimaryWindow,
+    ecs::{
+        query::With,
+        system::{Query, ResMut, Resource},
+    },
+    prelude::{Deref, DerefMut},
+    window::PrimaryWindow,
 };
 use bevy_egui::EguiContext;
 use egui_notify::Toasts;
@@ -20,10 +24,19 @@ pub struct ToastsStorage(Toasts);
 
 impl Default for ToastsStorage {
     fn default() -> Self {
-        Self(Toasts::new().with_anchor(egui_notify::Anchor::BottomRight).with_margin([8.0,48.0].into()))
+        Self(
+            Toasts::new()
+                .with_anchor(egui_notify::Anchor::BottomRight)
+                .with_margin([8.0, 48.0].into()),
+        )
     }
 }
 
-fn show_egui_notifies(mut context: Query<&mut EguiContext, With<PrimaryWindow>>, mut toasts: ResMut<ToastsStorage>) {
-    toasts.show(context.single_mut().get_mut());
+fn show_egui_notifies(
+    mut context: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut toasts: ResMut<ToastsStorage>,
+) {
+    if let Ok(mut ctx) = context.get_single_mut() {
+        toasts.show(ctx.get_mut())
+    }
 }

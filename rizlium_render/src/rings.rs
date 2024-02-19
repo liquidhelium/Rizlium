@@ -8,7 +8,7 @@ impl Plugin for RingPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            add_rings.run_if(resource_exists_and_changed::<GameChart>()),
+            add_rings.run_if(resource_exists_and_changed::<GameChart>),
         )
         .add_systems(
             Update,
