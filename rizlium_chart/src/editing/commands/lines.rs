@@ -25,6 +25,9 @@ impl ChartCommand for InsertLine {
         }
         .into())
     }
+    fn validate(&self,chart: &Chart) -> crate::editing::Result<()> {
+        Ok(())
+    }
 }
 
 pub struct RemoveLine {
@@ -40,15 +43,19 @@ impl ChartCommand for RemoveLine {
         }
         .into())
     }
+    fn validate(&self,chart: &Chart) -> crate::editing::Result<()> {
+        self.line_path.valid(chart)
+    }
 }
 
 pub struct EditPoint {
     pub line_path: LinePath,
     pub point_idx: usize,
-    pub new_time: f32,
-    pub new_x: f32,
+    pub new_time: Option<f32>,
+    pub new_x: Option<f32>,
     pub new_canvas: Option<usize>,
     pub new_color: Option<ColorRGBA>,
+    pub new_easing: Option<EasingId>,
 }
 
 impl ChartCommand for EditPoint {
@@ -85,19 +92,39 @@ impl ChartCommand for EditPoint {
             }
         }
 
-        self.new_time = self.new_time.clamp(prev_time, next_time);
+        self.new_time = self.new_time.map(|new| new.clamp(prev_time, next_time));
         let old_color = self
             .new_color
             .map(|color| replace(&mut point.relevant.color, color));
         Ok(Self {
             line_path: self.line_path,
             point_idx: self.point_idx,
-            new_time: replace(&mut point.time, self.new_time),
-            new_x: replace(&mut point.value, self.new_x),
+            new_time: self.new_time.map(|new| replace(&mut point.time, new)),
+            new_x: self.new_x.map(|new| replace(&mut point.value, new)),
             new_canvas: old_canvas,
-            new_color: old_color
+            new_color: old_color,
+            new_easing: self.new_easing.map(|new| replace(&mut point.ease_type, new))
         }
         .into())
+    }
+    fn validate(&self,chart: &Chart) -> crate::editing::Result<()> {
+        let canvas_len = chart.canvases.len();
+        if let Some(canvas) = self.new_canvas{
+            if canvas >= canvas_len {
+                return Err(ChartConflictError::NoSuchCanvas { canvas });
+            }
+        }
+        let line = self.line_path.get(chart)?;
+        if self.point_idx >= line.points.len() {
+            Err(ChartConflictError::NoSuchPoint {
+                line_path: self.line_path,
+                point: self.point_idx,
+            })
+        }
+        else {
+            Ok(())
+        }
+
     }
 }
 
@@ -141,6 +168,9 @@ impl ChartCommand for InsertPoint {
         }
         .into())
     }
+    fn validate(&self,chart: &Chart) -> crate::editing::Result<()> {
+        self.line_path.valid(chart)
+    }
 }
 
 pub struct RemovePoint {
@@ -165,5 +195,17 @@ impl ChartCommand for RemovePoint {
             point,
         }
         .into())
+    }
+    fn validate(&self,chart: &Chart) -> crate::editing::Result<()> {
+        let points_len = self.line_path.get(chart)?.points.len();
+        if points_len < self.point_idx {
+            Err(ChartConflictError::NoSuchPoint {
+                line_path: self.line_path,
+                point: self.point_idx,
+            })
+        }
+        else {
+            Ok(())
+        }
     }
 }

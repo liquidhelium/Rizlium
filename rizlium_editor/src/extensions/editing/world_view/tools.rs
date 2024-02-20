@@ -4,7 +4,7 @@ use bevy::{input::mouse::MouseWheel, math::vec2, prelude::*};
 use egui::Ui;
 use rizlium_chart::{
     chart::{ColorRGBA, EasingId, KeyPoint, Line, LinePointData},
-    editing::commands::{InsertLine, InsertPoint, EditPoint},
+    editing::commands::{EditPoint, InsertLine, InsertPoint, Nop},
 };
 use rizlium_render::GameChart;
 
@@ -181,36 +181,46 @@ fn pencil_tool(
             if matches!(event.event_type, MouseEventType::Click(_)) {
                 // 已经编辑时, 点击可进行下一个的编辑
                 history.submit_preedit();
-                history.push(InsertPoint {
-                    line_path: data.line_idx.into(),
-                    point_idx: None,
-                    point: KeyPoint {
-                        time: to_game.time_at_y(event.pos.y, pencil_config.canvas).unwrap(),
-                        value: event.pos.x,
-                        ease_type: pencil_config.easing,
-                        relevant: LinePointData {
-                            canvas: pencil_config.canvas,
-                            color: color32_to_colorrgba(pencil_config.pen_color),
-                        }
-                    }
-                }, &mut chart).unwrap();
+                history
+                    .push_preedit(
+                        InsertPoint {
+                            line_path: data.line_idx.into(),
+                            point_idx: None,
+                            point: KeyPoint {
+                                time: to_game
+                                    .time_at_y(event.pos.y, pencil_config.canvas)
+                                    .unwrap(),
+                                value: event.pos.x,
+                                ease_type: pencil_config.easing,
+                                relevant: LinePointData {
+                                    canvas: pencil_config.canvas,
+                                    color: color32_to_colorrgba(pencil_config.pen_color),
+                                },
+                            },
+                        },
+                        &mut chart,
+                    )
+                    .unwrap();
+                history.push_preedit(Nop, &mut chart).unwrap();
                 *current_edit = Some(PencilToolEditData {
                     line_idx: data.line_idx,
                     point_idx: chart.lines[data.line_idx].points.len() - 1,
                 })
-
             } else {
                 history
-                    .push_preedit(
+                    .replace_last_preedit(
                         EditPoint {
                             line_path: data.line_idx.into(),
                             point_idx: data.point_idx,
-                            new_time: to_game
-                                .time_at_y(event.pos.y, pencil_config.canvas)
-                                .unwrap(),
-                            new_x: event.pos.x,
+                            new_time: Some(
+                                to_game
+                                    .time_at_y(event.pos.y, pencil_config.canvas)
+                                    .unwrap(),
+                            ),
+                            new_x: Some(event.pos.x),
                             new_canvas: Some(pencil_config.canvas),
-                            new_color: Some(color32_to_colorrgba(pencil_config.pen_color))
+                            new_color: Some(color32_to_colorrgba(pencil_config.pen_color)),
+                            new_easing: Some(pencil_config.easing)
                         },
                         &mut chart,
                     )
@@ -221,21 +231,22 @@ fn pencil_tool(
         {
             let event = &event.event;
             history
-                .push(
+                .push_preedit(
                     InsertLine {
-                        line: Line::new_two_points(
-                            map_to_game(&to_game, event.pos.xy(), pencil_config.canvas),
-                            map_to_game(
+                        line: Line::new_from_points(vec![
+                            get_point(
+                                event.pos,
+                                &pencil_config,
                                 &to_game,
-                                event.pos.xy() + vec2(0., 60.),
-                                pencil_config.canvas,
-                            ),
-                        ),
+                            );
+                            2
+                        ]),
                         at: None,
                     },
                     &mut chart,
                 )
                 .unwrap();
+            history.push_preedit(Nop, &mut chart).unwrap();
             *current_edit = Some(PencilToolEditData {
                 line_idx: chart.lines.len() - 1,
                 point_idx: 1,
@@ -244,13 +255,27 @@ fn pencil_tool(
     }
 }
 
-fn map_to_game(to_game: &WorldToGame, pos: Vec2, canvas: usize) -> [f32; 2] {
-    [
-        to_game.time_at_y(pos.y, canvas).unwrap(), // todo: properly handle non-invertble canvas
-        pos.x,
-    ] // time, value
+fn color32_to_colorrgba(color: egui::Color32) -> ColorRGBA {
+    ColorRGBA::new(
+        color.r() as f32 / 255.,
+        color.g() as f32 / 255.,
+        color.b() as f32 / 255.,
+        color.a() as f32 / 255.,
+    )
 }
 
-fn color32_to_colorrgba(color: egui::Color32) -> ColorRGBA {
-    ColorRGBA::new(color.r() as f32 /255., color.g() as f32 / 255., color.b() as f32 / 255., color.a() as f32 / 255.)
+fn get_point(
+    pos: Vec3,
+    pencil_config: &PencilToolConfig,
+    to_game: &WorldToGame,
+) -> KeyPoint<f32, LinePointData> {
+    KeyPoint {
+        time: to_game.time_at_y(pos.y, pencil_config.canvas).unwrap(),
+        value: pos.x,
+        ease_type: pencil_config.easing,
+        relevant: LinePointData {
+            color: color32_to_colorrgba(pencil_config.pen_color),
+            canvas: pencil_config.canvas,
+        },
+    }
 }

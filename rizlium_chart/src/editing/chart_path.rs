@@ -7,7 +7,7 @@ pub trait ChartPath {
     fn get<'c>(&self, chart: &'c Chart) -> Result<&'c Self::Out>;
     fn get_mut<'c>(&self, chart: &'c mut Chart) -> Result<&'c mut Self::Out>;
     fn remove(&self, chart: &mut Chart) -> Result<Self::Out>;
-    fn valid(&self, chart: &Chart) -> bool;
+    fn valid(&self, chart: &Chart) -> Result<()>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,10 +42,15 @@ impl ChartPath for NotePath {
             .then(|| line.notes.remove(self.1))
             .ok_or(ChartConflictError::InvalidNotePath { note_path: *self })
     }
-    fn valid(&self, chart: &Chart) -> bool {
-        self.0
-            .get(chart)
-            .is_ok_and(|line| line.notes.len() > self.1)
+    fn valid(&self, chart: &Chart) -> Result<()> {
+        let line = self.0
+            .get(chart)?;
+        if line.notes.len() > self.1 {
+            Ok(())
+        }
+        else {
+            Err(ChartConflictError::InvalidNotePath { note_path: *self })
+        }
     }
 }
 
@@ -78,8 +83,13 @@ impl ChartPath for LinePath {
             .then(|| chart.lines.remove(self.0))
             .ok_or(ChartConflictError::InvalidLinePath { line_path: *self })
     }
-    fn valid(&self, chart: &Chart) -> bool {
-        chart.lines.len() > self.0
+    fn valid(&self, chart: &Chart) -> Result<()> {
+        if chart.lines.len() > self.0 {
+            Ok(())
+        }
+        else {
+            Err(ChartConflictError::InvalidLinePath { line_path: *self })
+        }
     }
 }
 

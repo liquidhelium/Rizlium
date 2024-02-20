@@ -1,3 +1,5 @@
+use std::mem::replace;
+
 use super::*;
 
 #[cfg(feature = "deserialize")]
@@ -26,32 +28,19 @@ pub struct LinePointData {
 }
 
 impl Line {
-    pub fn new_two_points(pos1: [f32; 2], pos2: [f32; 2]) -> Self {
-        let (former, latter) = if pos1[0] > pos2[0] {
-            (pos2, pos1)
-        } else {
-            (pos1, pos2)
-        };
+    pub fn new_from_points(points: impl IntoIterator<Item = KeyPoint<f32, LinePointData>>) -> Self {
+        let mut points: Vec<_> = points.into_iter().collect();
+        points.iter_mut().fold(f32::NEG_INFINITY, |lower_limit, point| {
+            let src = point.time.max(lower_limit);
+            replace(&mut point.time, src)
+        });
         Self {
             points: Spline {
-                points: vec![
-                    KeyPoint::from_slice(
-                        former,
-                        EasingId::Linear,
-                        LinePointData {
-                            canvas: 0,
-                            color: ColorRGBA::BLACK,
-                        },
-                    ),
-                    KeyPoint::from_slice(latter, EasingId::Linear, LinePointData {
-                        canvas: 0,
-                        color: ColorRGBA::BLACK,
-                    }),
-                ],
+                points
             },
-            line_color: Spline::EMPTY,
             notes: vec![],
             ring_color: Spline::EMPTY,
+            line_color: Spline::EMPTY
         }
     }
 }
