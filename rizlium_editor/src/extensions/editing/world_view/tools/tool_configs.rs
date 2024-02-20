@@ -1,10 +1,13 @@
 use bevy::prelude::*;
+use rizlium_chart::chart::EasingId;
 use strum::IntoEnumIterator;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use egui::{Slider, Ui};
 use rizlium_render::GameChart;
+
+use crate::widgets::enum_selector;
 
 use super::Tool;
 
@@ -61,7 +64,9 @@ impl ToolConfig for PencilToolConfig {
 
 #[derive(Resource, Default)]
 pub struct PencilToolConfig {
-    pub(crate) canvas: usize,
+    pub canvas: usize,
+    pub pen_color: egui::Color32,
+    pub easing: EasingId
 }
 
 impl PencilToolConfig {
@@ -80,6 +85,10 @@ impl PencilToolConfig {
                 &mut this.canvas,
                 0..=(chart.canvases.len() - 1),
             ));
+            uil.label("Color: ");
+            uir.color_edit_button_srgba(&mut this.pen_color);
+            uil.label("Easing");
+            enum_selector(&mut this.easing, uir);
         })
     }
 }

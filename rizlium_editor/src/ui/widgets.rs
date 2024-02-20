@@ -10,6 +10,8 @@ use bevy::{
     prelude::*,
 };
 use egui::Ui;
+use strum::IntoEnumIterator;
+use std::fmt::Debug;
 pub trait WidgetSystem: SystemParam + 'static {
     type Extra<'a>;
     fn system(
@@ -41,3 +43,14 @@ pub fn widget_with<W: WidgetSystem>(world: &mut World, ui: &mut Ui, extra: W::Ex
 
 #[derive(Resource)]
 struct CachedWidgetState<W: SystemParam + 'static>(SystemState<W>);
+
+pub fn enum_selector<T: IntoEnumIterator + Eq + Debug>(value: &mut T, ui: &mut Ui) {
+    ui.menu_button(format!("{value:?}"), |ui| {
+        for variant in T::iter() {
+            let text = format!("{variant:?}");
+            if ui.selectable_value(value, variant, text).changed() {
+                ui.close_menu();
+            };
+        }
+    });
+}

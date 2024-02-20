@@ -8,6 +8,7 @@ use simple_easing::*;
 use serde::Deserialize;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
+use strum::EnumIter;
 
 #[macro_export]
 macro_rules! tween {
@@ -370,7 +371,7 @@ const EASING_MAP: [Easing; 16] = [
     },
 ];
 
-#[derive(IntoPrimitive, TryFromPrimitive, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(IntoPrimitive, TryFromPrimitive, Clone, Copy, Debug, Default, PartialEq, Eq, EnumIter)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[repr(u8)]

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use egui::Ui;
-use strum::IntoEnumIterator;
-use std::fmt::Debug;
+
+use crate::widgets::enum_selector;
 
 use super::world_view::tools::Tool;
 
@@ -13,13 +13,4 @@ pub fn tool_config(In(ui): In<&mut Ui>, world: &mut World) {
     world.resource_scope(|world, tool: Mut<'_, Tool>| tool.config_ui(ui, world));
 }
 
-fn enum_selector<T: IntoEnumIterator + Eq + Debug>(value: &mut T, ui: &mut Ui) {
-    ui.menu_button(format!("{value:?}"), |ui| {
-        for variant in T::iter() {
-            let text = format!("{variant:?}");
-            if ui.selectable_value(value, variant, text).changed() {
-                ui.close_menu();
-            };
-        }
-    });
-}
+
