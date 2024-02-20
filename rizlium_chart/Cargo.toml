@@ -13,6 +13,7 @@ serde = {version = "1.0", optional = true, features = ["derive"]}
 num_enum = "0.7"
 strum = {version = "0.26", features = ["derive"]}
 enum_dispatch = {version = "*", optional = true}
+replace_with = "*"
 
 [dev-dependencies]
 serde_json = "*"

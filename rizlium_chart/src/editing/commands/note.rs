@@ -23,6 +23,9 @@ impl ChartCommand for ChangeNoteTime {
         }
         .into())
     }
+    fn validate(&self,chart: &Chart) -> Result<()> {
+        self.note_path.valid(chart)
+    }
 }
 
 pub struct InsertNote {
@@ -41,6 +44,9 @@ impl ChartCommand for InsertNote {
             note_path: NotePath(line, at_clamped),
         }
         .into())
+    }
+    fn validate(&self,chart: &Chart) -> Result<()> {
+        self.line.valid(chart)
     }
 }
 
@@ -61,6 +67,9 @@ impl ChartCommand for RemoveNote {
             at: Some(note_idx),
         }
         .into())
+    }
+    fn validate(&self,chart: &Chart) -> Result<()> {
+        self.note_path.valid(chart)
     }
 }
 #[cfg(test)]
