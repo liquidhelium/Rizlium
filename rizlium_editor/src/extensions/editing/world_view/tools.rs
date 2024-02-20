@@ -4,7 +4,7 @@ use bevy::{input::mouse::MouseWheel, math::vec2, prelude::*};
 use egui::Ui;
 use rizlium_chart::{
     chart::{ColorRGBA, EasingId, KeyPoint, Line, LinePointData},
-    editing::commands::{InsertLine, InsertPoint, MovePoint},
+    editing::commands::{InsertLine, InsertPoint, EditPoint},
 };
 use rizlium_render::GameChart;
 
@@ -187,10 +187,10 @@ fn pencil_tool(
                     point: KeyPoint {
                         time: to_game.time_at_y(event.pos.y, pencil_config.canvas).unwrap(),
                         value: event.pos.x,
-                        ease_type: EasingId::Linear,
+                        ease_type: pencil_config.easing,
                         relevant: LinePointData {
                             canvas: pencil_config.canvas,
-                            color: ColorRGBA::BLACK,
+                            color: color32_to_colorrgba(pencil_config.pen_color),
                         }
                     }
                 }, &mut chart).unwrap();
@@ -202,7 +202,7 @@ fn pencil_tool(
             } else {
                 history
                     .push_preedit(
-                        MovePoint {
+                        EditPoint {
                             line_path: data.line_idx.into(),
                             point_idx: data.point_idx,
                             new_time: to_game
@@ -210,6 +210,7 @@ fn pencil_tool(
                                 .unwrap(),
                             new_x: event.pos.x,
                             new_canvas: Some(pencil_config.canvas),
+                            new_color: Some(color32_to_colorrgba(pencil_config.pen_color))
                         },
                         &mut chart,
                     )
@@ -248,4 +249,8 @@ fn map_to_game(to_game: &WorldToGame, pos: Vec2, canvas: usize) -> [f32; 2] {
         to_game.time_at_y(pos.y, canvas).unwrap(), // todo: properly handle non-invertble canvas
         pos.x,
     ] // time, value
+}
+
+fn color32_to_colorrgba(color: egui::Color32) -> ColorRGBA {
+    ColorRGBA::new(color.r() as f32 /255., color.g() as f32 / 255., color.b() as f32 / 255., color.a() as f32 / 255.)
 }

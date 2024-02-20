@@ -1,6 +1,7 @@
 use bevy::{prelude::*, render::view::RenderLayers, math::Ray3d};
 use bevy_mod_raycast::immediate::{Raycast, RaycastSettings};
 use rizlium_render::ChartLine;
+use strum::EnumIs;
 
 use super::WorldCam;
 
@@ -34,7 +35,7 @@ pub struct MouseEvent {
     pub pos: Vec3,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, EnumIs)]
 pub enum MouseEventType {
     Hover,
     Click(ClickEventType),
