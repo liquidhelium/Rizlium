@@ -7,4 +7,29 @@ edition = "2021"
 
 [dependencies]
 rizlium_render = {path = "../rizlium_render"}
-ffmpeg-next = "6.1"
+bevy = {version = "0.13", features = [
+    # "animation",
+    "bevy_asset",
+    # "bevy_scene",
+    "bevy_winit",
+    "bevy_core_pipeline",
+    # "bevy_pbr",
+    # "bevy_gltf",
+    "bevy_render",
+    "bevy_sprite",
+    "png",
+    "hdr",
+    "zstd",
+    "x11",
+    "ktx2",
+    # "filesystem_watcher",
+    "tonemapping_luts",
+    "webgl2",
+    "wayland",
+    "multi-threaded",
+]}
+ffmpeg-sidecar = "*"
+futures = "0.3"
+futures-lite = "2.1"
+async-fs = "*"
+libc = "*"

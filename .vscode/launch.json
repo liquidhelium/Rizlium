@@ -16,6 +16,18 @@
             },
             "args": []
         },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Cargo launch renderer",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--package=rizlium_video_renderer",
+                ]
+            },
+            "args": []
+        },
 
         {
             "type": "lldb",

@@ -13,6 +13,7 @@ use rizlium_chart::{chart::Chart, prelude::ColorRGBA};
 pub use masks::MASK_LAYER;
 use theme::BackgroundThemePlugin;
 pub use time_and_audio::TimeManager;
+pub use rizlium_chart;
 
 // 长类型让我抓狂
 #[macro_export]
