@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File}, io::{stdout, Read, Write}, mem, ops::Deref, path::Path, process::{Child, ChildStderr, ChildStdin, Stdio}, sync::{Arc, Mutex}
+    io::{Read, Write}, ops::Deref, process::{ChildStderr, ChildStdin, Stdio}
 };
 
 use bevy::{
@@ -7,7 +7,6 @@ use bevy::{
     ecs::system::lifetimeless::SRes,
     prelude::*,
     render::{
-        camera::RenderTarget,
         graph::CameraDriverLabel,
         render_asset::{RenderAsset, RenderAssetPlugin, RenderAssetUsages, RenderAssets},
         render_graph::{Node, RenderGraph, RenderLabel},
@@ -22,6 +21,7 @@ use bevy::{
 };
 use ffmpeg_sidecar::command::FfmpegCommand;
 use futures::channel::oneshot;
+use rizlium_render::{GameView, TimeManager};
 
 fn main() {
     let mut ffmpeg = FfmpegCommand::new();
@@ -51,12 +51,12 @@ fn main() {
         .register_type::<VideoTexture>()
         .init_asset::<VideoTexture>()
         .register_asset_reflect::<VideoTexture>()
-        .add_plugins(RenderAssetPlugin::<VideoTexture>::default())
-        .add_systems(Startup, setup_game_view)
         .add_plugins(rizlium_render::RizliumRenderingPlugin {
             config: (),
             init_with_chart: Some(rizlium_render::rizlium_chart::test_resources::CHART.deref().clone())
-        });
+        })
+        .add_plugins(RenderAssetPlugin::<VideoTexture>::default())
+        .add_systems(PostStartup, setup_game_view);
     let render = app_mut.sub_app_mut(RenderApp);
     render
         .add_systems(
@@ -81,6 +81,7 @@ fn setup_game_view(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
     mut textured: ResMut<Assets<VideoTexture>>,
+    mut time: ResMut<TimeManager>
 ) {
     let size = Extent3d {
         width: 1080,
@@ -108,13 +109,8 @@ fn setup_game_view(
     let image_handle = images.add(image);
     let handle = textured.add(VideoTexture(image_handle.clone()));
     commands.insert_resource(VideoTextureStorage(handle));
-    commands.spawn(Camera2dBundle {
-        camera: Camera {
-            target: RenderTarget::Image(image_handle),
-            ..default()
-        },
-        ..default()
-    });
+    commands.insert_resource(GameView(image_handle));
+    time.set_paused(false);
 }
 
 #[derive(Resource)]
@@ -125,9 +121,7 @@ fn test(
     render_device: Res<RenderDevice>,
     mut ffmpeg: ResMut<FfmpegIn>,
 ) {
-    info!("running test");
     for (_, asset) in sources.iter() {
-        info!("running test in iteration");
         let mut bytes = {
             let slice = asset.buffer.slice(..);
             {
@@ -142,10 +136,8 @@ fn test(
             }
             slice.get_mapped_range().to_vec()
         };
-        info!("got bytes");
         // 每次用完还得还
         asset.buffer.unmap();
-        info!("unmapped");
         let bytes_per_row = asset.bytes_per_row as usize;
         let padded_bytes_per_row = asset.padded_bytes_per_row as usize;
         let source_size = asset.source_size;
