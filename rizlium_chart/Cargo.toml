@@ -14,6 +14,8 @@ num_enum = "0.7"
 strum = {version = "0.26", features = ["derive"]}
 enum_dispatch = {version = "*", optional = true}
 replace_with = "*"
+serde_json = "*"
+static_init = "*"
 
 [dev-dependencies]
 serde_json = "*"
