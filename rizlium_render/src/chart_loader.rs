@@ -43,6 +43,7 @@ pub struct ChartInfo {
 pub enum ChartFormat {
     #[default]
     Rizline,
+    Rizlium,
 }
 
 #[derive(Event)]
@@ -82,62 +83,28 @@ pub enum ChartLoadingError {
 
 fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
     let r: Task<Result<BundledGameChart, _>> = IoTaskPool::get().spawn(async {
-        #[cfg(feature = "trace")]
-        let span = info_span!("load chart");
-        #[cfg(feature = "trace")]
-        let _enter = span.enter();
         let mut file = async_fs::read(path).await.context(ReadingFileFailedSnafu)?;
         let mut res = ZipArchive::new(Cursor::new(file.as_mut_slice())).context(UnzipFileFailedSnafu)?;
-        #[cfg(feature = "trace")]
-        let span = info_span!("load info");
-        #[cfg(feature = "trace")]
-        let _enter = span.enter();
         let info_file = res.by_name("info.yml").context(NoFileInZipSnafu { file_name: "info.yml"})?;
         let info: ChartInfo = serde_yaml::from_reader(info_file).context(FileFormatInvalidSnafu)?;
-        #[cfg(feature = "trace")]
-        drop(_enter);
-        #[cfg(feature = "trace")]
-        let span = info_span!("load chart it self");
-        #[cfg(feature = "trace")]
-        let _enter = span.enter();
         let chart_path = &info.chart_path;
         let music_path = &info.music_path;
-        #[cfg(feature = "trace")]
-        let span = info_span!("Deserialize chart");
-        #[cfg(feature = "trace")]
-        let _enter1 = span.enter();
-        let chart: RizlineChart =
-            serde_yaml::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {file_name: chart_path.clone()})?).context(FileFormatInvalidSnafu)?;
-        #[cfg(feature = "trace")]
-        drop(_enter1);
-        #[cfg(feature = "trace")]
-        let span = info_span!("Convert chart");
-        #[cfg(feature = "trace")]
-        let _enter1 = span.enter();
-        let chart: Chart = chart.try_into().context(ChartConvertingFailedSnafu)?;
-        #[cfg(feature = "trace")]
-        drop(_enter1);
-        #[cfg(feature = "trace")]
-        drop(_enter);
-        #[cfg(feature = "trace")]
-        let span = info_span!("load music");
-        #[cfg(feature = "trace")]
-        let _enter = span.enter();
-        #[cfg(feature = "trace")]
-        let span = info_span!("extract music");
-        #[cfg(feature = "trace")]
-        let _enter1 = span.enter();
+        let chart: Chart = match info.format {
+            ChartFormat::Rizline => {
+
+                let chart: RizlineChart =
+                    serde_yaml::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {file_name: chart_path.clone()})?).context(FileFormatInvalidSnafu)?;
+                chart.try_into().context(ChartConvertingFailedSnafu)?
+            },
+            ChartFormat::Rizlium => {
+                serde_yaml::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {file_name: chart_path.clone()})?).context(FileFormatInvalidSnafu)?
+            }
+        };
         let mut sound_data = Vec::new();
         res.by_name(music_path)
             .context(NoFileInZipSnafu {file_name: music_path.clone()})?
             .read_to_end(&mut sound_data)
             .context(ReadingFileFailedSnafu)?;
-        #[cfg(feature = "trace")]
-        drop(_enter1);
-        #[cfg(feature = "trace")]
-        let span = info_span!("create music");
-        #[cfg(feature = "trace")]
-        let _enter1 = span.enter();
         let music = bevy_kira_audio::AudioSource {
             sound: StaticSoundData::from_cursor(
                 Cursor::new(sound_data),
@@ -145,14 +112,6 @@ fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
             )
             .context(MusicConvertingFailedSnafu)?,
         };
-        #[cfg(feature = "trace")]
-        drop(_enter1);
-        #[cfg(feature = "trace")]
-        drop(_enter);
-
-        //     }
-        //     _ => unreachable!("Bevy should guarantee the extension"),
-        // };
         Ok(BundledGameChart {
             music,
             chart,

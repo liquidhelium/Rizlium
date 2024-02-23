@@ -59,6 +59,7 @@ pub(crate) fn colorrgba_to_color(color: ColorRGBA) -> Color {
 pub struct RizliumRenderingPlugin {
     pub config: (),
     pub init_with_chart: Option<Chart>,
+    pub manual_time_control: bool,
 }
 
 impl Plugin for RizliumRenderingPlugin {
@@ -71,8 +72,10 @@ impl Plugin for RizliumRenderingPlugin {
                 ShapePlugin,
                 TypeRegisterPlugin,
                 ChartCachePlugin,
-                TimeAndAudioPlugin,
                 line_rendering::ChartLinePlugin,
+                TimeAndAudioPlugin {
+                    manual_time_control: self.manual_time_control,
+                },
                 BackgroundThemePlugin,
                 ChartLoadingPlugin,
                 ChartNotePlugin,

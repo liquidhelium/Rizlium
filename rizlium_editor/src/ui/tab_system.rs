@@ -2,7 +2,7 @@ use bevy::{ecs::schedule::BoxedCondition, prelude::*, utils::HashMap};
 use egui::Ui;
 use snafu::Snafu;
 
-use crate::{utils::dot_path::DotPath, RizDockState};
+use crate::{utils::{dot_path::DotPath, new_condition}, RizDockState};
 pub type TabId = DotPath;
 
 pub struct TabStorage {
@@ -110,18 +110,6 @@ impl TabRegistrationExt for App {
         self
     }
 }
-
-fn new_condition<M>(condition: impl Condition<M>) -> BoxedCondition {
-    let condition_system = IntoSystem::into_system(condition);
-    assert!(
-        condition_system.is_send(),
-        "Condition `{}` accesses `NonSend` resources. This is not currently supported.",
-        condition_system.name()
-    );
-
-    Box::new(condition_system)
-}
-
 pub struct TabPlugin;
 
 impl Plugin for TabPlugin {

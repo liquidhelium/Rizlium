@@ -11,7 +11,7 @@ use bevy_egui::EguiOutput;
 use dyn_clone::DynClone;
 use smallvec::SmallVec;
 
-use crate::{ActionId, ActionRegistry};
+use crate::{utils::new_condition, ActionId, ActionRegistry};
 
 pub trait Action: DynClone + Sync + Send + 'static {
     fn run(&self, world: &mut World);
@@ -81,17 +81,6 @@ pub struct Hotkey {
     pub trigger_type: TriggerType,
     pub trigger_when: BoxedCondition,
     pub key: SmallVec<[KeyCode; 4]>,
-}
-
-fn new_condition<M>(condition: impl Condition<M>) -> BoxedCondition {
-    let condition_system = IntoSystem::into_system(condition);
-    assert!(
-        condition_system.is_send(),
-        "Condition `{}` accesses `NonSend` resources. This is not currently supported.",
-        condition_system.name()
-    );
-
-    Box::new(condition_system)
 }
 const fn always() -> bool {
     true
