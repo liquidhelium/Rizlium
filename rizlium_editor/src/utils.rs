@@ -1,4 +1,4 @@
-use bevy::ecs::system::{Res, SystemParam};
+use bevy::ecs::{schedule::{BoxedCondition, Condition}, system::{IntoSystem, Res, SystemParam, System,}};
 use rizlium_render::{GameChartCache, GameTime};
 
 pub mod dot_path;
@@ -17,4 +17,15 @@ impl WorldToGame<'_> {
     pub fn avalible(&self) -> bool {
         self.cache.is_some() && self.time.is_some()
     }
+}
+
+pub fn new_condition<M>(condition: impl Condition<M>) -> BoxedCondition {
+    let condition_system = IntoSystem::into_system(condition);
+    assert!(
+        condition_system.is_send(),
+        "Condition `{}` accesses `NonSend` resources. This is not currently supported.",
+        condition_system.name()
+    );
+
+    Box::new(condition_system)
 }

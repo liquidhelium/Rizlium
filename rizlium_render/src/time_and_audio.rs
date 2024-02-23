@@ -29,13 +29,20 @@ pub struct TimeManager {
     now: f32,
 }
 
-pub struct TimeAndAudioPlugin;
+pub struct TimeAndAudioPlugin {
+    pub manual_time_control: bool,
+}
+
+#[derive(Resource, Default)]
+pub struct ManualGameTime(f32);
 
 impl Plugin for TimeAndAudioPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(bevy_kira_audio::AudioPlugin)
-            .init_resource::<GameTime>()
-            .add_event::<TimeControlEvent>()
+            .init_resource::<GameTime>();
+            
+        if !self.manual_time_control {
+            app.add_event::<TimeControlEvent>()
             .add_systems(Startup, init_time_manager)
             .add_systems(
                 Update,
@@ -52,7 +59,16 @@ impl Plugin for TimeAndAudioPlugin {
                     ),
                 ),
             );
+        }
+        else {
+            app.init_resource::<ManualGameTime>()
+                .add_systems(PreUpdate, update_gametime_manual);
+
+        }
     }
+}
+fn update_gametime_manual(cache: Res<GameChartCache>, time: Res<ManualGameTime>, mut game_time: ResMut<GameTime>) {
+    *game_time = GameTime(cache.map_time(time.0));
 }
 #[derive(Event, Debug, Reflect)]
 pub enum TimeControlEvent {

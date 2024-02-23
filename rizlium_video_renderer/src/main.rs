@@ -1,5 +1,10 @@
 use std::{
-    io::{Read, Write}, ops::Deref, process::{ChildStderr, ChildStdin, Stdio}
+    borrow::Cow,
+    io::{Read, Write},
+    ops::Deref,
+    process::{ChildStderr, ChildStdin, Stdio},
+    sync::mpsc::{channel, Receiver},
+    thread::{self, JoinHandle},
 };
 
 use bevy::{
@@ -17,13 +22,105 @@ use bevy::{
         renderer::RenderDevice,
         Render, RenderApp, RenderSet,
     },
+    tasks::ComputeTaskPool,
+    window::PrimaryWindow,
     winit::WinitPlugin,
 };
+use bevy_egui::{EguiContext, EguiPlugin};
 use ffmpeg_sidecar::command::FfmpegCommand;
 use futures::channel::oneshot;
 use rizlium_render::{GameView, TimeManager};
 
 fn main() {
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_plugins(EguiPlugin)
+        .add_systems(Update, main_ui)
+        .add_systems(PostUpdate, start_rendering)
+        .run();
+}
+
+fn main_ui(mut context: Query<&mut EguiContext, With<PrimaryWindow>>) {
+    let mut binding = context.single_mut();
+    let ctx = binding.get_mut();
+    egui::CentralPanel::default().show(ctx, |ui| {
+        ui.heading("Rizlium video renderer");
+        ui.label("todo...");
+        if ui.button("test").clicked() {
+            todo!("emit a event to start rendering")
+        }
+    });
+}
+
+#[derive(Event)]
+struct RenderingStartRequested;
+
+struct RendererState {
+    current_rendering_thread: Option<RenderingData>,
+}
+
+struct RenderingData {
+    thread_handle: JoinHandle<()>,
+    event_reciever: Receiver<Cow<'static, str>>,
+}
+
+fn start_rendering(
+    mut events: EventReader<RenderingStartRequested>,
+    mut state: NonSendMut<RendererState>,
+) {
+    if events.is_empty() {
+        return;
+    }
+    events.clear();
+    if state
+        .current_rendering_thread
+        .as_ref()
+        .is_some_and(|handle| handle.thread_handle.is_finished())
+    {
+        state.current_rendering_thread = None;
+    } else {
+        error!("Already rendering.");
+    }
+    let (sender, reciever) = channel::<Cow<'static, str>>();
+    let handle = thread::spawn(move || {
+        let app = get_inner_app();
+        let mut ffmpeg = FfmpegCommand::new();
+        ffmpeg
+            .overwrite()
+            .format("rawvideo")
+            .hwaccel("auto")
+            .size(1080, 1920)
+            .rate(60.0)
+            .pix_fmt("bgra")
+            .input("-")
+            .duration("10s")
+            .output("video.mp4")
+            .codec_video("libx264")
+            .print_command(); // todo: use config structure
+        
+    });
+    state.current_rendering_thread = Some(RenderingData {
+        thread_handle: handle,
+        event_reciever: reciever,
+    })
+}
+
+fn get_inner_app() -> App {
+    let mut app = App::new();
+    let app_mut = app
+        .add_plugins(DefaultPlugins.build().disable::<WinitPlugin>())
+        .register_type::<VideoTexture>()
+        .init_asset::<VideoTexture>()
+        .register_asset_reflect::<VideoTexture>()
+        .add_plugins(RenderAssetPlugin::<VideoTexture>::default());
+    let render = app_mut.sub_app_mut(RenderApp);
+    let mut graph = render.world.get_resource_mut::<RenderGraph>().unwrap();
+    graph.add_node(VideoNodeLabel, VideoRenderNode);
+    graph.add_node_edge(CameraDriverLabel, VideoNodeLabel);
+    app
+}
+
+fn _old_main() {
     let mut ffmpeg = FfmpegCommand::new();
     ffmpeg
         .overwrite()
@@ -53,23 +150,16 @@ fn main() {
         .register_asset_reflect::<VideoTexture>()
         .add_plugins(rizlium_render::RizliumRenderingPlugin {
             config: (),
-            init_with_chart: Some(rizlium_render::rizlium_chart::test_resources::CHART.deref().clone())
+            init_with_chart: Some(
+                rizlium_render::rizlium_chart::test_resources::CHART
+                    .deref()
+                    .clone(),
+            ),
+            manual_time_control: true
         })
         .add_plugins(RenderAssetPlugin::<VideoTexture>::default())
         .add_systems(PostStartup, setup_game_view);
-    let render = app_mut.sub_app_mut(RenderApp);
-    render
-        .add_systems(
-            Render,
-            test.after(RenderSet::Render).before(RenderSet::Cleanup),
-        )
-        .insert_resource(FfmpegIn((stdin, stderr, 0)));
-    let mut graph = render.world.get_resource_mut::<RenderGraph>().unwrap();
-    graph.add_node(VideoNodeLabel, VideoRenderNode);
-    graph.add_node_edge(CameraDriverLabel, VideoNodeLabel);
-    for _ in 0..100 {
-        app.run();
-    }
+
     drop(app);
     ffmpeg.wait().unwrap();
 }
@@ -81,7 +171,7 @@ fn setup_game_view(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
     mut textured: ResMut<Assets<VideoTexture>>,
-    mut time: ResMut<TimeManager>
+    mut time: ResMut<TimeManager>,
 ) {
     let size = Extent3d {
         width: 1080,
@@ -153,7 +243,11 @@ fn test(
         }
         let inside = &mut ffmpeg.0;
         info!("writing {}", inside.2);
-        inside.0.write_all(&bytes).map_err(|err| error!("{err}")).ok();
+        inside
+            .0
+            .write_all(&bytes)
+            .map_err(|err| error!("{err}"))
+            .ok();
         inside.0.flush().map_err(|err| error!("{err}")).ok();
         info!("frame {} finished", inside.2);
         inside.2 += 1;

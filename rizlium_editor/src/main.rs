@@ -40,6 +40,7 @@ fn main() {
             RizliumRenderingPlugin {
                 config: (),
                 init_with_chart: None,
+                manual_time_control: false
             },
             NotificationPlugin,
             CountFpsPlugin,
