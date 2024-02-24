@@ -25,3 +25,7 @@ You're right, but this is an editor. (?)
 
  ## MSRV
    bevy 0.13 及以上需要 rustc 1.76 及以上, 请使用足够新的rust编译器.
+
+> Don't expect this to go anywhere.
+>
+> 时间原因尚未实现一堆功能（
