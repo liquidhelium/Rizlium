@@ -1,4 +1,4 @@
-use std::{borrow::Cow, io::{Cursor, Read}};
+use std::{borrow::Cow, io::{Cursor, Read}, error::Error};
 
 use bevy::{
     prelude::{ResMut, *},
@@ -80,8 +80,11 @@ pub enum ChartLoadingError {
         file_name: Cow<'static, str>,
         source: zip::result::ZipError,
     },
-    FileFormatInvalid {
-        source: serde_yaml::Error,
+    ChartFormatInvalid {
+        source: serde_json::Error,
+    },
+    InfoFormatInvalid {
+        source: serde_yaml::Error
     },
     ChartConvertingFailed {
         source: rizlium_chart::parse::ConvertError,
@@ -96,18 +99,18 @@ fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
         let mut file = async_fs::read(path.clone()).await.context(ReadingFileFailedSnafu)?;
         let mut res = ZipArchive::new(Cursor::new(file.as_mut_slice())).context(UnzipFileFailedSnafu)?;
         let info_file = res.by_name("info.yml").context(NoFileInZipSnafu { file_name: "info.yml"})?;
-        let info: ChartInfo = serde_yaml::from_reader(info_file).context(FileFormatInvalidSnafu)?;
+        let info: ChartInfo = serde_yaml::from_reader(info_file).context(InfoFormatInvalidSnafu)?;
         let chart_path = &info.chart_path;
         let music_path = &info.music_path;
         let chart: Chart = match info.format {
             ChartFormat::Rizline => {
 
                 let chart: RizlineChart =
-                    serde_yaml::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {file_name: chart_path.clone()})?).context(FileFormatInvalidSnafu)?;
+                    serde_json::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {file_name: chart_path.clone()})?).context(ChartFormatInvalidSnafu)?;
                 chart.try_into().context(ChartConvertingFailedSnafu)?
             },
             ChartFormat::Rizlium => {
-                serde_yaml::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {file_name: chart_path.clone()})?).context(FileFormatInvalidSnafu)?
+                serde_json::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {file_name: chart_path.clone()})?).context(ChartFormatInvalidSnafu)?
             }
         };
         let mut sound_data = Vec::new();
