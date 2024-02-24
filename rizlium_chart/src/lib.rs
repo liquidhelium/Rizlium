@@ -27,7 +27,7 @@ pub mod prelude {
 pub mod test_resources {
     use crate::prelude::{Chart, RizlineChart};
     use serde_json::from_str;
-    const CHART_TEXT: &str = include_str!("../../assets/take.json");
+    const CHART_TEXT: &str = "todo: this chart was removed, but this test isn't";
     #[static_init::dynamic]
     pub static CHART: Chart = from_str::<RizlineChart>(CHART_TEXT)
         .unwrap()
