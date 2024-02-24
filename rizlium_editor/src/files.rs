@@ -2,21 +2,21 @@ use bevy::{
     prelude::*,
     tasks::{IoTaskPool, Task},
 };
-use futures_lite::future;
+use futures_lite::{future, AsyncWriteExt};
 use indexmap::IndexSet;
 use rfd::AsyncFileDialog;
 use serde::{Deserialize, Serialize};
 
 use crate::{notification::ToastsStorage, EditorCommands};
-use rizlium_render::LoadChartErrorEvent;
-
+use rizlium_render::{ChartLoadingEvent, GameChart};
 
 pub struct FilePlugin;
 
 impl Plugin for FilePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PendingDialog>()
-            .add_systems(PostUpdate, (open_chart, report_error));
+            .init_resource::<PendingSave>()
+            .add_systems(PostUpdate, (open_chart, report_error_or_add_current, poll_pending_save.run_if(|res: Res<PendingSave>| res.0.is_some())));
     }
 }
 
@@ -35,7 +35,10 @@ pub fn open_dialog(container: &mut PendingDialog) {
     }));
 }
 
-fn open_chart(mut dialog: ResMut<PendingDialog>, mut editor_command: EditorCommands) {
+fn open_chart(
+    mut dialog: ResMut<PendingDialog>,
+    mut editor_command: EditorCommands,
+) {
     if let Some(chart) = dialog
         .0
         .as_mut()
@@ -48,10 +51,80 @@ fn open_chart(mut dialog: ResMut<PendingDialog>, mut editor_command: EditorComma
     }
 }
 
-fn report_error(mut events: EventReader<LoadChartErrorEvent>, mut toasts: ResMut<ToastsStorage>) {
+fn report_error_or_add_current(
+    mut commands: Commands,
+    mut events: EventReader<ChartLoadingEvent>,
+    mut toasts: ResMut<ToastsStorage>,
+) {
     for event in events.read() {
-        toasts.error(format!("Failed while loading chart: {:?}", event.0));
+        match event {
+            ChartLoadingEvent::Error(err) => {
+                toasts.error(format!("Failed while loading chart: {:?}", err));
+            }
+            ChartLoadingEvent::Success(path) => {
+                toasts.success("Chart loaded");
+                commands.insert_resource(CurrentChartPath(path.clone()));
+            }
+        }
     }
+}
+
+#[derive(Resource, Deref)]
+pub struct CurrentChartPath(String);
+
+
+pub fn save_chart(
+    chart: Option<Res<GameChart>>,
+    current_path: Option<Res<CurrentChartPath>>,
+    mut toasts: ResMut<ToastsStorage>,
+    mut save: ResMut<PendingSave>,
+) {
+    let (Some(chart), Some(current_path)) = (chart, current_path) else {
+        toasts.error(
+            "No chart loaded",
+        );
+        return;
+    };
+    let path = std::path::Path::new(&**current_path);
+    let Some(parent) = path.parent() else {
+        toasts.error(
+            "Failed while saving chart: target path have no parent \n This is probably a bug",
+        );
+        return;
+    };
+    let name = path
+        .file_name()
+        .map(|inner| inner.to_string_lossy())
+        .unwrap_or(std::borrow::Cow::Borrowed("chart"));
+    let target = parent.join(name.into_owned() + ".rzl");
+    let owned_chart = (**chart).clone();
+    let task: Task<Result<(), Box<dyn std::error::Error + Send + Sync>>>= IoTaskPool::get().spawn(async move {
+        let mut file = async_fs::File::create(target).await?;
+        let serialized = serde_json::to_vec(&owned_chart)?;
+        file.write_all(&serialized).await?;
+        file.close().await?;
+        Ok(())
+    });
+    save.0 = Some(task);
+}
+
+#[derive(Resource, Default)]
+pub struct PendingSave(Option<Task<Result<(), Box<dyn std::error::Error + Send + Sync>>>>);
+
+fn poll_pending_save(mut save: ResMut<PendingSave>, mut toasts: ResMut<ToastsStorage>) {
+    let Some(result) = save
+    .0
+    .as_mut()
+    .and_then(|c| futures_lite::future::block_on(futures_lite::future::poll_once(c))) else {
+        return;
+    };
+    save.0 = None;
+    match result {
+        Ok(()) => toasts.success("Chart saved!"),
+        Err(err) => toasts.error(format!("error encountered while saving chart: {err}"))
+    };
+    
+
 }
 
 #[derive(Resource, Serialize, Deserialize, Debug, Deref)]
