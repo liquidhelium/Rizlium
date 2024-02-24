@@ -4,7 +4,7 @@ mod game;
 mod editing;
 mod inspector;
 
-use bevy::prelude::{App, Deref, DerefMut, Plugin, Resource};
+use bevy::{ecs::world::World, prelude::{App, Deref, DerefMut, Plugin, Resource}};
 use snafu::Snafu;
 
 use crate::menu::{
@@ -31,6 +31,7 @@ pub trait MenuExt {
 
 pub struct MenuContext<'w> {
     item: ItemAsContainer<'w>,
+    world: &'w mut World
 }
 
 impl MenuContext<'_> {
@@ -48,6 +49,7 @@ impl MenuContext<'_> {
                 .source
                 .as_container()
                 .ok_or(MenuError::NotAContainer { id })?,
+            world: self.world
         });
         Ok(())
     }
@@ -78,11 +80,13 @@ impl MenuContext<'_> {
         item: impl Into<MenuItemVariant>,
         piority: usize,
     ) {
+        let mut source = item.into();
+        source.initialize(self.world);
         self.item.add_item(
             id,
             MenuItem {
                 name,
-                source: item.into(),
+                source,
                 piority,
             },
         );
@@ -91,9 +95,10 @@ impl MenuContext<'_> {
 
 impl MenuExt for App {
     fn menu_context(&mut self, add_menu: impl FnOnce(MenuContext)) -> &mut Self {
-        let mut entrys = self.world.resource_mut::<EditorMenuEntrys>();
-        let container = entrys.as_container();
-        add_menu(MenuContext { item: container });
+        self.world.resource_scope(|world, mut entrys:bevy::prelude::Mut<'_, EditorMenuEntrys> | {
+            let container = entrys.as_container();
+            add_menu(MenuContext { item: container, world });
+        });
         self
     }
 }

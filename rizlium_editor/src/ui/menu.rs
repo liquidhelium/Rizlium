@@ -1,15 +1,18 @@
 use std::fmt::Debug;
 
-use bevy::prelude::{Mut, World};
+use bevy::{
+    ecs::schedule::{BoxedCondition, Condition},
+    prelude::{Mut, World},
+};
 use dyn_clone::DynClone;
 use egui::Ui;
 use enum_dispatch::enum_dispatch;
 use indexmap::IndexMap;
 
-use crate::{ActionId, ActionRegistry};
+use crate::{utils::new_condition, ActionId, ActionRegistry};
 
 #[enum_dispatch(MenuItemProvider)]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum MenuItemVariant {
     Button,
     Custom,
@@ -17,13 +20,7 @@ pub enum MenuItemVariant {
     Category,
 }
 
-impl MenuItemVariant {
-    pub fn kind_eq(&self, _other: &Self) -> bool {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MenuItem {
     pub name: String,
     pub source: MenuItemVariant,
@@ -32,7 +29,9 @@ pub struct MenuItem {
 
 #[enum_dispatch]
 pub trait MenuItemProvider {
-    fn ui(&self, ui: &mut Ui, world: &mut World, name: &str);
+    fn ui(&mut self, ui: &mut Ui, world: &mut World, name: &str);
+    fn initialize(&mut self, _world: &mut World) {}
+    // todo: move these methods into ItemAsContainer
     fn find_subitem_mut(&mut self, _id: &str) -> Option<&mut MenuItem> {
         None
     }
@@ -76,14 +75,23 @@ impl ItemAsContainer<'_> {
     }
 }
 
-#[derive(Clone)]
 pub struct Button {
     action: ActionId,
+    avalible: BoxedCondition,
 }
 
 impl Button {
     pub fn new(action: ActionId) -> Self {
-        Self { action }
+        Self {
+            action,
+            avalible: new_condition(|| true),
+        }
+    }
+    pub fn new_conditioned<M>(action: ActionId, available: impl Condition<M>) -> Self {
+        Self {
+            action,
+            avalible: new_condition(available),
+        }
     }
 }
 
@@ -94,29 +102,39 @@ impl Debug for Button {
 }
 
 impl MenuItemProvider for Button {
-    fn ui(&self, ui: &mut Ui, world: &mut World, name: &str) {
-        if ui.button(name).clicked() {
-            world.resource_scope(|world: &mut World, mut actions: Mut<ActionRegistry>| {
-                let _ = actions.run_instant(&self.action, (), world).map_err(|err| {
-                    bevy::prelude::error!("encountered error when running action: {}", err)
+    fn ui(&mut self, ui: &mut Ui, world: &mut World, name: &str) {
+        ui.add_enabled_ui(self.avalible.run_readonly((), world), |ui| {
+            if ui.button(name).clicked() {
+                world.resource_scope(|world: &mut World, mut actions: Mut<ActionRegistry>| {
+                    let _ = actions.run_instant(&self.action, (), world).map_err(|err| {
+                        bevy::prelude::error!("encountered error when running action: {}", err)
+                    });
                 });
-            });
-            ui.close_menu();
-        }
+                ui.close_menu();
+            }
+        });
+    }
+    fn initialize(&mut self,world: &mut World) {
+        self.avalible.initialize(world);
     }
 }
 
-pub trait CloneableUiFunc: Fn(&mut Ui, &mut World, &str) + Sync + Send + DynClone + 'static {}
+pub trait CloneableUiFunc:
+    Fn(&mut Ui, &mut World, &str) + Sync + Send + DynClone + 'static
+{
+}
 
-impl<T> CloneableUiFunc for T where T: Fn(&mut Ui, &mut World, &str) + Sync + Send + DynClone + 'static {}
+impl<T> CloneableUiFunc for T where
+    T: Fn(&mut Ui, &mut World, &str) + Sync + Send + DynClone + 'static
+{
+}
 
 dyn_clone::clone_trait_object!(CloneableUiFunc);
 
-#[derive(Clone)]
 pub struct Custom(pub Box<dyn CloneableUiFunc>);
 
 impl MenuItemProvider for Custom {
-    fn ui(&self, ui: &mut Ui, world: &mut World, name: &str) {
+    fn ui(&mut self, ui: &mut Ui, world: &mut World, name: &str) {
         (self.0)(ui, world, name)
     }
 }
@@ -127,17 +145,17 @@ impl Debug for Custom {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct ItemGroup {
     items: IndexMap<String, MenuItem>,
 }
 
 impl ItemGroup {
-    pub fn iter_items(&self) -> impl Iterator<Item = &MenuItem> {
-        self.items.values()
+    pub fn iter_items_mut(&mut self) -> impl Iterator<Item = &mut MenuItem> {
+        self.items.values_mut()
     }
-    pub fn foreach_ui(&self, ui: &mut Ui, world: &mut World) {
-        for item in self.iter_items() {
+    pub fn foreach_ui(&mut self, ui: &mut Ui, world: &mut World) {
+        for item in self.iter_items_mut() {
             item.source.ui(ui, world, &item.name);
         }
     }
@@ -170,17 +188,17 @@ impl<'item> ContainerItem<'item> for ItemGroupAsContainer<'item> {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct SubMenu {
     group: ItemGroup,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Category {
     group: ItemGroup,
 }
 impl MenuItemProvider for SubMenu {
-    fn ui(&self, ui: &mut Ui, world: &mut World, name: &str) {
+    fn ui(&mut self, ui: &mut Ui, world: &mut World, name: &str) {
         ui.menu_button(name, |ui| self.group.foreach_ui(ui, world));
     }
     fn find_subitem_mut(&mut self, sub_id: &str) -> Option<&mut MenuItem> {
@@ -192,7 +210,7 @@ impl MenuItemProvider for SubMenu {
 }
 
 impl MenuItemProvider for Category {
-    fn ui(&self, ui: &mut Ui, world: &mut World, name: &str) {
+    fn ui(&mut self, ui: &mut Ui, world: &mut World, name: &str) {
         ui.label(name);
         ui.separator();
         self.group.foreach_ui(ui, world);
@@ -235,7 +253,7 @@ mod test {
             .into(),
             piority: 0,
         };
-        
+
         MenuItem {
             name: "menu".into(),
             source: SubMenu {
@@ -256,10 +274,7 @@ mod test {
     fn button_with_name(name: String) -> MenuItem {
         MenuItem {
             name,
-            source: Button {
-                action: "play_genshin".into(),
-            }
-            .into(),
+            source: Button::new("wtf.is.this".into()).into(),
             piority: 0,
         }
     }

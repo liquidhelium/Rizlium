@@ -112,7 +112,7 @@ fn egui_render(world: &mut World) {
     });
     egui::TopBottomPanel::top("menu").show(ctx, |ui| {
         ui.horizontal(|ui| {
-            world.resource_scope(|world: &mut World, entries: Mut<EditorMenuEntrys>| {
+            world.resource_scope(|world: &mut World, mut entries: Mut<EditorMenuEntrys>| {
                 entries.foreach_ui(ui, world);
             });
             ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {

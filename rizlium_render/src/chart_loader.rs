@@ -20,7 +20,7 @@ pub struct ChartLoadingPlugin;
 impl Plugin for ChartLoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<LoadChartEvent>()
-            .add_event::<LoadChartErrorEvent>()
+            .add_event::<ChartLoadingEvent>()
             .init_resource::<PendingChart>()
             .add_systems(
                 PostUpdate,
@@ -50,11 +50,21 @@ pub enum ChartFormat {
 pub struct LoadChartEvent(pub String);
 
 #[derive(Event)]
-pub struct LoadChartErrorEvent(pub ChartLoadingError);
+pub enum ChartLoadingEvent {
+    Success(String),
+    Error(ChartLoadingError),
+}
+
+impl ChartLoadingEvent {
+    fn err(err: ChartLoadingError) -> Self {
+        Self::Error(err)
+    }
+}
 
 pub struct BundledGameChart {
     music: AudioSource,
     chart: Chart,
+    path: String,
     // todo: handle chart info
     _info: ChartInfo,
 }
@@ -83,7 +93,7 @@ pub enum ChartLoadingError {
 
 fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
     let r: Task<Result<BundledGameChart, _>> = IoTaskPool::get().spawn(async {
-        let mut file = async_fs::read(path).await.context(ReadingFileFailedSnafu)?;
+        let mut file = async_fs::read(path.clone()).await.context(ReadingFileFailedSnafu)?;
         let mut res = ZipArchive::new(Cursor::new(file.as_mut_slice())).context(UnzipFileFailedSnafu)?;
         let info_file = res.by_name("info.yml").context(NoFileInZipSnafu { file_name: "info.yml"})?;
         let info: ChartInfo = serde_yaml::from_reader(info_file).context(FileFormatInvalidSnafu)?;
@@ -115,6 +125,7 @@ fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
         Ok(BundledGameChart {
             music,
             chart,
+            path,
             _info: info,
         })
     });
@@ -146,7 +157,7 @@ fn unpack_chart(
     mut pending_chart: ResMut<PendingChart>,
     mut commands: Commands,
     mut audio_sources: ResMut<Assets<AudioSource>>,
-    mut ev: EventWriter<LoadChartErrorEvent>,
+    mut ev: EventWriter<ChartLoadingEvent>,
 ) {
     let Some(chart) = pending_chart
         .0
@@ -157,12 +168,13 @@ fn unpack_chart(
     };
     pending_chart.0 = None;
     match chart {
-        Err(err) => {ev.send(LoadChartErrorEvent(err));},
+        Err(err) => {ev.send(ChartLoadingEvent::err(err));},
         Ok(bundle) => {
             commands.insert_resource(GameChart::new(bundle.chart));
             let audio_handle = audio_sources.add(bundle.music);
             commands.insert_resource(GameAudioSource(audio_handle));
-            info!("completed loading chart")
+            info!("completed loading chart");
+            ev.send(ChartLoadingEvent::Success(bundle.path));
         }
     }
 }

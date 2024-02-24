@@ -1,16 +1,21 @@
-use bevy::{prelude::*, render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages}};
+use std::ops::Deref;
+
+use bevy::{
+    prelude::*,
+    render::render_resource::{
+        Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+    },
+    tasks::{IoTaskPool, Task},
+};
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::Ui;
-use rizlium_render::{GameTime, GameView, LoadChartEvent, TimeControlEvent, TimeManager};
+use futures_lite::AsyncWriteExt;
+use rizlium_render::{
+    GameChart, GameTime, GameView, LoadChartEvent, TimeControlEvent, TimeManager,
+};
 
 use crate::{
-    extensions::MenuExt,
-    hotkeys::{Hotkey, HotkeysExt},
-    menu::{self, Custom},
-    open_dialog,
-    tab_system::TabRegistrationExt,
-    widgets::{widget, RecentButtons},
-    ActionsExt, PendingDialog,
+    extensions::MenuExt, hotkeys::{Hotkey, HotkeysExt}, menu::{self, Custom}, notification::ToastsStorage, open_dialog, save_chart, tab_system::TabRegistrationExt, widgets::{widget, RecentButtons}, ActionsExt, CurrentChartPath, PendingDialog
 };
 pub struct Game;
 
@@ -19,6 +24,7 @@ impl Plugin for Game {
         use time_systems::*;
         use KeyCode::*;
         app.register_action("game.load_chart", "Load chart file", load_chart)
+            .register_action("game.save_chart", "Save current chart to file", save_chart)
             .register_action(
                 "game.open_dialog",
                 "Open a dialog to pick chart file and load it",
@@ -32,7 +38,14 @@ impl Plugin for Game {
                 toggle_pause,
             )
             .register_action("game.time.control", "Control game time", time_control)
-            .register_hotkey("game.open_dialog", [Hotkey::new_global([ControlLeft, KeyO])])
+            .register_hotkey(
+                "game.open_dialog",
+                [Hotkey::new_global([ControlLeft, KeyO])],
+            )
+            .register_hotkey(
+                "game.save_chart",
+                [Hotkey::new([ControlLeft, KeyS], resource_exists::<GameChart>)],
+            )
             .register_hotkey("game.time.advance", [Hotkey::new_global([ArrowRight])])
             .register_hotkey("game.time.rewind", [Hotkey::new_global([ArrowLeft])])
             .register_hotkey("game.time.toggle_pause", [Hotkey::new_global([Space])])
@@ -44,7 +57,13 @@ impl Plugin for Game {
                         menu::Button::new("game.open_dialog".into()),
                         0,
                     );
-                    ctx.with_category("recent_files", "Recent Files".into(), 1, |mut ctx| {
+                    ctx.add(
+                        "save_chart",
+                        "Save".into(),
+                        menu::Button::new_conditioned("game.save_chart".into(), resource_exists::<GameChart>),
+                        1,
+                    );
+                    ctx.with_category("recent_files", "Recent Files".into(), 2, |mut ctx| {
                         ctx.add(
                             "recent_files_inner",
                             "_".into(),
