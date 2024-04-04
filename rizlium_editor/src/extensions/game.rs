@@ -1,21 +1,24 @@
-use std::ops::Deref;
-
 use bevy::{
+    input::mouse::MouseWheel,
     prelude::*,
     render::render_resource::{
         Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
     },
-    tasks::{IoTaskPool, Task},
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::Ui;
-use futures_lite::AsyncWriteExt;
 use rizlium_render::{
     GameChart, GameTime, GameView, LoadChartEvent, TimeControlEvent, TimeManager,
 };
 
 use crate::{
-    extensions::MenuExt, hotkeys::{Hotkey, HotkeysExt}, menu::{self, Custom}, notification::ToastsStorage, open_dialog, save_chart, tab_system::TabRegistrationExt, widgets::{widget, RecentButtons}, ActionsExt, CurrentChartPath, PendingDialog
+    extensions::MenuExt,
+    hotkeys::{Hotkey, HotkeysExt, RuntimeTrigger, TriggerType},
+    menu::{self, Custom},
+    open_dialog, save_chart,
+    tab_system::{tab_focused, TabRegistrationExt},
+    widgets::{widget, RecentButtons},
+    ActionsExt, PendingDialog,
 };
 pub struct Game;
 
@@ -38,17 +41,33 @@ impl Plugin for Game {
                 toggle_pause,
             )
             .register_action("game.time.control", "Control game time", time_control)
+            .register_action(
+                "game.time.enable_scroll_time",
+                "Enable scrolling to change time",
+                toggle_enable_scroll_time,
+            )
             .register_hotkey(
                 "game.open_dialog",
                 [Hotkey::new_global([ControlLeft, KeyO])],
             )
             .register_hotkey(
                 "game.save_chart",
-                [Hotkey::new([ControlLeft, KeyS], resource_exists::<GameChart>)],
+                [Hotkey::new(
+                    [ControlLeft, KeyS],
+                    resource_exists::<GameChart>,
+                )],
             )
             .register_hotkey("game.time.advance", [Hotkey::new_global([ArrowRight])])
             .register_hotkey("game.time.rewind", [Hotkey::new_global([ArrowLeft])])
             .register_hotkey("game.time.toggle_pause", [Hotkey::new_global([Space])])
+            .register_hotkey(
+                "game.time.enable_scroll_time",
+                [Hotkey::new_advanced(
+                    [ControlLeft],
+                    tab_focused("game.view"),
+                    TriggerType::PressAndRelease,
+                )],
+            )
             .menu_context(|mut ctx| {
                 ctx.with_sub_menu("file", "File".into(), 0, |mut ctx| {
                     ctx.add(
@@ -60,7 +79,10 @@ impl Plugin for Game {
                     ctx.add(
                         "save_chart",
                         "Save".into(),
-                        menu::Button::new_conditioned("game.save_chart".into(), resource_exists::<GameChart>),
+                        menu::Button::new_conditioned(
+                            "game.save_chart".into(),
+                            resource_exists::<GameChart>,
+                        ),
                         1,
                     );
                     ctx.with_category("recent_files", "Recent Files".into(), 2, |mut ctx| {
@@ -78,7 +100,9 @@ impl Plugin for Game {
         app.add_systems(
             Startup,
             setup_game_view.after(bevy_egui::EguiStartupSet::InitContexts),
-        );
+        )
+        .add_systems(Update, scroll_time)
+        .init_resource::<ScrollTimeState>();
     }
 }
 
@@ -92,6 +116,25 @@ fn load_chart(
 
 fn open_dialog_and_load_chart(mut dialog: ResMut<PendingDialog>) {
     open_dialog(&mut dialog)
+}
+
+#[derive(Resource, Default)]
+struct ScrollTimeState(bool);
+
+fn toggle_enable_scroll_time(In(trigger): In<RuntimeTrigger>, mut state: ResMut<ScrollTimeState>) {
+    state.0 = trigger.is_pressed();
+}
+
+fn scroll_time(
+    state: Res<ScrollTimeState>,
+    mut wheel: EventReader<MouseWheel>,
+    mut time: EventWriter<TimeControlEvent>,
+) {
+    if state.0 {
+        for i in wheel.read() {
+            time.send(TimeControlEvent::Advance(i.y*0.01));
+        }
+    }
 }
 
 mod time_systems {

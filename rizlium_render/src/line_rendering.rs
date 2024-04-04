@@ -102,30 +102,33 @@ fn change_bounding(
     chart: Res<GameChart>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
-    mut lines: Query<(&mut Aabb, &Stroke, &ChartLineId)>,
+    mut lines: Query<(&mut Aabb, &mut Transform, &Stroke, &ChartLineId)>,
 ) {
-    lines.par_iter_mut().for_each(|(mut vis, stroke, id)| {
-        let line_idx = id.line_idx;
-        let keypoint_idx = id.keypoint_idx;
-        let pos1 = chart
-            .with_cache(&cache)
-            .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
-            .expect("Get pos for line point failed");
-        let pos2 = chart
-            .with_cache(&cache)
-            .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
-            .unwrap();
-        let extend = Vec2::splat(stroke.options.line_width);
-        let pos2: Vec2 = pos2.into();
-        let pos1: Vec2 = pos1.into();
-        let mut rect = Rect::from_corners(Vec2::ZERO, pos2 - pos1);
-        rect.min -= extend;
-        rect.max += extend;
-        *vis = Aabb {
-            center: rect.center().extend(0.).into(),
-            half_extents: rect.half_size().extend(0.).into(),
-        };
-    });
+    lines
+        .par_iter_mut()
+        .for_each(|(mut vis, mut transform, stroke, id)| {
+            let line_idx = id.line_idx;
+            let keypoint_idx = id.keypoint_idx;
+            let pos1 = chart
+                .with_cache(&cache)
+                .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
+                .expect("Get pos for line point failed");
+            let pos2 = chart
+                .with_cache(&cache)
+                .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
+                .unwrap();
+            let extend = Vec2::splat(stroke.options.line_width);
+            let pos2: Vec2 = pos2.into();
+            let pos1: Vec2 = pos1.into();
+            transform.translation = pos1.extend(transform.translation.z);
+            let mut rect = Rect::from_corners(Vec2::ZERO, pos2 - pos1);
+            rect.min -= extend;
+            rect.max += extend;
+            *vis = Aabb {
+                center: rect.center().extend(0.).into(),
+                half_extents: rect.half_size().extend(0.).into(),
+            };
+        });
 }
 
 fn associate_segment(
@@ -160,7 +163,6 @@ fn update_shape(
     mut lines: Query<(
         &mut Stroke,
         &mut Path,
-        &mut Transform,
         &ViewVisibility,
         &ChartLineId,
         &mut LastSyncTick,
@@ -169,21 +171,13 @@ fn update_shape(
     lines
         .par_iter_mut()
         // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
-        .for_each(|(_, mut path, mut transform, vis, id, mut synced)| {
+        .for_each(|(_, mut path, vis, id, mut synced)| {
             let line_idx = id.line_idx;
             let keypoint_idx = id.keypoint_idx;
             let line = &chart.lines[line_idx];
             let keypoint1 = &line.points.points()[keypoint_idx];
             let keypoint2 = &line.points.points()[keypoint_idx + 1];
-            let pos1 = chart
-                .with_cache(&cache)
-                .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
-                .unwrap();
-            let pos2 = chart
-                .with_cache(&cache)
-                .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
-                .unwrap();
-            transform.translation = vec3a(pos1[0], pos1[1], transform.translation.z).into();
+
             if !vis.get() {
                 return;
             }
@@ -192,21 +186,23 @@ fn update_shape(
             {
                 return;
             }
-            let pos2 = [pos2[0] - pos1[0], pos2[1] - pos1[1]];
+            let pos1 = chart
+                .with_cache(&cache)
+                .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
+                .unwrap();
+            let pos2 = chart
+                .with_cache(&cache)
+                .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
+                .unwrap();
 
             let mut builder = PathBuilder::new();
             builder.move_to(Vec2::ZERO);
-            if pos1[1].approx_eq(&0.) && pos2[1].approx_eq(&0.) {
-                warn!(
-                    "Possible wrong segment: line {}, point {}, canvas {}",
-                    id.line_idx, id.keypoint_idx, keypoint1.relevant.canvas
-                );
-            }
+            let relative_pos = [pos2[0] - pos1[0], pos2[1] - pos1[1]];
             if !(keypoint1.ease_type == EasingId::Linear
                 || pos1[0].approx_eq(&pos2[0])
                 || pos1[1].approx_eq(&pos2[1]))
             {
-                let mut point_count = ((pos2[1]) / 5.).floor();
+                let mut point_count = ((relative_pos[1]) / 5.).floor();
                 if point_count >= 10000. {
                     point_count = 5000.
                 }
@@ -216,15 +212,15 @@ fn update_shape(
                     .map(|i| i as f32 / point_count)
                     .map(|t| {
                         [
-                            f32::ease(0., pos2[0], t, keypoint1.ease_type),
-                            <f32 as rizlium_chart::chart::Tween>::lerp(0., pos2[1], t),
+                            f32::ease(0., relative_pos[0], t, keypoint1.ease_type),
+                            <f32 as rizlium_chart::chart::Tween>::lerp(0., relative_pos[1], t),
                         ]
                     })
                     .for_each(|p| {
                         builder.line_to(p.into());
                     });
             }
-            builder.line_to(pos2.into());
+            builder.line_to(relative_pos.into());
             // connect next segment
             if let Some(pos) =
                 chart
