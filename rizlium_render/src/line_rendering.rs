@@ -1,6 +1,7 @@
+use bevy::ecs::component::Tick;
 use bevy::math::vec3a;
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
-use rizlium_chart::chart::{EasingId, Tween};
+use rizlium_chart::chart::{EasingId, KeyPoint, LinePointData, Tween};
 
 use bevy_prototype_lyon::prelude::*;
 
@@ -28,13 +29,26 @@ struct ChartLineId {
     keypoint_idx: usize,
 }
 
+#[derive(Component)]
+struct LastSyncTick {
+    shape: Tick,
+    color: Tick,
+}
+
+impl LastSyncTick {
+    const ZERO: LastSyncTick = LastSyncTick {
+        shape: Tick::new(0),
+        color: Tick::new(0),
+    };
+}
+
 #[derive(Bundle)]
 pub struct ChartLineBundle {
     layer: RenderLayers,
     line: ChartLine,
     shape: ShapeBundle,
     stoke: Stroke,
-    show_aabb: ShowAabbGizmo,
+    synced_tick: LastSyncTick,
 }
 impl Default for ChartLineBundle {
     fn default() -> Self {
@@ -43,7 +57,7 @@ impl Default for ChartLineBundle {
             line: default(),
             shape: default(),
             stoke: Stroke::new(Color::NONE, 10.),
-            show_aabb: default()
+            synced_tick: LastSyncTick::ZERO,
         }
     }
 }
@@ -104,7 +118,7 @@ fn change_bounding(
         let extend = Vec2::splat(stroke.options.line_width);
         let pos2: Vec2 = pos2.into();
         let pos1: Vec2 = pos1.into();
-        let mut rect = Rect::from_corners(Vec2::ZERO, pos2-pos1);
+        let mut rect = Rect::from_corners(Vec2::ZERO, pos2 - pos1);
         rect.min -= extend;
         rect.max += extend;
         *vis = Aabb {
@@ -143,12 +157,19 @@ fn update_shape(
     chart: Res<GameChart>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
-    mut lines: Query<(&mut Stroke, &mut Path, &mut Transform,&ViewVisibility, &ChartLineId),>,
+    mut lines: Query<(
+        &mut Stroke,
+        &mut Path,
+        &mut Transform,
+        &ViewVisibility,
+        &ChartLineId,
+        &mut LastSyncTick,
+    )>,
 ) {
     lines
         .par_iter_mut()
         // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
-        .for_each(|(_, mut path,mut transform, vis, id)| {
+        .for_each(|(_, mut path, mut transform, vis, id, mut synced)| {
             let line_idx = id.line_idx;
             let keypoint_idx = id.keypoint_idx;
             let line = &chart.lines[line_idx];
@@ -164,14 +185,16 @@ fn update_shape(
                 .unwrap();
             transform.translation = vec3a(pos1[0], pos1[1], transform.translation.z).into();
             if !vis.get() {
-                if !path.0.as_slice().is_empty() {
-                    *path = Path(tess::path::Path::new());
-                }
                 return;
             }
+            if !is_shape_changed(keypoint1, keypoint2)
+                && (synced.shape.get() >= chart.last_changed().get())
+            {
+                return;
+            }
+            let pos2 = [pos2[0] - pos1[0], pos2[1] - pos1[1]];
 
             let mut builder = PathBuilder::new();
-            let pos2 = [pos2[0]-pos1[0], pos2[1]- pos1[1]];
             builder.move_to(Vec2::ZERO);
             if pos1[1].approx_eq(&0.) && pos2[1].approx_eq(&0.) {
                 warn!(
@@ -211,6 +234,7 @@ fn update_shape(
                 builder.line_to(Vec2::from_array(pos) - Vec2::from_array(pos1));
             }
             *path = builder.build();
+            synced.shape = chart.last_changed();
         });
 }
 
@@ -220,17 +244,30 @@ fn update_color(
     chart: Res<GameChart>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
-    mut lines: Query<(&mut Stroke, &mut Path, &ViewVisibility, &ChartLineId)>,
+    mut lines: Query<(
+        &mut Stroke,
+        &mut Path,
+        &ViewVisibility,
+        &ChartLineId,
+        &mut LastSyncTick,
+    )>,
 ) {
     lines
         .par_iter_mut()
-        .for_each(|(mut stroke, _, vis, id)| {
+        .for_each(|(mut stroke, _, vis, id, mut synced)| {
             if !vis.get() {
                 return;
             }
             let line_idx = id.line_idx;
             let keypoint_idx = id.keypoint_idx;
             let line = &chart.lines[line_idx];
+            let keypoint1 = &line.points.points()[keypoint_idx];
+            let keypoint2 = &line.points.points()[keypoint_idx + 1];
+            if !is_shape_changed(keypoint1, keypoint2)
+                && (synced.color.get() >= chart.last_changed().get())
+            {
+                return;
+            }
             let pos1 = chart
                 .with_cache(&cache)
                 .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
@@ -239,12 +276,9 @@ fn update_color(
                 .with_cache(&cache)
                 .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
                 .unwrap();
-
-            if let Brush::Gradient(Gradient::Linear(ref mut gradient)) = stroke.brush {
-                gradient.start = pos1.into();
-                gradient.end = pos2.into();
-            }
-
+            let pos1: Vec2 = pos1.into();
+            let pos2: Vec2 = pos2.into();
+            let relative_pos = pos2 - pos1;
             let mut color1 = get_color_of(line, keypoint_idx);
             let mut color2 = get_color_of(line, keypoint_idx + 1);
             if color1.a().approx_eq(&0.) && color2.a().approx_eq(&0.) {
@@ -252,11 +286,12 @@ fn update_color(
                 color2 = DEBUG_INVISIBLE;
             }
             let gradient = LinearGradient {
-                start: pos1.into(),
-                end: pos2.into(),
+                start: Vec2::ZERO,
+                end: relative_pos,
                 stops: vec![GradientStop::new(0., color1), GradientStop::new(1., color2)],
             };
             stroke.brush = Brush::Gradient(gradient.into());
+            synced.color = chart.last_changed();
         });
 }
 
@@ -269,13 +304,24 @@ fn get_color_of(line: &rizlium_chart::prelude::Line, keypoint_idx: usize) -> Col
             .unwrap_or_else(|| {
                 warn!("point {keypoint_idx} have no color.");
                 rizlium_chart::prelude::ColorRGBA {
-                    r:0.,
-                    g:0.,
-                    b:0.,
-                    a:1.,
+                    r: 0.,
+                    g: 0.,
+                    b: 0.,
+                    a: 1.,
                 }
             }),
     )
+}
+
+fn is_shape_changed(
+    point1: &KeyPoint<f32, LinePointData>,
+    point2: &KeyPoint<f32, LinePointData>,
+) -> bool {
+    if point1.relevant.canvas == point2.relevant.canvas {
+        return false;
+    }
+    // 一般够用 以后再加复杂情况
+    true
 }
 
 #[derive(Resource, Default)]
