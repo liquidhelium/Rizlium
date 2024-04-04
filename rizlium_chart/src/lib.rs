@@ -24,6 +24,7 @@ pub mod prelude {
     pub use super::runtime::*;
 }
 
+#[cfg(test)]
 pub mod test_resources {
     use crate::prelude::{Chart, RizlineChart};
     use serde_json::from_str;

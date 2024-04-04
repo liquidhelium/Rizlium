@@ -39,6 +39,8 @@ serde_json = "*"
 async-fs = "*"
 futures-lite = "*"
 snafu = "*"
+bevy_hanabi = "*"
+bevy_common_assets = {version = "0.10.0", features = ["json"]}
 
 [features]
 trace = ["bevy/trace_tracy"]

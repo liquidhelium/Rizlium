@@ -1,3 +1,4 @@
+use bevy::math::vec3a;
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
 use rizlium_chart::chart::{EasingId, Tween};
 
@@ -33,6 +34,7 @@ pub struct ChartLineBundle {
     line: ChartLine,
     shape: ShapeBundle,
     stoke: Stroke,
+    show_aabb: ShowAabbGizmo,
 }
 impl Default for ChartLineBundle {
     fn default() -> Self {
@@ -41,6 +43,7 @@ impl Default for ChartLineBundle {
             line: default(),
             shape: default(),
             stoke: Stroke::new(Color::NONE, 10.),
+            show_aabb: default()
         }
     }
 }
@@ -99,7 +102,9 @@ fn change_bounding(
             .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
             .unwrap();
         let extend = Vec2::splat(stroke.options.line_width);
-        let mut rect = Rect::from_corners(pos1.into(), pos2.into());
+        let pos2: Vec2 = pos2.into();
+        let pos1: Vec2 = pos1.into();
+        let mut rect = Rect::from_corners(Vec2::ZERO, pos2-pos1);
         rect.min -= extend;
         rect.max += extend;
         *vis = Aabb {
@@ -138,25 +143,17 @@ fn update_shape(
     chart: Res<GameChart>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
-    mut lines: Query<(&mut Stroke, &mut Path, &ViewVisibility, &ChartLineId)>,
+    mut lines: Query<(&mut Stroke, &mut Path, &mut Transform,&ViewVisibility, &ChartLineId),>,
 ) {
     lines
         .par_iter_mut()
         // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
-        .for_each(|(_, mut path, vis, id)| {
-            if !vis.get() {
-                if !path.0.as_slice().is_empty() {
-                    *path = Path(tess::path::Path::new());
-                }
-                return;
-            }
+        .for_each(|(_, mut path,mut transform, vis, id)| {
             let line_idx = id.line_idx;
             let keypoint_idx = id.keypoint_idx;
             let line = &chart.lines[line_idx];
             let keypoint1 = &line.points.points()[keypoint_idx];
             let keypoint2 = &line.points.points()[keypoint_idx + 1];
-
-            let mut builder = PathBuilder::new();
             let pos1 = chart
                 .with_cache(&cache)
                 .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
@@ -165,7 +162,17 @@ fn update_shape(
                 .with_cache(&cache)
                 .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
                 .unwrap();
-            builder.move_to(pos1.into());
+            transform.translation = vec3a(pos1[0], pos1[1], transform.translation.z).into();
+            if !vis.get() {
+                if !path.0.as_slice().is_empty() {
+                    *path = Path(tess::path::Path::new());
+                }
+                return;
+            }
+
+            let mut builder = PathBuilder::new();
+            let pos2 = [pos2[0]-pos1[0], pos2[1]- pos1[1]];
+            builder.move_to(Vec2::ZERO);
             if pos1[1].approx_eq(&0.) && pos2[1].approx_eq(&0.) {
                 warn!(
                     "Possible wrong segment: line {}, point {}, canvas {}",
@@ -176,7 +183,7 @@ fn update_shape(
                 || pos1[0].approx_eq(&pos2[0])
                 || pos1[1].approx_eq(&pos2[1]))
             {
-                let mut point_count = ((pos2[1] - pos1[1]) / 5.).floor();
+                let mut point_count = ((pos2[1]) / 5.).floor();
                 if point_count >= 10000. {
                     point_count = 5000.
                 }
@@ -186,8 +193,8 @@ fn update_shape(
                     .map(|i| i as f32 / point_count)
                     .map(|t| {
                         [
-                            f32::ease(pos1[0], pos2[0], t, keypoint1.ease_type),
-                            <f32 as rizlium_chart::chart::Tween>::lerp(pos1[1], pos2[1], t),
+                            f32::ease(0., pos2[0], t, keypoint1.ease_type),
+                            <f32 as rizlium_chart::chart::Tween>::lerp(0., pos2[1], t),
                         ]
                     })
                     .for_each(|p| {
@@ -201,7 +208,7 @@ fn update_shape(
                     .with_cache(&cache)
                     .line_pos_at(line_idx, keypoint2.time + 0.01, **time)
             {
-                builder.line_to(pos.into());
+                builder.line_to(Vec2::from_array(pos) - Vec2::from_array(pos1));
             }
             *path = builder.build();
         });

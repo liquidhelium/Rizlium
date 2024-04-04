@@ -31,6 +31,7 @@ pub use line_rendering::{ShowLines, ChartLine};
 mod chart_loader;
 mod theme;
 mod time_and_audio;
+mod hit_parcticles;
 pub use chart_loader::{ChartLoadingEvent, LoadChartEvent};
 
 mod notes;
