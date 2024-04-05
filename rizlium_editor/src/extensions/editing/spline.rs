@@ -1,5 +1,10 @@
-use bevy::log::info;
-use egui::{epaint::PathShape, Color32, Pos2, Rect, Stroke, Ui};
+use bevy::{
+    log::info,
+    math::{vec2, Vec2},
+};
+use egui::{
+    epaint::PathShape, remap, Color32, Layout, NumExt, Pos2, Rangef, Rect, Sense, Stroke, Ui,
+};
 use rizlium_chart::prelude::{Spline, Tween};
 
 use super::timeline::timeline_horizontal;
@@ -125,4 +130,98 @@ pub struct SplineEditorResponse {
     pub scale_changed: bool,
     pub view_rect: egui::Rect,
     pub seek_to: Option<f32>,
+}
+
+pub fn spline_vertical<R>(
+    ui: &mut Ui,
+    spline: &Spline<f32, R>,
+    scale: &mut Vec2,
+    visible_time_range: &mut Rangef,
+    visible_x_range: &mut Rangef,
+) {
+    let content_clip_rect = ui.available_rect_before_wrap();
+    let end_time = spline.end_time().unwrap_or_default() + 20.;
+    let y_size = (end_time * scale.y).at_least(ui.available_height());
+    scale.y = scale.y.at_least(ui.available_height() / end_time);
+    let pixel_range_y = Rangef::new(0., y_size);
+    let time_range_y = Rangef::new(0., end_time);
+    // clamp y_range limit
+    clamp_into(&time_range_y, visible_time_range);
+    // 接下来要由visible 和end_time的相对位置找出child_ui的大小.
+    let child_pixel_range_y = remap_range(time_range_y, visible_time_range, &pixel_range_y);
+    let mut child_ui = ui.child_ui(
+        Rect::from_x_y_ranges(content_clip_rect.x_range(), child_pixel_range_y),
+        *ui.layout(),
+    );
+    child_ui.set_clip_rect(content_clip_rect);
+    if child_ui
+        .interact(content_clip_rect, "spline_vertical".into(), Sense::hover())
+        .hovered()
+    {
+        if let Some(delta) = child_ui.ctx().input(|input| {
+            (!input.smooth_scroll_delta.y.eq(&0.)).then_some(input.smooth_scroll_delta.y)
+        }) {
+            *visible_time_range = range_plus(*visible_time_range, delta / scale.y);
+        }
+    }
+}
+
+fn clamp_into(source: &Rangef, range: &mut Rangef) {
+    match (source.min <= range.min, range.max <= source.max) {
+        (false, true) => {
+            let delta = source.min - range.min; // 一个正数
+            range.min = source.min;
+            range.max = (range.max + delta).at_most(source.max);
+        }
+        (true, false) => {
+            let delta = source.max - range.max; // 一个负数
+            range.max = source.max;
+            range.min = (range.min + delta).at_least(source.min);
+        }
+        (false, false) => *range = *source,
+        _ => (),
+    }
+}
+
+fn remap_range(x: Rangef, from: &Rangef, to: &Rangef) -> Rangef {
+    Rangef::new(remap(x.min, from, to), remap(x.max, from, to))
+}
+
+fn range_plus(range: Rangef, x: f32) -> Rangef {
+    Rangef {
+        min: range.min + x,
+        max: range.max + x,
+    }
+}
+
+pub struct Remapper {
+    source_time: Rangef,
+    target_time: Rangef,
+    source_x: Rangef,
+    target_x: Rangef,
+    pixel_range_x: Rangef,
+    pixel_range_y: Rangef,
+    visible_pixel_range_x: Rangef,
+    visible_pixel_range_y: Rangef,
+}
+
+impl Remapper {
+    fn source_to_target(&self, point: Vec2) -> Vec2 {
+        vec2(
+            remap(point.x, self.source_x, self.target_time),
+            remap(point.y, self.source_time, self.target_time),
+        )
+    }
+    fn target_to_source(&self, point: Vec2) -> Vec2 {
+        vec2(
+            remap(point.x, self.target_time, self.source_x),
+            remap(point.y, self.target_time, self.source_x),
+        )
+    }
+    fn local_to_visible(&self, point: Vec2) -> Vec2 {
+        vec2(
+            remap(point.x, self.pixel_range_x, self.source_x),
+            remap(point.y, self.target_time, self.source_x),
+        )
+    }
 }
