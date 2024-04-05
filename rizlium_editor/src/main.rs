@@ -4,6 +4,7 @@ use rizlium_editor::extensions::{EditorMenuEntrys, ExtensionsPlugin};
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
 use rizlium_editor::hotkeys::HotkeyPlugin;
 use rizlium_editor::notification::NotificationPlugin;
+use rizlium_editor::settings_module::SettingsPlugin;
 use rizlium_editor::tab_system::{FocusedTab, TabPlugin, TabRegistry};
 use rizlium_editor::widgets::{widget, LayoutPresetEdit};
 use rizlium_editor::{
@@ -49,6 +50,7 @@ fn main() {
             HotkeyPlugin,
             TabPlugin,
             FilePlugin,
+            SettingsPlugin,
             ExtensionsPlugin,
             ExtraWindowControlPlugin,
         ))

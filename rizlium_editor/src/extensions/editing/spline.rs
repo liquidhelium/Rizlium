@@ -143,14 +143,16 @@ pub fn spline_vertical<R>(
     let end_time = spline.end_time().unwrap_or_default() + 20.;
     let y_size = (end_time * scale.y).at_least(ui.available_height());
     scale.y = scale.y.at_least(ui.available_height() / end_time);
-    let pixel_range_y = Rangef::new(0., y_size);
-    let time_range_y = Rangef::new(0., end_time);
+    let local_full_pixel_range_y = Rangef::new(0., y_size);
+    let abs_visible_pixel_range_y = content_clip_rect.y_range();
+    let time_range = Rangef::new(0., end_time);
     // clamp y_range limit
-    clamp_into(&time_range_y, visible_time_range);
+    clamp_into(&time_range, visible_time_range);
     // 接下来要由visible 和end_time的相对位置找出child_ui的大小.
-    let child_pixel_range_y = remap_range(time_range_y, visible_time_range, &pixel_range_y);
+    let abs_full_pixel_range_y = remap_range(time_range, visible_time_range, &abs_visible_pixel_range_y);
+    let local_visible_pixel_range_y = Rangef::new(visible_time_range.min *scale.y, visible_time_range.max * scale.y);
     let mut child_ui = ui.child_ui(
-        Rect::from_x_y_ranges(content_clip_rect.x_range(), child_pixel_range_y),
+        Rect::from_x_y_ranges(content_clip_rect.x_range(), abs_full_pixel_range_y),
         *ui.layout(),
     );
     child_ui.set_clip_rect(content_clip_rect);
@@ -164,6 +166,7 @@ pub fn spline_vertical<R>(
             *visible_time_range = range_plus(*visible_time_range, delta / scale.y);
         }
     }
+    
 }
 
 fn clamp_into(source: &Rangef, range: &mut Rangef) {

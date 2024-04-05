@@ -22,6 +22,7 @@ mod files;
 pub mod extensions;
 pub mod utils;
 pub mod notification;
+pub mod settings_module;
 pub use files::*;
 pub use editor_actions::*;
 mod ui;
