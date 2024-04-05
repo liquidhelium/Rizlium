@@ -5,6 +5,7 @@ use bevy::{
 use futures_lite::{future, AsyncWriteExt};
 use indexmap::IndexSet;
 use rfd::AsyncFileDialog;
+use rust_i18n::t;
 use serde::{Deserialize, Serialize};
 
 use crate::{notification::ToastsStorage, EditorCommands};
@@ -27,7 +28,7 @@ pub fn open_dialog(container: &mut PendingDialog) {
     info!("opening chart");
     container.0 = Some(IoTaskPool::get().spawn(async {
         let file = AsyncFileDialog::new()
-            .add_filter("Bundled chart file", &["zip"])
+            .add_filter(t!("bundled_chart_file"), &["zip"])
             .pick_file()
             .await;
 
@@ -59,10 +60,10 @@ fn report_error_or_add_current(
     for event in events.read() {
         match event {
             ChartLoadingEvent::Error(err) => {
-                toasts.error(format!("Failed while loading chart: {:?}", err));
+                toasts.error(t!("chart.load.fail", err =>err));
             }
             ChartLoadingEvent::Success(path) => {
-                toasts.success("Chart loaded");
+                toasts.success(t!("chart.load.success"));
                 commands.insert_resource(CurrentChartPath(path.clone()));
             }
         }

@@ -13,7 +13,9 @@ use egui::{Color32, Rect, RichText, Ui};
 use egui_dock::DockState;
 use egui_tracing::EventCollector;
 use rizlium_render::GameTime;
+i18n!();
 
+use rust_i18n::i18n;
 use ui::tab_system::TabId;
 pub use ui::*;
 mod editor_actions;

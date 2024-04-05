@@ -10,6 +10,7 @@ use egui::Ui;
 use rizlium_render::{
     GameChart, GameTime, GameView, LoadChartEvent, TimeControlEvent, TimeManager,
 };
+use rust_i18n::t;
 
 use crate::{
     extensions::MenuExt,
@@ -72,13 +73,13 @@ impl Plugin for Game {
                 ctx.with_sub_menu("file", "File".into(), 0, |mut ctx| {
                     ctx.add(
                         "open_chart",
-                        "Open".into(),
+                        t!("action.open_chart"),
                         menu::Button::new("game.open_dialog".into()),
                         0,
                     );
                     ctx.add(
                         "save_chart",
-                        "Save".into(),
+                        t!("action.save_chart"),
                         menu::Button::new_conditioned(
                             "game.save_chart".into(),
                             resource_exists::<GameChart>,

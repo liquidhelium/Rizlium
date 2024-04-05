@@ -1,3 +1,4 @@
+use rust_i18n::t;
 use strum::EnumIter;
 
 use bevy::{input::mouse::MouseWheel, math::vec2, prelude::*};
@@ -45,12 +46,12 @@ impl Plugin for ToolsPlugin {
             );
         app.register_action(
             "edit.world_view.temp_toggle_view",
-            "Temporarily switch to tool View.",
+            t!("edit.world_view.temp_toggle_view"),
             temp_toggle_view,
         );
         app.register_action(
             "edit.world_view.to_pencil",
-            "Switch to tool Pencil.",
+            t!("Switch to tool Pencil."),
             switch_tool(Tool::Pencil),
         );
         app.register_hotkey(

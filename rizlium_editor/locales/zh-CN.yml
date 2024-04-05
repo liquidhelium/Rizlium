@@ -1,0 +1,4 @@
+_version: 1
+settings.language: 语言
+action.open_chart: 打开
+action.save_chart: 保存

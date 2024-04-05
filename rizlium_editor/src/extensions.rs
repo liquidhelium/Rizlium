@@ -3,6 +3,9 @@ pub mod docking;
 mod game;
 mod editing;
 mod inspector;
+pub mod i18n;
+
+use std::borrow::Cow;
 
 use bevy::{ecs::world::World, prelude::{App, Deref, DerefMut, Plugin, Resource}};
 use snafu::Snafu;
@@ -11,14 +14,14 @@ use crate::menu::{
     Category, ItemAsContainer, ItemGroup, MenuItem, MenuItemProvider, MenuItemVariant, SubMenu,
 };
 
-use self::{command_panel::CommandPanel, docking::Docking, editing::Editing, game::Game, inspector::Inspector};
+use self::{command_panel::CommandPanel, docking::Docking, editing::Editing, game::Game, i18n::I18nPlugin, inspector::Inspector};
 
 pub struct ExtensionsPlugin;
 
 impl Plugin for ExtensionsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<EditorMenuEntrys>();
-        app.add_plugins((Game, Docking, CommandPanel, Editing, Inspector));
+        app.add_plugins((I18nPlugin, Game, Docking, CommandPanel, Editing, Inspector, ));
     }
 }
 
@@ -56,7 +59,7 @@ impl MenuContext<'_> {
     pub fn with_category(
         &mut self,
         id: &str,
-        name: String,
+        name: Cow<'static, str>,
         piority: usize,
         add_sub: impl FnOnce(MenuContext),
     ) {
@@ -66,7 +69,7 @@ impl MenuContext<'_> {
     pub fn with_sub_menu(
         &mut self,
         id: &str,
-        name: String,
+        name: Cow<'static, str>,
         piority: usize,
         add_sub: impl FnOnce(MenuContext),
     ) {
@@ -76,7 +79,7 @@ impl MenuContext<'_> {
     pub fn add(
         &mut self,
         id: &str,
-        name: String,
+        name: Cow<'static, str>,
         item: impl Into<MenuItemVariant>,
         piority: usize,
     ) {

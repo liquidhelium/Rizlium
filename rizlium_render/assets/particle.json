@@ -1,0 +1,287 @@
+{
+  "name": "2d",
+  "capacity": 10,
+  "spawner": {
+    "num_particles": {
+      "Single": 6.0
+    },
+    "spawn_time": {
+      "Single": 0.0
+    },
+    "period": {
+      "Single": 1.0
+    },
+    "starts_active": true,
+    "starts_immediately": true
+  },
+  "z_layer_2d": 0.0,
+  "simulation_space": "Global",
+  "simulation_condition": "WhenVisible",
+  "init_modifiers": [
+    {
+      "SetPositionCircleModifier": {
+        "center": {
+          "index": 3
+        },
+        "axis": {
+          "index": 4
+        },
+        "radius": {
+          "index": 5
+        },
+        "dimension": "Surface"
+      }
+    },
+    {
+      "SetVelocityCircleModifier": {
+        "center": {
+          "index": 6
+        },
+        "axis": {
+          "index": 7
+        },
+        "speed": {
+          "index": 8
+        }
+      }
+    },
+    {
+      "SetAttributeModifier": {
+        "attribute": "age",
+        "value": {
+          "index": 1
+        }
+      }
+    },
+    {
+      "SetAttributeModifier": {
+        "attribute": "lifetime",
+        "value": {
+          "index": 2
+        }
+      }
+    }
+  ],
+  "update_modifiers": [
+    {
+      "RadialAccelModifier": {
+        "origin": {
+          "index": 13
+        },
+        "accel": {
+          "index": 12
+        }
+      }
+    }
+  ],
+  "render_modifiers": [
+    {
+      "SizeOverLifetimeModifier": {
+        "gradient": {
+          "keys": [
+            {
+              "ratio": 0.0,
+              "value": [
+                0.02,
+                0.02
+              ]
+            }
+          ]
+        },
+        "screen_space_size": false
+      }
+    },
+    {
+      "ColorOverLifetimeModifier": {
+        "gradient": {
+          "keys": [
+            {
+              "ratio": 0.0,
+              "value": [
+                0.5,
+                0.5,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "ratio": 1.0,
+              "value": [
+                0.5,
+                0.5,
+                1.0,
+                0.0
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "properties": [],
+  "motion_integration": "PostUpdate",
+  "module": {
+    "expressions": [
+      {
+        "Literal": {
+          "value": {
+            "Scalar": {
+              "Float": 0.0
+            }
+          }
+        }
+      },
+      {
+        "Literal": {
+          "value": {
+            "Scalar": {
+              "Float": 0.7
+            }
+          }
+        }
+      },
+      {
+        "Literal": {
+          "value": {
+            "Vector": {
+              "vector_type": {
+                "elem_type": "Float",
+                "count": 3
+              },
+              "storage": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "Literal": {
+          "value": {
+            "Vector": {
+              "vector_type": {
+                "elem_type": "Float",
+                "count": 3
+              },
+              "storage": [
+                0,
+                0,
+                1065353216,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "Literal": {
+          "value": {
+            "Scalar": {
+              "Float": 0.05
+            }
+          }
+        }
+      },
+      {
+        "Literal": {
+          "value": {
+            "Vector": {
+              "vector_type": {
+                "elem_type": "Float",
+                "count": 3
+              },
+              "storage": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "Literal": {
+          "value": {
+            "Vector": {
+              "vector_type": {
+                "elem_type": "Float",
+                "count": 3
+              },
+              "storage": [
+                0,
+                0,
+                1065353216,
+                0
+              ]
+            }
+          }
+        }
+      },
+      {
+        "Literal": {
+          "value": {
+            "Scalar": {
+              "Float": 1.0
+            }
+          }
+        }
+      },
+      {
+        "Literal": {
+          "value": {
+            "Scalar": {
+              "Float": -7.0
+            }
+          }
+        }
+      },
+      {
+        "Attribute": {
+          "attr": "velocity"
+        }
+      },
+      {
+        "Unary": {
+          "op": "Length",
+          "expr": {
+            "index": 10
+          }
+        }
+      },
+      {
+        "Binary": {
+          "op": "Mul",
+          "left": {
+            "index": 9
+          },
+          "right": {
+            "index": 11
+          }
+        }
+      },
+      {
+        "Literal": {
+          "value": {
+            "Vector": {
+              "vector_type": {
+                "elem_type": "Float",
+                "count": 3
+              },
+              "storage": [
+                0,
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "alpha_mode": "Blend"
+}

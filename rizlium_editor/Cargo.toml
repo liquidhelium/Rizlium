@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 rizlium_render = {path="../rizlium_render"}
-bevy_egui = {git = "https://github.com/liquidhelium/bevy_egui"}
-egui = "0.26"
-egui_dock = {version = "0.11.1", features = ["serde"]}
+bevy_egui = "0.26"
+egui = "0.26.2"
+egui_dock = {version = "0.11", features = ["serde"]}
 egui_tracing = {git = "https://github.com/liquidhelium/egui_tracing"}
 egui-notify = "0.13"
 tracing-subscriber = "*"
@@ -38,8 +38,8 @@ bevy = { version = "0.13", default-features = false, features = [
     "bevy_gizmos"
 ] }
 rizlium_chart ={ path = "../rizlium_chart"}
-bevy_mod_raycast = { git = "https://github.com/aevyrie/bevy_mod_raycast", branch = "bevy-0.13"}
-bevy-persistent = {git = "https://github.com/liquidhelium/bevy-persistent", features = ["json","toml"]}
+bevy_mod_raycast = "0.17"
+bevy-persistent = {version = "0.5", features = ["json","toml"]}
 serde ={ version = "*", features = ["derive"]}
 dirs = "*"
 rfd = "*"
@@ -53,5 +53,9 @@ dyn-clone = "1"
 smallvec = "1"
 strum = { version = "0.26", features = ["derive"] }
 serde_json = "*"
+rust-i18n = "3"
 [dev-dependencies]
 serde_json = "*"
+
+[package.metadata.i18n]
+available-locales = ["en", "zh-CN"]

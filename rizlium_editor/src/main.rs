@@ -16,7 +16,7 @@ use bevy::window::PrimaryWindow;
 use bevy::prelude::*;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
-use egui::{Align2, Layout};
+use egui::{Align2, FontData, FontDefinitions, FontFamily, Layout};
 use egui_dock::DockArea;
 use rizlium_editor::{
     ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
@@ -30,10 +30,14 @@ use tracing_subscriber::EnvFilter;
 fn main() {
     let collector = egui_tracing::EventCollector::default().with_level(Level::DEBUG);
     let default_filter = { format!("{},{}", Level::DEBUG, "wgpu=error,naga=warn") };
-        let filter_layer = EnvFilter::try_from_default_env()
-            .or_else(|_| EnvFilter::try_new(&default_filter))
-            .unwrap();
-    tracing_subscriber::registry().with(filter_layer).with(collector.clone()).with(tracing_subscriber::fmt::Layer::default()).init();
+    let filter_layer = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new(&default_filter))
+        .unwrap();
+    tracing_subscriber::registry()
+        .with(filter_layer)
+        .with(collector.clone())
+        .with(tracing_subscriber::fmt::Layer::default())
+        .init();
     App::new()
         .add_plugins((
             DefaultPlugins.build().disable::<LogPlugin>(),
@@ -41,7 +45,7 @@ fn main() {
             RizliumRenderingPlugin {
                 config: (),
                 init_with_chart: None,
-                manual_time_control: false
+                manual_time_control: false,
             },
             NotificationPlugin,
             CountFpsPlugin,
@@ -59,7 +63,7 @@ fn main() {
         .init_resource::<RizDockState>()
         .add_event::<DragWindowRequested>()
         .insert_resource(EventCollectorResource(collector))
-        .add_systems(Startup, setup_persistent)
+        .add_systems(Startup, (setup_persistent, setup_font))
         .add_systems(Update, egui_render)
         .run();
 }
@@ -87,6 +91,23 @@ fn setup_persistent(mut commands: Commands) {
             .expect("failed to setup recent files"),
     );
 }
+
+fn setup_font(mut context: Query<&mut EguiContext>) {
+    context.par_iter_mut().for_each(|mut c| {
+        let mut fonts = FontDefinitions::default();
+        fonts.font_data.insert(
+            "SourceHanSansSC".to_owned(),
+            FontData::from_static(include_bytes!("../assets/SourceHanSansSC.otf")),
+        ); // .ttf and .otf supported
+        fonts
+            .families
+            .get_mut(&FontFamily::Proportional)
+            .unwrap()
+            .insert(0, "SourceHanSansSC".to_owned());
+        c.get_mut().set_fonts(fonts);
+    });
+}
+
 fn egui_render(world: &mut World) {
     let mut egui_context = world.query_filtered::<&mut EguiContext, With<PrimaryWindow>>();
     let mut binding = egui_context.single_mut(world);
@@ -154,7 +175,8 @@ fn egui_render(world: &mut World) {
                     world,
                 },
             );
-            world.resource_mut::<FocusedTab>().0 = state.state.find_active_focused().unzip().1.cloned(); // todo: move this into proper file
+            world.resource_mut::<FocusedTab>().0 =
+                state.state.find_active_focused().unzip().1.cloned(); // todo: move this into proper file
         });
     });
     editor_state.is_editing_text = ctx.output(|out| out.mutable_text_under_cursor);

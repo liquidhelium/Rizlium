@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{borrow::Cow, fmt::Debug};
 
 use bevy::{
     ecs::schedule::{BoxedCondition, Condition},
@@ -22,7 +22,7 @@ pub enum MenuItemVariant {
 
 #[derive(Debug)]
 pub struct MenuItem {
-    pub name: String,
+    pub name: Cow<'static, str>,
     pub source: MenuItemVariant,
     pub piority: usize,
 }
@@ -271,7 +271,7 @@ mod test {
         }
     }
 
-    fn button_with_name(name: String) -> MenuItem {
+    fn button_with_name(name: Cow<'static, str>) -> MenuItem {
         MenuItem {
             name,
             source: Button::new("wtf.is.this".into()).into(),
