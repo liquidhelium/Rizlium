@@ -85,9 +85,10 @@ impl EditHistory {
     }
 
     pub fn discard_last_preedit(&mut self, chart: &mut Chart) -> Result<()> {
-        Ok(if let Some(last) = self.preedit_data.pop() {
+        if let Some(last) = self.preedit_data.pop() {
             last.inverse.apply(chart)?;
-        })
+        };
+        Ok(())
     }
     pub fn push_preedit(
         &mut self,

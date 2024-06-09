@@ -1,6 +1,6 @@
 use std::{any::type_name, borrow::Cow};
 
-use super::{ChartConflictError, Result};
+use super::Result;
 use enum_dispatch::enum_dispatch;
 use crate::prelude::Chart;
 mod note;

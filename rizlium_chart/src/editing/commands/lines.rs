@@ -25,7 +25,7 @@ impl ChartCommand for InsertLine {
         }
         .into())
     }
-    fn validate(&self,chart: &Chart) -> crate::editing::Result<()> {
+    fn validate(&self,_chart: &Chart) -> crate::editing::Result<()> {
         Ok(())
     }
 }
