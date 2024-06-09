@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use bevy::ecs::component::Tick;
 use bevy::math::vec3a;
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
@@ -109,14 +111,16 @@ fn change_bounding(
         .for_each(|(mut vis, mut transform, stroke, id)| {
             let line_idx = id.line_idx;
             let keypoint_idx = id.keypoint_idx;
-            let pos1 = chart
-                .with_cache(&cache)
-                .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
-                .expect("Get pos for line point failed");
-            let pos2 = chart
-                .with_cache(&cache)
-                .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
-                .unwrap();
+            let (Some(pos1), Some(pos2)) = (
+                chart
+                    .with_cache(&cache)
+                    .pos_for_linepoint_at(line_idx, keypoint_idx, **time),
+                chart
+                    .with_cache(&cache)
+                    .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time),
+            ) else {
+                return;
+            };
             let extend = Vec2::splat(stroke.options.line_width);
             let pos2: Vec2 = pos2.into();
             let pos1: Vec2 = pos1.into();
@@ -166,19 +170,30 @@ fn update_shape(
         &ViewVisibility,
         &ChartLineId,
         &mut LastSyncTick,
+        &mut Visibility,
     )>,
 ) {
     lines
         .par_iter_mut()
         // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
-        .for_each(|(_, mut path, vis, id, mut synced)| {
+        .for_each(|(_, mut path, view_vis, id, mut synced, mut vis)| {
             let line_idx = id.line_idx;
             let keypoint_idx = id.keypoint_idx;
-            let line = &chart.lines[line_idx];
-            let keypoint1 = &line.points.points()[keypoint_idx];
-            let keypoint2 = &line.points.points()[keypoint_idx + 1];
-
-            if !vis.get() {
+            let Some(line) = chart.lines.get(line_idx) else {
+                *vis = Visibility::Hidden;
+                return;
+            };
+            let (Some(keypoint1), Some(keypoint2)) = (
+                line.points.points().get(keypoint_idx),
+                line.points.points().get(keypoint_idx + 1),
+            ) else {
+                *vis = Visibility::Hidden;
+                return;
+            };
+            if *vis == Visibility::Hidden {
+                *vis = Visibility::Visible;
+            }
+            if !view_vis.get() {
                 return;
             }
             if !is_shape_changed(keypoint1, keypoint2)
@@ -186,14 +201,16 @@ fn update_shape(
             {
                 return;
             }
-            let pos1 = chart
-                .with_cache(&cache)
-                .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
-                .unwrap();
-            let pos2 = chart
-                .with_cache(&cache)
-                .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
-                .unwrap();
+            let (Some(pos1), Some(pos2)) = (
+                chart
+                    .with_cache(&cache)
+                    .pos_for_linepoint_at(line_idx, keypoint_idx, **time),
+                chart
+                    .with_cache(&cache)
+                    .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time),
+            ) else {
+                return;
+            };
 
             let mut builder = PathBuilder::new();
             builder.move_to(Vec2::ZERO);
@@ -256,22 +273,30 @@ fn update_color(
             }
             let line_idx = id.line_idx;
             let keypoint_idx = id.keypoint_idx;
-            let line = &chart.lines[line_idx];
-            let keypoint1 = &line.points.points()[keypoint_idx];
-            let keypoint2 = &line.points.points()[keypoint_idx + 1];
+            let Some(line) = chart.lines.get(line_idx) else {
+                return;
+            };
+            let (Some(keypoint1), Some(keypoint2)) = (
+                line.points.points().get(keypoint_idx),
+                line.points.points().get(keypoint_idx + 1),
+            ) else {
+                return;
+            };
             if !is_shape_changed(keypoint1, keypoint2)
                 && (synced.color.get() >= chart.last_changed().get())
             {
                 return;
             }
-            let pos1 = chart
-                .with_cache(&cache)
-                .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
-                .unwrap();
-            let pos2 = chart
-                .with_cache(&cache)
-                .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time)
-                .unwrap();
+            let (Some(pos1), Some(pos2)) = (
+                chart
+                    .with_cache(&cache)
+                    .pos_for_linepoint_at(line_idx, keypoint_idx, **time),
+                chart
+                    .with_cache(&cache)
+                    .pos_for_linepoint_at(line_idx, keypoint_idx + 1, **time),
+            ) else {
+                return;
+            };
             let pos1: Vec2 = pos1.into();
             let pos2: Vec2 = pos2.into();
             let relative_pos = pos2 - pos1;

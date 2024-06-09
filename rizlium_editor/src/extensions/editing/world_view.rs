@@ -9,6 +9,7 @@ use bevy::{
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::{Response, Sense, Ui};
+use tools::Tool;
 
 use crate::tab_system::{tab_focused, TabRegistrationExt};
 
@@ -18,6 +19,8 @@ use self::{
     },
     tools::ToolsPlugin,
 };
+
+use super::tool_select_bar;
 
 pub(super) mod cam_response;
 pub(super) mod tools;
@@ -103,6 +106,7 @@ fn world_tab(
     mut scale: Local<Scale>,
     mut center: Local<Vec3>,
     mut event_writer: EventWriter<ScreenMouseEvent>,
+    mut tool: ResMut<Tool>
 ) {
     let (mut projection, mut transform) = camera.single_mut();
     egui::TopBottomPanel::top("view_control").show_inside(ui, |ui| {
@@ -140,7 +144,10 @@ fn world_tab(
     img.resize(size);
 
     let img = textures.image_id(&large_view).expect("texture not found");
-    ui.centered_and_justified(|ui| ui.add(egui::Image::new((img, size2d))));
+    // main img
+    let area = ui.centered_and_justified(|ui| ui.add(egui::Image::new((img, size2d)))).response.rect;
+    // tool select
+    tool_select_bar::tool_select_bar(ui, area.left_top() + [10.,10.].into(), &mut tool);
     let response = ui.interact(rect, ui.next_auto_id(), Sense::click_and_drag());
     ui.ctx().input(|input| {
         if response.contains_pointer() || response.interact_pointer_pos().is_some() {

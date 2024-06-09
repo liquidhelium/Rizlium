@@ -81,15 +81,15 @@ pub struct Button {
 }
 
 impl Button {
-    pub fn new(action: ActionId) -> Self {
+    pub fn new(action: impl Into<ActionId>) -> Self {
         Self {
-            action,
+            action: action.into(),
             avalible: new_condition(|| true),
         }
     }
-    pub fn new_conditioned<M>(action: ActionId, available: impl Condition<M>) -> Self {
+    pub fn new_conditioned<M>(action: impl Into<ActionId>, available: impl Condition<M>) -> Self {
         Self {
-            action,
+            action: action.into(),
             avalible: new_condition(available),
         }
     }
@@ -274,7 +274,7 @@ mod test {
     fn button_with_name(name: Cow<'static, str>) -> MenuItem {
         MenuItem {
             name,
-            source: Button::new("wtf.is.this".into()).into(),
+            source: Button::new("wtf.is.this").into(),
             piority: 0,
         }
     }

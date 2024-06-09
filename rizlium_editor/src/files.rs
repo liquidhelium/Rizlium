@@ -28,7 +28,7 @@ pub fn open_dialog(container: &mut PendingDialog) {
     info!("opening chart");
     container.0 = Some(IoTaskPool::get().spawn(async {
         let file = AsyncFileDialog::new()
-            .add_filter(t!("bundled_chart_file"), &["zip"])
+            .add_filter(t!("chart_type.bundled"), &["zip"])
             .pick_file()
             .await;
 

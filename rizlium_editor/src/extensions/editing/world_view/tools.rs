@@ -39,6 +39,7 @@ impl Plugin for ToolsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Tool>()
             .init_resource::<OriginalTool>()
+            .add_event::<DiscardPreeditEvent>()
             .init_tool_config::<tool_configs::PencilToolConfig>()
             .add_systems(
                 Update,
@@ -51,9 +52,10 @@ impl Plugin for ToolsPlugin {
         );
         app.register_action(
             "edit.world_view.to_pencil",
-            t!("Switch to tool Pencil."),
+            t!("edit.world_view.to_pencil.desc"),
             switch_tool(Tool::Pencil),
         );
+        app.register_action("edit.discard_preedit", t!("edit.discard_preedit"), discard_preedit);
         app.register_hotkey(
             "edit.world_view.to_pencil",
             [Hotkey::new([KeyCode::KeyP], edit_view_or_tool_focused())],
@@ -67,6 +69,7 @@ impl Plugin for ToolsPlugin {
                 TriggerType::PressAndRelease,
             )],
         );
+        app.register_hotkey("edit.discard_preedit", [Hotkey::new_global([KeyCode::Escape])]);
     }
 }
 
@@ -76,6 +79,13 @@ pub enum Tool {
     View,
     Pencil,
     Select,
+}
+
+#[derive(Event,Default)]
+pub struct DiscardPreeditEvent;
+
+fn discard_preedit(mut ev: EventWriter<DiscardPreeditEvent>) {
+    ev.send_default();
 }
 
 impl Tool {
@@ -161,27 +171,38 @@ struct PencilToolEditData {
 }
 
 fn pencil_tool(
-    mut events: EventReader<WorldMouseEvent>,
+    mut mouse_events: EventReader<WorldMouseEvent>,
+    mut discard_events: EventReader<DiscardPreeditEvent>,
     tool: Res<Tool>,
     pencil_config: Res<PencilToolConfig>,
     chart: Option<ResMut<GameChart>>,
     mut history: ResMut<ChartEditHistory>,
     to_game: WorldToGame,
     mut current_edit: Local<Option<PencilToolEditData>>,
+    
 ) {
     if *tool != Tool::Pencil || !to_game.avalible() {
-        events.clear();
+        mouse_events.clear();
+        discard_events.clear();
         return;
     }
     let Some(mut chart) = chart else {
         return;
     };
-    for event in events.read() {
+    if !history.has_preedit() {
+        *current_edit = None;
+    }
+    if !discard_events.is_empty() {
+        discard_events.clear();
+        *current_edit = None;
+        history.discard_last_preedit(&mut chart).unwrap();
+        history.submit_preedit();
+    }
+    for event in mouse_events.read() {
         if let Some(data) = current_edit.as_ref() {
             let event = &event.event;
             if matches!(event.event_type, MouseEventType::Click(_)) {
                 // 已经编辑时, 点击可进行下一个的编辑
-                history.submit_preedit();
                 history
                     .push_preedit(
                         InsertPoint {

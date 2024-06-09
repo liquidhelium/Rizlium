@@ -74,14 +74,14 @@ impl Plugin for Game {
                     ctx.add(
                         "open_chart",
                         t!("action.open_chart"),
-                        menu::Button::new("game.open_dialog".into()),
+                        menu::Button::new("game.open_dialog"),
                         0,
                     );
                     ctx.add(
                         "save_chart",
                         t!("action.save_chart"),
                         menu::Button::new_conditioned(
-                            "game.save_chart".into(),
+                            "game.save_chart",
                             resource_exists::<GameChart>,
                         ),
                         1,

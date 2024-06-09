@@ -1,16 +1,27 @@
-use crate::tab_system::TabRegistrationExt;
+use crate::{
+    extensions::MenuExt,
+    hotkeys::{Hotkey, HotkeysExt},
+    menu::Button,
+    tab_system::TabRegistrationExt,
+    ActionsExt,
+};
 
-use self::{note::note_editor_vertical, spline::spline_editor_horizontal, tool_config_window::tool_config};
+use self::{
+    note::note_editor_vertical, spline::spline_editor_horizontal, tool_config_window::tool_config,
+};
 use bevy::prelude::*;
 use egui::Ui;
 use rizlium_chart::editing::EditHistory;
 use rizlium_render::{GameChart, GameTime, TimeControlEvent};
+use rust_i18n::t;
 
 mod note;
 mod spline;
 mod timeline;
-mod world_view;
 mod tool_config_window;
+mod tool_select_bar;
+mod undo_redo;
+mod world_view;
 
 pub struct Editing;
 
@@ -28,10 +39,45 @@ impl Plugin for Editing {
             spline_edit,
             resource_exists::<GameChart>,
         )
-        .register_tab("edit.tool_config", "Tool", tool_config, resource_exists::<GameChart>);
+        .register_tab(
+            "edit.tool_config",
+            "Tool",
+            tool_config,
+            resource_exists::<GameChart>,
+        );
 
         app.add_plugins(world_view::WorldViewPlugin)
             .init_resource::<ChartEditHistory>();
+
+        app.register_action("edit.undo", t!("edit.undo.desc"), undo_redo::undo);
+        app.register_action("edit.redo", t!("edit.redo.desc"), undo_redo::redo);
+        use KeyCode::*;
+        app.register_hotkey("edit.undo", [Hotkey::new_global([ControlLeft, KeyZ])])
+            .register_hotkey("edit.redo", [Hotkey::new_global([ControlLeft, KeyY])]);
+        app.menu_context(|mut ctx| {
+            ctx.with_sub_menu("edit", t!("edit.name"), 3, |mut ctx| {
+                ctx.add(
+                    "undo",
+                    t!("edit.undo.name"),
+                    Button::new_conditioned(
+                        "edit.undo",
+                        resource_exists::<GameChart>
+                            .and_then(|history: Res<ChartEditHistory>| history.can_undo()),
+                    ),
+                    0,
+                );
+                ctx.add(
+                    "redo",
+                    t!("edit.redo.name"),
+                    Button::new_conditioned(
+                        "edit.redo",
+                        resource_exists::<GameChart>
+                            .and_then(|history: Res<ChartEditHistory>| history.can_redo()),
+                    ),
+                    1,
+                );
+            });
+        });
     }
 }
 

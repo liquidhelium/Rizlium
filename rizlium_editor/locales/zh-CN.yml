@@ -2,3 +2,14 @@ _version: 1
 settings.language: 语言
 action.open_chart: 打开
 action.save_chart: 保存
+chart_type.bundled: 已打包谱面
+chart.load.fail: '加载谱面失败, 错误: {err}'
+chart.load.success: 谱面加载完毕
+edit.world_view.temp_toggle_view: 临时从铅笔工具切换到视图工具
+edit.world_view.to_pencil.desc: 切换到铅笔工具
+edit.undo.desc: 撤销编辑操作
+edit.redo.desc: 重做编辑操作
+edit.undo.name: 撤销
+edit.name: 编辑
+edit.redo.name: 重做
+edit.discard_preedit: 取消预编辑

@@ -1,9 +1,9 @@
 use bevy::{
     log::info,
-    math::{vec2, Vec2},
+    math::{vec2, Vec2}, utils::default,
 };
 use egui::{
-    epaint::PathShape, remap, Color32, Layout, NumExt, Pos2, Rangef, Rect, Sense, Stroke, Ui,
+    emath::RectTransform, epaint::PathShape, remap, Color32, Layout, NumExt, Pos2, Rangef, Rect, Sense, Stroke, Ui
 };
 use rizlium_chart::prelude::{Spline, Tween};
 
@@ -197,34 +197,22 @@ fn range_plus(range: Rangef, x: f32) -> Rangef {
     }
 }
 
-pub struct Remapper {
-    source_time: Rangef,
-    target_time: Rangef,
-    source_x: Rangef,
-    target_x: Rangef,
-    pixel_range_x: Rangef,
-    pixel_range_y: Rangef,
-    visible_pixel_range_x: Rangef,
-    visible_pixel_range_y: Rangef,
+struct Viewport {
+    inner_to_show: RectTransform,
+    /// Mainly used for mouse.
+    show_to_inner: RectTransform,
 }
 
-impl Remapper {
-    fn source_to_target(&self, point: Vec2) -> Vec2 {
-        vec2(
-            remap(point.x, self.source_x, self.target_time),
-            remap(point.y, self.source_time, self.target_time),
-        )
-    }
-    fn target_to_source(&self, point: Vec2) -> Vec2 {
-        vec2(
-            remap(point.x, self.target_time, self.source_x),
-            remap(point.y, self.target_time, self.source_x),
-        )
-    }
-    fn local_to_visible(&self, point: Vec2) -> Vec2 {
-        vec2(
-            remap(point.x, self.pixel_range_x, self.source_x),
-            remap(point.y, self.target_time, self.source_x),
-        )
+struct RelativeArea {
+    inner_rect: Option<Rect>
+}
+
+impl RelativeArea {
+    fn show_inside(self, ui:&mut Ui, show_ui: impl FnOnce(&mut Ui, &Viewport)) {
+        let show_rect = ui.available_rect_before_wrap();
+        let inner_rect = self.inner_rect.unwrap_or(show_rect);
+        let inner_show_transform = RectTransform::from_to(inner_rect, show_rect);
+        let show_inner_transform = inner_show_transform.inverse();
+        
     }
 }
