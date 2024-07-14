@@ -130,7 +130,7 @@ fn sync_audio(
     source: Res<GameAudioSource>,
     audio: Res<Audio>,
 ) {
-    let new_current = audio.play(source.0.clone()).handle();
+    let new_current = audio.play(source.0.clone()).looped().handle();
     if let Some(mut game_audio) = game_audio {
         if let Some(current) = game_audios.get_mut(&game_audio.0) {
             current.stop(default());
@@ -204,6 +204,10 @@ impl TimeManager {
     }
     pub fn align_to_audio_time(&mut self, audio_time: f32) {
         let current = self.current();
+        if (audio_time - current).abs() >= 10. {
+            self.seek(audio_time);
+            return;
+        }
         self.seek((audio_time - current).mul_add(COMPENSATION_RATE, current));
     }
     /// Advance [`TimeManager`] by `duration`.
