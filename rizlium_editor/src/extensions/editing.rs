@@ -14,6 +14,7 @@ use egui::Ui;
 use rizlium_chart::editing::EditHistory;
 use rizlium_render::{GameChart, GameTime, TimeControlEvent};
 use rust_i18n::t;
+use spline::SplineView;
 
 mod note;
 mod spline;
@@ -155,13 +156,14 @@ pub fn spline_edit(
     show_first |= ui.button("view").clicked();
     ui.allocate_ui_at_rect(ui.available_rect_before_wrap(), |ui| {
         let spline = &chart.lines[*current].points;
-        let response =
-            spline_editor_horizontal(ui, spline, Some(0), **time, &mut scale, show_first);
-        if let Some(to) = response.seek_to {
-            ev.send(TimeControlEvent::Seek(to));
-        }
-        let range = response.view_rect;
-        cache_range.0 = range.x_range().min;
-        cache_range.1 = range.y_range().max;
+        SplineView::new(ui, spline, None).ui(ui);
+        // let response =
+        //     spline_editor_horizontal(ui, spline, Some(0), **time, &mut scale, show_first);
+        // if let Some(to) = response.seek_to {
+        //     ev.send(TimeControlEvent::Seek(to));
+        // }
+        // let range = response.view_rect;
+        // cache_range.0 = range.x_range().min;
+        // cache_range.1 = range.y_range().max;
     });
 }
