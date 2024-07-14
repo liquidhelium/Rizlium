@@ -13,9 +13,5 @@ impl Plugin for Docking {
                 sub.add("dock_buttons", "_buttons".into(), Custom(Box::new(|u,w,_| widget::<DockButtons>(w, u))), 0)
             });
         });
-        app.register_tab("test.one", "Test", system, ||true);
     }
-}
-fn system(In(ui): In<&mut Ui>) {
-    ui.label("text");
 }

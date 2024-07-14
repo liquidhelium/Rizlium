@@ -24,7 +24,7 @@ impl<'a> TabViewer for RizTabViewerNext<'a> {
         self.registry
             .get(tab)
             .map(|t| t.title())
-            .unwrap_or("MISSINGNO")
+            .unwrap_or("MISSINGNO".into())
             .into()
     }
     fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {

@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use egui::Ui;
+use rust_i18n::t;
 
 use crate::{settings_module::{SettingsModuleStruct, SettingsRegistrationExt}, tab_system::TabRegistrationExt, EventCollectorResource};
 
@@ -9,7 +10,7 @@ pub struct Inspector;
 
 impl Plugin for Inspector {
     fn build(&self, app: &mut App) {
-        app.register_tab("inspector", "Inspector", logs, ||true)
+        app.register_tab("inspector", t!("inspector.tab"), logs, ||true)
             .register_settings_module("inspector", SettingsModuleStruct::new(settings_ui, settings_apply, "Inspector"));
     }
 }

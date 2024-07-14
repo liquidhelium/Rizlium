@@ -1,5 +1,8 @@
+use std::borrow::Cow;
+
 use bevy::{ecs::schedule::BoxedCondition, prelude::*, utils::HashMap};
 use egui::Ui;
+use rust_i18n::t;
 use snafu::Snafu;
 
 use crate::{utils::{dot_path::DotPath, new_condition}, RizDockState};
@@ -8,7 +11,7 @@ pub type TabId = DotPath;
 pub struct TabStorage {
     boxed: Box<dyn System<In = &'static mut Ui, Out = ()>>,
     avalible_condition: BoxedCondition,
-    tab_title: &'static str,
+    tab_title: Cow<'static, str>,
 }
 
 #[derive(Resource, Default, PartialEq, Eq)]
@@ -36,12 +39,12 @@ impl TabStorage {
                     self.boxed.apply_deferred(world)
                 })
                 .ok_or(TabError::NotAvalible {
-                    name: self.tab_title,
+                    name: self.tab_title.clone(),
                 })
         }
     }
-    pub fn title(&self) -> &'static str {
-        self.tab_title
+    pub fn title(&self) -> Cow<'static, str> {
+        self.tab_title.clone()
     }
 }
 pub type TabResult = Result<(), TabError>;
@@ -49,7 +52,7 @@ pub type TabResult = Result<(), TabError>;
 #[derive(Snafu, Debug)]
 pub enum TabError {
     #[snafu(display("Tab {name} is not avalible."))]
-    NotAvalible { name: &'static str },
+    NotAvalible { name: Cow<'static, str> },
 }
 
 #[derive(Resource, Deref, Default)]
@@ -61,11 +64,11 @@ impl TabRegistry {
 
         if let Some(tab) = self.0.get_mut(tab) {
             let Ok(()) = tab.run_with(world, ui) else {
-                ui.colored_label(Color32::GRAY, RichText::new("Not avalible").italics());
+                ui.colored_label(Color32::GRAY, RichText::new(t!("tab.not_avalible")).italics());
                 return;
             };
         } else {
-            ui.colored_label(Color32::RED, format!("Tab {tab} does not exist."));
+            ui.colored_label(Color32::RED, t!("tab.non_exist", tab = tab));
         }
     }
 }
@@ -74,7 +77,7 @@ pub trait TabRegistrationExt {
     fn register_tab<M1, M2>(
         &mut self,
         id: impl Into<TabId>,
-        name: &'static str,
+        name: Cow<'static, str>,
         system: impl IntoSystem<&'static mut Ui, (), M1>,
         avalible_when: impl Condition<M2>,
     ) -> &mut Self;
@@ -84,7 +87,7 @@ impl TabRegistrationExt for App {
     fn register_tab<M1, M2>(
         &mut self,
         id: impl Into<TabId>,
-        name: &'static str,
+        name: Cow<'static, str>,
         system: impl IntoSystem<&'static mut Ui, (), M1>,
         avalible_when: impl Condition<M2>,
     ) -> &mut Self {

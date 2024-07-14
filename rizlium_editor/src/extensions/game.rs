@@ -70,7 +70,7 @@ impl Plugin for Game {
                 )],
             )
             .menu_context(|mut ctx| {
-                ctx.with_sub_menu("file", "File".into(), 0, |mut ctx| {
+                ctx.with_sub_menu("file", t!("file.tab"), 0, |mut ctx| {
                     ctx.add(
                         "open_chart",
                         t!("action.open_chart"),
@@ -86,7 +86,7 @@ impl Plugin for Game {
                         ),
                         1,
                     );
-                    ctx.with_category("recent_files", "Recent Files".into(), 2, |mut ctx| {
+                    ctx.with_category("recent_files", t!("file.recent_files"), 2, |mut ctx| {
                         ctx.add(
                             "recent_files_inner",
                             "_".into(),
@@ -96,7 +96,7 @@ impl Plugin for Game {
                     })
                 });
             })
-            .register_tab("game.view", "Game view", game_view_tab, || true);
+            .register_tab("game.view", t!("game.view.tab"), game_view_tab, || true);
         // bevy systems
         app.add_systems(
             Startup,

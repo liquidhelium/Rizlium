@@ -12,6 +12,7 @@ use bevy::{
 };
 use egui::{Align, Button, CentralPanel, Layout, ScrollArea, SidePanel, Ui};
 use indexmap::IndexMap;
+use rust_i18n::t;
 
 use crate::{tab_system::TabRegistrationExt, utils::dot_path::DotPath};
 
@@ -42,9 +43,12 @@ pub struct SettingsPlugin;
 
 impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.init_resource::<SettingsModuleRegistry>().register_tab(
+        app.init_resource::<SettingsModuleRegistry>();
+    }
+    fn finish(&self, app: &mut App) {
+        app.register_tab(
             "settings",
-            "Settings",
+            t!("settings.tab"),
             settings_tab,
             || true,
         );

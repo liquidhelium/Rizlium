@@ -13,3 +13,14 @@ edit.undo.name: 撤销
 edit.name: 编辑
 edit.redo.name: 重做
 edit.discard_preedit: 取消预编辑
+tab.not_avalible: 不可用
+tab.non_exist: 选项卡{tab}不存在
+file.tab: 文件
+file.recent_files: 近期文件
+game.view.tab: 游戏画面
+inspector.tab: 检查器
+edit.note.tab: 音符
+edit.tool_config.tab: 工具选项
+edit.spline.tab: 曲线
+settings.tab: 设置
+edit.world_view.tab: 世界

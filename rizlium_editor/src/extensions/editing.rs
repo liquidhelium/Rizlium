@@ -7,7 +7,7 @@ use crate::{
 };
 
 use self::{
-    note::note_editor_vertical, spline::spline_editor_horizontal, tool_config_window::tool_config,
+    note::note_editor_vertical, tool_config_window::tool_config,
 };
 use bevy::prelude::*;
 use egui::Ui;
@@ -28,21 +28,21 @@ pub struct Editing;
 
 impl Plugin for Editing {
     fn build(&self, app: &mut App) {
-        app.register_tab(
+        let register_tab = app.register_tab(
             "edit.note",
-            "Notes",
+            t!("edit.note.tab"),
             note_window,
             resource_exists::<GameChart>,
         )
         .register_tab(
             "edit.spline",
-            "Splines",
+            t!("edit.spline.tab"),
             spline_edit,
             resource_exists::<GameChart>,
         )
         .register_tab(
             "edit.tool_config",
-            "Tool",
+            t!("edit.tool_config.tab"),
             tool_config,
             resource_exists::<GameChart>,
         );

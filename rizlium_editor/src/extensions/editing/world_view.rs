@@ -9,6 +9,7 @@ use bevy::{
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::{Response, Sense, Ui};
+use rust_i18n::t;
 use tools::Tool;
 
 use crate::tab_system::{tab_focused, TabRegistrationExt};
@@ -33,7 +34,7 @@ impl Plugin for WorldViewPlugin {
             setup_world_cam.after(bevy_egui::EguiStartupSet::InitContexts),
         )
         .add_plugins((RaycastPlugin, ToolsPlugin))
-        .register_tab("edit.world_view", "World", world_tab, || true);
+        .register_tab("edit.world_view", t!("edit.world_view.tab"), world_tab, || true);
     }
 }
 
