@@ -6,9 +6,7 @@ use crate::{
     ActionsExt,
 };
 
-use self::{
-    note::note_editor_vertical, tool_config_window::tool_config,
-};
+use self::{note::note_editor_vertical, tool_config_window::tool_config};
 use bevy::prelude::*;
 use egui::Ui;
 use rizlium_chart::editing::EditHistory;
@@ -28,24 +26,25 @@ pub struct Editing;
 
 impl Plugin for Editing {
     fn build(&self, app: &mut App) {
-        let register_tab = app.register_tab(
-            "edit.note",
-            t!("edit.note.tab"),
-            note_window,
-            resource_exists::<GameChart>,
-        )
-        .register_tab(
-            "edit.spline",
-            t!("edit.spline.tab"),
-            spline_edit,
-            resource_exists::<GameChart>,
-        )
-        .register_tab(
-            "edit.tool_config",
-            t!("edit.tool_config.tab"),
-            tool_config,
-            resource_exists::<GameChart>,
-        );
+        let register_tab = app
+            .register_tab(
+                "edit.note",
+                t!("edit.note.tab"),
+                note_window,
+                resource_exists::<GameChart>,
+            )
+            .register_tab(
+                "edit.spline",
+                t!("edit.spline.tab"),
+                spline_edit,
+                resource_exists::<GameChart>,
+            )
+            .register_tab(
+                "edit.tool_config",
+                t!("edit.tool_config.tab"),
+                tool_config,
+                resource_exists::<GameChart>,
+            );
 
         app.add_plugins(world_view::WorldViewPlugin)
             .init_resource::<ChartEditHistory>();
@@ -132,14 +131,8 @@ pub fn spline_edit(
     In(ui): In<&mut Ui>,
     chart: Res<GameChart>,
     mut current: Local<usize>,
-    mut cache_range: Local<(f32, f32)>,
-    mut scale: Local<[f32; 2]>,
-    time: Res<GameTime>,
-    mut ev: EventWriter<TimeControlEvent>,
+    mut visible_rect: Local<Option<egui::Rect>>,
 ) {
-    if *scale == [0., 0.] {
-        *scale = [200., 200.];
-    }
     let mut show_first = false;
     ui.scope(|ui| {
         ui.style_mut().spacing.slider_width = 500.;
@@ -150,20 +143,21 @@ pub fn spline_edit(
                 0..=(chart.lines.len() - 1),
             ))
             .changed();
-        ui.add(egui::Slider::new(&mut scale[0], 1.0..=2000.0).logarithmic(true));
-        ui.add(egui::Slider::new(&mut scale[1], 1.0..=2000.0).logarithmic(true));
     });
     show_first |= ui.button("view").clicked();
-    ui.allocate_ui_at_rect(ui.available_rect_before_wrap(), |ui| {
-        let spline = &chart.lines[*current].points;
-        SplineView::new(ui, spline, None).ui(ui);
-        // let response =
-        //     spline_editor_horizontal(ui, spline, Some(0), **time, &mut scale, show_first);
-        // if let Some(to) = response.seek_to {
-        //     ev.send(TimeControlEvent::Seek(to));
-        // }
-        // let range = response.view_rect;
-        // cache_range.0 = range.x_range().min;
-        // cache_range.1 = range.y_range().max;
-    });
+    if let (Some(res),spline_view) = ui
+        .allocate_ui_at_rect(ui.available_rect_before_wrap(), |ui| {
+            let spline = &chart.lines[*current].points;
+            let spline_view = SplineView::new(ui, spline, *visible_rect);
+            (spline_view.ui(ui),spline_view)
+        })
+        .inner
+    {
+        if res.dragged() {
+            let scale = spline_view.view2visible().scale();
+            let delta = (-res.drag_delta()) *scale;
+            let rect= visible_rect.unwrap_or(spline_view.visible_spline_area());
+            *visible_rect = Some(rect.translate(delta));
+        }
+    }
 }

@@ -4,10 +4,12 @@ use bevy::{
     utils::default,
 };
 use egui::{
-    emath::RectTransform, epaint::PathShape, pos2, remap, Color32, Layout, NumExt, Pos2, Rangef,
-    Rect, Sense, Stroke, Ui,
+    emath::RectTransform, epaint::PathShape, pos2, remap, Color32, Layout, NumExt, Pos2, Rangef, Rect, Response, Sense, Stroke, Ui
 };
-use rizlium_chart::prelude::{Spline, Tween};
+use rizlium_chart::{
+    chart::invlerp,
+    prelude::{Spline, Tween},
+};
 
 use super::timeline::timeline_horizontal;
 
@@ -52,10 +54,15 @@ impl<'a, R> SplineView<'a, R> {
         let view_area = view_area.translate(-view_area.left_bottom().to_vec2());
         let spline_area = {
             let (time_start, value_min) = spline.first().map_or((0., 0.), |f| (f.time, f.value));
-            let (time_end, value_max) = spline.last().map_or((0., 0.), |l| (l.time + 0.0, l.value+0.0));
+            let (time_end, value_max) = spline
+                .last()
+                .map_or((0., 0.), |l| (l.time + 0.0, l.value + 0.0));
             Rect::from_two_pos(pos2(time_start, value_min), pos2(time_end, value_max))
         };
-        let visible_spline_area = visible_spline_area.unwrap_or(spline_area.expand2(egui::Vec2 { x: spline_area.width()/2., y: 100. }));
+        let visible_spline_area = visible_spline_area.unwrap_or(spline_area.expand2(egui::Vec2 {
+            x: spline_area.width() / 2.,
+            y: 100.,
+        }));
         Self {
             spline,
             screen_area,
@@ -67,9 +74,9 @@ impl<'a, R> SplineView<'a, R> {
         }
     }
 
-    pub fn ui(&self, ui: &mut Ui) {
+    pub fn ui(&self, ui: &mut Ui) -> Option<Response>{
         if self.spline.is_empty() {
-            return;
+            return None;
         }
         let mut circles_view = Vec::<Pos2>::new();
         let mut linepoints_view = Vec::<Pos2>::new();
@@ -101,21 +108,23 @@ impl<'a, R> SplineView<'a, R> {
                         self.view2visible.inverse().map_x(current_t).ceil() as usize + 2;
                     idx
                 } else {
-                    return;
+                    return None;
                 }
             }
         };
+        let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
         loop {
-            // let this_point = self.spline.points().get(current_keypoint_idx).unwrap();
+            let this_point = self.spline.points().get(current_keypoint_idx).unwrap();
             let Some(next_point) = self.spline.points().get(current_keypoint_idx + 1) else {
                 break;
             };
             while current_t < next_point.time {
-                // lazy i am
-                let Some(value) = self.spline.value(current_t) else {
-                    debug!("{current_t} < {}", self.spline.first().unwrap().time);
-                    return;
-                };
+                let value = f32::ease(
+                    this_point.value,
+                    next_point.value,
+                    invlerp(this_point.time, next_point.time, current_t),
+                    this_point.ease_type
+                );
                 let point_view = self
                     .view2visible
                     .inverse()
@@ -130,7 +139,9 @@ impl<'a, R> SplineView<'a, R> {
                 .transform_pos(pos2(next_point.time, next_point.value));
             circles_view.push(point_view);
             linepoints_view.push(point_view);
-            // todo: upper_bond_restriction
+            if current_segment_index > self.view_area.width().ceil() as usize {
+                break;
+            }
             current_keypoint_idx += 1;
         }
         let line = PathShape::line(
@@ -140,14 +151,23 @@ impl<'a, R> SplineView<'a, R> {
                 .collect(),
             Stroke::new(2.0, Color32::BLUE),
         );
-        //todo: clip
-        ui.painter().add(line);
+        painter.add(line);
         for cir in circles_view {
-            ui.painter().circle_stroke(
+            painter.circle_stroke(
                 self.screen2view.inverse().transform_pos(cir),
                 2.0,
                 Stroke::new(2.0, Color32::YELLOW),
             );
         }
+        Some(response)
+    }
+    pub fn screen2view(&self) -> &RectTransform {
+        &self.screen2view
+    }
+    pub fn view2visible(&self) -> &RectTransform {
+        &self.view2visible
+    }
+    pub fn visible_spline_area(&self) -> Rect {
+        self.visible_spline_area
     }
 }
