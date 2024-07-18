@@ -4,7 +4,8 @@ use bevy::{
     utils::default,
 };
 use egui::{
-    emath::RectTransform, epaint::PathShape, pos2, remap, Color32, Layout, NumExt, Pos2, Rangef, Rect, Response, Sense, Stroke, Ui
+    emath::RectTransform, epaint::PathShape, pos2, remap, Color32, Layout, NumExt, Pos2, Rangef,
+    Rect, Response, Sense, Stroke, Ui,
 };
 use rizlium_chart::{
     chart::invlerp,
@@ -53,16 +54,10 @@ impl<'a, R> SplineView<'a, R> {
         let view_area = ui.available_rect_before_wrap();
         let view_area = view_area.translate(-view_area.left_bottom().to_vec2());
         let spline_area = {
-            let (time_start, value_min) = spline.first().map_or((0., 0.), |f| (f.time, f.value));
-            let (time_end, value_max) = spline
-                .last()
-                .map_or((0., 0.), |l| (l.time + 0.0, l.value + 0.0));
-            Rect::from_two_pos(pos2(time_start, value_min), pos2(time_end, value_max))
+            let rect0 = spline.rect();
+            Rect::from_two_pos(rect0[0].into(), rect0[1].into())
         };
-        let visible_spline_area = visible_spline_area.unwrap_or(spline_area.expand2(egui::Vec2 {
-            x: spline_area.width() / 2.,
-            y: 100.,
-        }));
+        let visible_spline_area = visible_spline_area.unwrap_or(spline_area);
         Self {
             spline,
             screen_area,
@@ -74,9 +69,10 @@ impl<'a, R> SplineView<'a, R> {
         }
     }
 
-    pub fn ui(&self, ui: &mut Ui) -> Option<Response>{
+    pub fn ui(&self, ui: &mut Ui) -> Response {
+        let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
         if self.spline.is_empty() {
-            return None;
+            return response;
         }
         let mut circles_view = Vec::<Pos2>::new();
         let mut linepoints_view = Vec::<Pos2>::new();
@@ -108,11 +104,10 @@ impl<'a, R> SplineView<'a, R> {
                         self.view2visible.inverse().map_x(current_t).ceil() as usize + 2;
                     idx
                 } else {
-                    return None;
+                    return response;
                 }
             }
         };
-        let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
         loop {
             let this_point = self.spline.points().get(current_keypoint_idx).unwrap();
             let Some(next_point) = self.spline.points().get(current_keypoint_idx + 1) else {
@@ -123,7 +118,7 @@ impl<'a, R> SplineView<'a, R> {
                     this_point.value,
                     next_point.value,
                     invlerp(this_point.time, next_point.time, current_t),
-                    this_point.ease_type
+                    this_point.ease_type,
                 );
                 let point_view = self
                     .view2visible
@@ -159,7 +154,7 @@ impl<'a, R> SplineView<'a, R> {
                 Stroke::new(2.0, Color32::YELLOW),
             );
         }
-        Some(response)
+        response
     }
     pub fn screen2view(&self) -> &RectTransform {
         &self.screen2view
@@ -169,5 +164,11 @@ impl<'a, R> SplineView<'a, R> {
     }
     pub fn visible_spline_area(&self) -> Rect {
         self.visible_spline_area
+    }
+    pub fn view_area(&self) -> Rect {
+        self.view_area
+    }
+    pub fn spline_area(&self) -> Rect {
+        self.spline_area
     }
 }
