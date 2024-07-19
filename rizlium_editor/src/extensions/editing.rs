@@ -140,14 +140,14 @@ pub fn spline_edit(
         show_first |= ui
             .add(egui::Slider::new(
                 &mut *current,
-                0..=(chart.lines.len() - 1),
+                0..=(chart.canvases.len() - 1),
             ))
             .changed();
     });
     let (res, spline_view) = ui
         .allocate_ui_at_rect(ui.available_rect_before_wrap(), |ui| {
-            let spline = &chart.lines[*current].points;
-            let spline_view = SplineView::new(ui, spline, *visible_rect);
+            let spline = &chart.canvases[*current].speed;
+            let spline_view = SplineView::new(ui, spline, *visible_rect, spline::Orientation::Horizontal);
             let response = spline_view.ui(ui);
             let spline_area = spline_view.spline_area();
             const WIDTH: f32 = 80.0;

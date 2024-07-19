@@ -8,6 +8,7 @@ mod time;
 pub use color::*;
 pub use easing::*;
 pub use line::*;
+use log::warn;
 pub use note::*;
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;
@@ -125,6 +126,10 @@ impl ChartCache {
                 points.iter_mut().fold(
                     (0., 0., 0.0f32),
                     |(last_start, last_real, last_value), keypoint| {
+                        if keypoint.ease_type != EasingId::Start {
+                            warn!("non-constant speed {:?} is not supported (yet).", keypoint.ease_type);
+                            keypoint.ease_type = EasingId::Linear;
+                        }
                         let this_real = self.beat_remap.value_padding(keypoint.time).unwrap();
                         let pos = last_value.mul_add(this_real - last_real, last_start);
                         let value = keypoint.value;

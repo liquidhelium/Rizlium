@@ -38,6 +38,11 @@ impl TransformHelper for RectTransform {
     }
 }
 
+pub enum Orientation {
+    Horizontal,
+    Vertical,
+}
+
 pub struct SplineView<'a, R> {
     spline: &'a Spline<f32, R>,
     screen_area: Rect,
@@ -46,10 +51,11 @@ pub struct SplineView<'a, R> {
     visible_spline_area: Rect,
     screen2view: RectTransform,
     view2visible: RectTransform,
+    orientation: Orientation
 }
 
 impl<'a, R> SplineView<'a, R> {
-    pub fn new(ui: &mut Ui, spline: &'a Spline<f32, R>, visible_spline_area: Option<Rect>) -> Self {
+    pub fn new(ui: &mut Ui, spline: &'a Spline<f32, R>, visible_spline_area: Option<Rect>, orientation: Orientation) -> Self {
         let screen_area = ui.ctx().screen_rect();
         let view_area = ui.available_rect_before_wrap();
         let view_area = view_area.translate(-view_area.left_bottom().to_vec2());
@@ -66,6 +72,7 @@ impl<'a, R> SplineView<'a, R> {
             visible_spline_area,
             screen2view: RectTransform::from_to(screen_area, view_area),
             view2visible: RectTransform::from_to(view_area, visible_spline_area),
+            orientation
         }
     }
 

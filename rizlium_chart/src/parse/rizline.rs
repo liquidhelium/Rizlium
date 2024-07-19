@@ -247,6 +247,10 @@ impl CanvasMove {
                 .map(|p: Result<chart::KeyPoint<f32>, _>| {
                     let mut p = p?;
                     p.value = scale_y(p.value);
+                    // linear here actually means constant start value
+                    if p.ease_type == chart::EasingId::Linear {
+                        p.ease_type = chart::EasingId::QuadOut;
+                    }
                     Ok(p)
                 })
                 .collect::<Result<_, _>>()?,
