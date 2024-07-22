@@ -26,9 +26,19 @@ pub enum LineRenderingSystemSet {
 pub struct ChartLine;
 
 #[derive(Component, Reflect, Debug, Default)]
-struct ChartLineId {
-    line_idx: usize,
-    keypoint_idx: usize,
+pub struct ChartLineId {
+    pub(crate) line_idx: usize,
+    pub(crate) keypoint_idx: usize,
+}
+
+impl ChartLineId {
+    pub fn line_idx(&self) -> usize {
+        self.line_idx
+    }
+    
+    pub fn keypoint_idx(&self) -> usize {
+        self.keypoint_idx
+    }
 }
 
 #[derive(Component)]
@@ -251,7 +261,7 @@ fn update_shape(
         });
 }
 
-const DEBUG_INVISIBLE: Color = Color::rgba_linear(1., 0., 1., 0.2);
+const DEBUG_INVISIBLE: Color = Color::LinearRgba(LinearRgba::new(1., 0., 1., 0.2));
 
 fn update_color(
     chart: Res<GameChart>,
@@ -302,7 +312,7 @@ fn update_color(
             let relative_pos = pos2 - pos1;
             let mut color1 = get_color_of(line, keypoint_idx);
             let mut color2 = get_color_of(line, keypoint_idx + 1);
-            if color1.a().approx_eq(&0.) && color2.a().approx_eq(&0.) {
+            if color1.alpha().approx_eq(&0.) && color2.alpha().approx_eq(&0.) {
                 color1 = DEBUG_INVISIBLE;
                 color2 = DEBUG_INVISIBLE;
             }

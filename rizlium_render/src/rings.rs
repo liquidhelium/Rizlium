@@ -1,4 +1,4 @@
-use bevy::{ecs::query::BatchingStrategy, prelude::*};
+use bevy::{ecs::batching::BatchingStrategy, prelude::*};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 
 use crate::{colorrgba_to_color, GameChart, GameChartCache, GameTime};

@@ -27,7 +27,7 @@ macro_rules! chart_update {
 
 mod chart;
 mod line_rendering;
-pub use line_rendering::{ShowLines, ChartLine};
+pub use line_rendering::{ShowLines, ChartLine, ChartLineId};
 mod chart_loader;
 mod theme;
 mod time_and_audio;
@@ -49,12 +49,12 @@ impl Plugin for TypeRegisterPlugin {
     }
 }
 pub(crate) fn colorrgba_to_color(color: ColorRGBA) -> Color {
-    Color::RgbaLinear {
+    Color::LinearRgba(LinearRgba {
         red: color.r,
         green: color.g,
         blue: color.b,
         alpha: color.a,
-    }
+    })
 }
 
 pub struct RizliumRenderingPlugin {

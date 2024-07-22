@@ -68,7 +68,7 @@ impl WidgetSystem for CommandPanelImpl<'static> {
         let mut panel_rect = ctx.screen_rect().shrink(20.);
         panel_rect.set_height(20.);
         panel_rect.set_width(400.0f32.min(panel_rect.width()));
-        egui::Area::new("commands")
+        egui::Area::new("commands".into())
             .movable(false)
             .order(egui::Order::Foreground)
             .anchor(Align2::CENTER_TOP, [0., panel_rect.top()])

@@ -7,7 +7,7 @@ use rizlium_chart::{
     chart::{ColorRGBA, EasingId, KeyPoint, Line, LinePointData},
     editing::commands::{EditPoint, InsertLine, InsertPoint, Nop},
 };
-use rizlium_render::GameChart;
+use rizlium_render::{ChartLineId, GameChart};
 
 use crate::{
     extensions::editing::ChartEditHistory,
@@ -55,7 +55,16 @@ impl Plugin for ToolsPlugin {
             t!("edit.world_view.to_pencil.desc"),
             switch_tool(Tool::Pencil),
         );
-        app.register_action("edit.discard_preedit", t!("edit.discard_preedit"), discard_preedit);
+        app.register_action(
+            "edit.world_view.to_select",
+            t!("edit.world_view.to_select.desc"),
+            switch_tool(Tool::Select),
+        );
+        app.register_action(
+            "edit.discard_preedit",
+            t!("edit.discard_preedit"),
+            discard_preedit,
+        );
         app.register_hotkey(
             "edit.world_view.to_pencil",
             [Hotkey::new([KeyCode::KeyP], edit_view_or_tool_focused())],
@@ -69,7 +78,14 @@ impl Plugin for ToolsPlugin {
                 TriggerType::PressAndRelease,
             )],
         );
-        app.register_hotkey("edit.discard_preedit", [Hotkey::new_global([KeyCode::Escape])]);
+        app.register_hotkey(
+            "edit.world_view.to_select",
+            [Hotkey::new([KeyCode::KeyS], edit_view_or_tool_focused())],
+        );
+        app.register_hotkey(
+            "edit.discard_preedit",
+            [Hotkey::new_global([KeyCode::Escape])],
+        );
     }
 }
 
@@ -81,7 +97,7 @@ pub enum Tool {
     Select,
 }
 
-#[derive(Event,Default)]
+#[derive(Event, Default)]
 pub struct DiscardPreeditEvent;
 
 fn discard_preedit(mut ev: EventWriter<DiscardPreeditEvent>) {
@@ -179,7 +195,6 @@ fn pencil_tool(
     mut history: ResMut<ChartEditHistory>,
     to_game: WorldToGame,
     mut current_edit: Local<Option<PencilToolEditData>>,
-    
 ) {
     if *tool != Tool::Pencil || !to_game.avalible() {
         mouse_events.clear();
@@ -242,13 +257,13 @@ fn pencil_tool(
                             new_x: Some(event.pos.x),
                             new_canvas: Some(pencil_config.canvas),
                             new_color: Some(color32_to_colorrgba(pencil_config.pen_color)),
-                            new_easing: Some(pencil_config.easing)
+                            new_easing: Some(pencil_config.easing),
                         },
                         &mut chart,
                     )
                     .unwrap();
             }
-        } else if !event.casted_on_entity
+        } else if event.casted_entity.is_none()
             && matches!(event.event.event_type, MouseEventType::Click(_))
         {
             let event = &event.event;
@@ -299,5 +314,26 @@ fn get_point(
             color: color32_to_colorrgba(pencil_config.pen_color),
             canvas: pencil_config.canvas,
         },
+    }
+}
+
+fn select_tool(
+    mut mouse_events: EventReader<WorldMouseEvent>,
+    tool: Res<Tool>,
+    to_game: &WorldToGame,
+    lines: Query<(Entity, &ChartLineId)>
+) {
+    if *tool != Tool::Pencil || !to_game.avalible() {
+        mouse_events.clear();
+        return;
+    }
+    for event in mouse_events.read() {
+        if let Some(entity) = event.casted_entity {
+            let Some((_, line)) = lines.iter().filter(|e| e.0 == entity).next() else {
+                continue;
+            };
+            
+
+        }
     }
 }

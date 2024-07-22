@@ -91,7 +91,7 @@ impl TabRegistrationExt for App {
         system: impl IntoSystem<&'static mut Ui, (), M1>,
         avalible_when: impl Condition<M2>,
     ) -> &mut Self {
-        self.world
+        self.world_mut()
             .resource_scope(|world, mut registry: Mut<TabRegistry>| {
                 registry.0.insert(
                     id.into(),

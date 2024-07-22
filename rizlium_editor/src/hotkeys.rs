@@ -2,7 +2,7 @@
 //! 工作方式：多个键时，最后一个键使用 [`TriggerType`] 定义的触发方式，其他键要保持按下。
 
 use bevy::{
-    ecs::{schedule::BoxedCondition, system::Command},
+    ecs::{schedule::BoxedCondition, world::Command},
     prelude::*,
     utils::HashMap,
     window::PrimaryWindow,
@@ -196,7 +196,7 @@ impl HotkeysExt for App {
         id: impl Into<ActionId>,
         hotkey_list: impl IntoIterator<Item = Hotkey>,
     ) -> &mut Self {
-        self.world
+        self.world_mut()
             .resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyRegistry>| {
                 let mut hotkey_list: SmallVec<[Hotkey; 3]> = hotkey_list
                     .into_iter()

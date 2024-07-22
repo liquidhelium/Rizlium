@@ -25,7 +25,7 @@ pub struct ScreenMouseEvent(pub MouseEvent);
 #[derive(Event, Debug)]
 pub struct WorldMouseEvent {
     pub event: MouseEvent,
-    pub casted_on_entity: bool,
+    pub casted_entity: Option<Entity>,
 }
 
 #[derive(Clone, Debug)]
@@ -95,13 +95,13 @@ fn ray_cast(
         ) else {
             world_mouse_events.send(WorldMouseEvent {
                 event: owned_event.clone(),
-                casted_on_entity: false,
+                casted_entity: None,
             });
             return;
         };
         world_mouse_events.send(WorldMouseEvent {
             event: owned_event.clone(),
-            casted_on_entity: true,
+            casted_entity: Some(cast_entity.clone()),
         });
         owned_event.pos = cast_data.position();
         meshes.par_iter_mut().for_each(|(entity, _, mut response)| {

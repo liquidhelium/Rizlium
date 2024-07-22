@@ -47,7 +47,7 @@ impl ToolConfigExt for App {
     where
         T: ToolConfig + Resource + Default,
     {
-        let resource = ToolConfigStorage::<T>::default().init_with(&mut self.world);
+        let resource = ToolConfigStorage::<T>::default().init_with(&mut self.world_mut());
         self.init_resource::<T>().insert_resource(resource)
     }
 }

@@ -30,8 +30,8 @@ impl SettingsRegistrationExt for App {
         id: impl Into<DotPath>,
         module: impl SettingsModule,
     ) -> &mut Self {
-        let v = Box::new(SettingsModuleDyn::from_module(module, &mut self.world));
-        self.world
+        let v = Box::new(SettingsModuleDyn::from_module(module, self.world_mut()));
+        self.world_mut()
             .resource_mut::<SettingsModuleRegistry>()
             .0
             .insert(id.into(), v);
@@ -118,7 +118,7 @@ impl<Storage: Send + Sync + 'static> ModuleRunner for SettingsModuleDyn<Storage>
         }
     }
     fn run_ui_system(&mut self, ui: &mut Ui, world: &World) {
-        let child = ui.child_ui(ui.max_rect(), *ui.layout());
+        let child = ui.child_ui(ui.max_rect(), *ui.layout(), None);
         self.storage = self
             .ui_system
             .run_readonly((child, self.storage.take()), world);

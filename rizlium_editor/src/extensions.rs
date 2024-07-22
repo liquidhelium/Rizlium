@@ -98,7 +98,7 @@ impl MenuContext<'_> {
 
 impl MenuExt for App {
     fn menu_context(&mut self, add_menu: impl FnOnce(MenuContext)) -> &mut Self {
-        self.world.resource_scope(|world, mut entrys:bevy::prelude::Mut<'_, EditorMenuEntrys> | {
+        self.world_mut().resource_scope(|world, mut entrys:bevy::prelude::Mut<'_, EditorMenuEntrys> | {
             let container = entrys.as_container();
             add_menu(MenuContext { item: container, world });
         });

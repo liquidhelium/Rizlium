@@ -1,4 +1,4 @@
-use crate::prelude::{Chart, Line, Note};
+use crate::prelude::{Chart, KeyPoint, Line, LinePointData, Note};
 
 use super::{ChartConflictError, Result};
 
@@ -43,12 +43,10 @@ impl ChartPath for NotePath {
             .ok_or(ChartConflictError::InvalidNotePath { note_path: *self })
     }
     fn valid(&self, chart: &Chart) -> Result<()> {
-        let line = self.0
-            .get(chart)?;
+        let line = self.0.get(chart)?;
         if line.notes.len() > self.1 {
             Ok(())
-        }
-        else {
+        } else {
             Err(ChartConflictError::InvalidNotePath { note_path: *self })
         }
     }
@@ -86,8 +84,7 @@ impl ChartPath for LinePath {
     fn valid(&self, chart: &Chart) -> Result<()> {
         if chart.lines.len() > self.0 {
             Ok(())
-        }
-        else {
+        } else {
             Err(ChartConflictError::InvalidLinePath { line_path: *self })
         }
     }
@@ -96,5 +93,53 @@ impl ChartPath for LinePath {
 impl From<usize> for LinePath {
     fn from(value: usize) -> Self {
         Self(value)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LinePointPath(pub LinePath, pub usize);
+
+impl ChartPath for LinePointPath {
+    type Out = KeyPoint<f32,LinePointData>;
+    fn get<'c>(&self, chart: &'c Chart) -> Result<&'c Self::Out> {
+        self.0
+            .get(chart)?
+            .points
+            .points
+            .get(self.1)
+            .ok_or(ChartConflictError::NoSuchPoint {
+                line_path: self.0,
+                point: self.1,
+            })
+    }
+    fn get_mut<'c>(&self, chart: &'c mut Chart) -> Result<&'c mut Self::Out> {
+        self.0
+            .get_mut(chart)?
+            .points
+            .points
+            .get_mut(self.1)
+            .ok_or(ChartConflictError::NoSuchPoint {
+                line_path: self.0,
+                point: self.1,
+            })
+    }
+    fn remove(&self, chart: &mut Chart) -> Result<Self::Out> {
+        let line = self.0.get_mut(chart)?;
+        line.points.remove(self.1).ok_or(ChartConflictError::NoSuchPoint {
+            line_path: self.0,
+            point: self.1,
+        })
+    }
+    fn valid(&self, chart: &Chart) -> Result<()> {
+        let line = self.0.get(chart)?;
+        if line.points.len() > self.1 {
+            Ok(())
+        }
+        else {
+            Err(ChartConflictError::NoSuchPoint {
+                line_path: self.0,
+                point: self.1,
+            })
+        }
     }
 }

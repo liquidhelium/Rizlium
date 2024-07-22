@@ -23,30 +23,3 @@ pub mod prelude {
     #[cfg(feature = "runtime")]
     pub use super::runtime::*;
 }
-
-#[cfg(test)]
-pub mod test_resources {
-    use crate::prelude::{Chart, RizlineChart};
-    use serde_json::from_str;
-    const CHART_TEXT: &str = "todo: this chart was removed, but this test isn't";
-    #[static_init::dynamic]
-    pub static CHART: Chart = from_str::<RizlineChart>(CHART_TEXT)
-        .unwrap()
-        .try_into()
-        .unwrap();
-}
-
-#[cfg(test)]
-mod test {
-    use std::fs;
-
-    use crate::prelude::Chart;
-
-    use super::test_resources::CHART;
-
-    #[test]
-    fn serde_chart() {
-        serde_json::to_writer_pretty(fs::File::create("./chart-out.json").unwrap(), &*CHART).unwrap();
-        let _chart:Chart = serde_json::from_reader(fs::File::open("./chart-out.json").unwrap()).unwrap();
-    }
-}

@@ -4,11 +4,11 @@ use bevy::{
     math::vec2,
     prelude::*,
     render::render_resource::{
-            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-        },
+        Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+    },
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
-use egui::{Response, Sense, Ui};
+use egui::{Context, InputState, PointerButton, Response, Sense, Ui};
 use rust_i18n::t;
 use tools::Tool;
 
@@ -34,11 +34,16 @@ impl Plugin for WorldViewPlugin {
             setup_world_cam.after(bevy_egui::EguiStartupSet::InitContexts),
         )
         .add_plugins((RaycastPlugin, ToolsPlugin))
-        .register_tab("edit.world_view", t!("edit.world_view.tab"), world_tab, || true);
+        .register_tab(
+            "edit.world_view",
+            t!("edit.world_view.tab"),
+            world_tab,
+            || true,
+        );
     }
 }
 
-pub fn edit_view_or_tool_focused() -> impl Condition<()>{
+pub fn edit_view_or_tool_focused() -> impl Condition<()> {
     tab_focused("edit.world_view").or_else(tab_focused("edit.tool_config"))
 }
 
@@ -107,7 +112,7 @@ fn world_tab(
     mut scale: Local<Scale>,
     mut center: Local<Vec3>,
     mut event_writer: EventWriter<ScreenMouseEvent>,
-    mut tool: ResMut<Tool>
+    mut tool: ResMut<Tool>,
 ) {
     let (mut projection, mut transform) = camera.single_mut();
     egui::TopBottomPanel::top("view_control").show_inside(ui, |ui| {
@@ -146,9 +151,12 @@ fn world_tab(
 
     let img = textures.image_id(&large_view).expect("texture not found");
     // main img
-    let area = ui.centered_and_justified(|ui| ui.add(egui::Image::new((img, size2d)))).response.rect;
+    let area = ui
+        .centered_and_justified(|ui| ui.add(egui::Image::new((img, size2d))))
+        .response
+        .rect;
     // tool select
-    tool_select_bar::tool_select_bar(ui, area.left_top() + [10.,10.].into(), &mut tool);
+    tool_select_bar::tool_select_bar(ui, area.left_top() + [10., 10.].into(), &mut tool);
     let response = ui.interact(rect, ui.next_auto_id(), Sense::click_and_drag());
     ui.ctx().input(|input| {
         if response.contains_pointer() || response.interact_pointer_pos().is_some() {
@@ -163,14 +171,12 @@ fn world_tab(
                         } else {
                             egui::Vec2::ZERO
                         },
+                        input
                     ),
                     button: response
                         .interact_pointer_pos()
                         .is_some()
-                        .then(|| {
-                            iter_pointer(response.triple_clicked)
-                                .or_else(|| iter_pointer(response.double_clicked))
-                                .or_else(|| iter_pointer(response.clicked))
+                        .then(|| {iter_pointer(|b| input.pointer.button_clicked(b))
                         })
                         .flatten(),
                     pos: releative_pos.extend(0.),
@@ -184,36 +190,43 @@ fn egui_to_glam(vec2: egui::Vec2) -> Vec2 {
     Vec2::new(vec2.x, vec2.y)
 }
 
-fn iter_pointer(pointer: [bool; egui::NUM_POINTER_BUTTONS]) -> Option<MouseButton> {
-    if let ControlFlow::Break(button) = pointer
-        .iter()
-        .zip([
-            MouseButton::Left,
-            MouseButton::Right,
-            MouseButton::Middle,
-            MouseButton::Other(0),
-            MouseButton::Other(1),
-        ])
-        .try_for_each(|(is_clicked, button)| {
-            if !*is_clicked {
-                ControlFlow::Continue(())
-            } else {
-                ControlFlow::Break(button)
-            }
-        })
-    {
+fn iter_pointer(mut check: impl FnMut(PointerButton) -> bool) -> Option<MouseButton> {
+    if let ControlFlow::Break(button) = [
+        MouseButton::Left,
+        MouseButton::Right,
+        MouseButton::Middle,
+        MouseButton::Other(0),
+        MouseButton::Other(1),
+    ]
+    .into_iter()
+    .zip([
+        PointerButton::Primary,
+        PointerButton::Secondary,
+        PointerButton::Middle,
+        PointerButton::Extra1,
+        PointerButton::Extra2,
+    ])
+    .try_for_each(|(bevy_button, egui_button)| {
+        if !check(egui_button) {
+            ControlFlow::Continue(())
+        } else {
+            ControlFlow::Break(bevy_button)
+        }
+    }) {
         Some(button)
     } else {
         None
     }
 }
 
-fn get_event_type(response: &Response, drag_delta: egui::Vec2) -> MouseEventType {
-    if any_true(&response.triple_clicked) {
+fn get_event_type(response: &Response, drag_delta: egui::Vec2, input: &InputState) -> MouseEventType {
+    if iter_pointer(|b| input.pointer.button_triple_clicked(b)).is_some()
+    {
         MouseEventType::Click(ClickEventType::Triple)
-    } else if any_true(&response.double_clicked) {
+    } else if iter_pointer(|b| input.pointer.button_double_clicked(b)).is_some()
+    {
         MouseEventType::Click(ClickEventType::Double)
-    } else if any_true(&response.clicked) {
+    } else if response.clicked {
         MouseEventType::Click(ClickEventType::Single)
     } else if response.drag_started() {
         MouseEventType::Drag(DragEventType::DragStarted)
@@ -221,13 +234,9 @@ fn get_event_type(response: &Response, drag_delta: egui::Vec2) -> MouseEventType
         MouseEventType::Drag(DragEventType::Dragging(
             egui_to_glam(drag_delta) * vec2(1., -1.),
         )) // flip y axis
-    } else if response.drag_released() {
+    } else if response.drag_stopped() {
         MouseEventType::Drag(DragEventType::DragEnded)
     } else {
         MouseEventType::Hover
     }
-}
-
-fn any_true(slice: &[bool]) -> bool {
-    slice.iter().any(|i| *i)
 }

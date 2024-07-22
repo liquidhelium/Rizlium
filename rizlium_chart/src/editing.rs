@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 
 use crate::prelude::Chart;
-#[cfg(test)]
-use crate::test_resources;
 use snafu::Snafu;
 
 use self::chart_path::LinePath;

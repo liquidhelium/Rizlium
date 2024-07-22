@@ -1,7 +1,8 @@
 use std::any::type_name;
 use std::sync::Arc;
 
-use bevy::ecs::system::{CommandQueue, SystemBuffer, SystemMeta, SystemParam};
+use bevy::ecs::system::{SystemBuffer, SystemMeta, SystemParam};
+use bevy::ecs::world::CommandQueue;
 use bevy::prelude::*;
 use bevy::reflect::{TypeInfo, Typed};
 use bevy::utils::HashMap;
@@ -163,7 +164,7 @@ impl ActionsExt for App {
         description: impl Into<String>,
         action: impl IntoSystem<SystemInput, (), M>,
     ) -> &mut Self {
-        self.world
+        self.world_mut()
             .resource_scope(|world, mut actions: Mut<'_, ActionRegistry>| {
                 let mut system = IntoSystem::into_system(action);
                 system.initialize(world);

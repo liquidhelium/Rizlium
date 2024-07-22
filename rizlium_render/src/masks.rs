@@ -14,7 +14,7 @@ use bevy::prelude::*;
 use bevy::render::primitives::Aabb;
 use bevy_prototype_lyon::prelude::*;
 
-pub const MASK_LAYER: u8 = 1;
+pub const MASK_LAYER: usize = 1;
 
 pub struct MaskPlugin;
 
@@ -110,8 +110,8 @@ pub(crate) fn update_mask_bottom(
                     .ok()
                     .map(|t| colorrgba_to_color(t.this.color.background))
             }) {
-                linear.add_stop(0., color.with_a(1.));
-                linear.add_stop(1., color.with_a(0.));
+                linear.add_stop(0., color.with_alpha(1.));
+                linear.add_stop(1., color.with_alpha(0.));
             }
             linear.into()
         };
@@ -166,8 +166,8 @@ pub(crate) fn update_mask_top(
                     .ok()
                     .map(|t| colorrgba_to_color(t.this.color.background))
             }) {
-                linear.add_stop(0., color.with_a(0.));
-                linear.add_stop(1., color.with_a(1.));
+                linear.add_stop(0., color.with_alpha(0.));
+                linear.add_stop(1., color.with_alpha(1.));
             }
             linear.into()
         };

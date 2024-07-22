@@ -24,3 +24,4 @@ edit.tool_config.tab: 工具选项
 edit.spline.tab: 曲线
 settings.tab: 设置
 edit.world_view.tab: 世界
+edit.world_view.to_select.desc: 切换到选择工具
