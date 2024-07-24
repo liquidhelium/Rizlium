@@ -38,7 +38,7 @@ bevy = { version = "0.14.0", default-features = false, features = [
     "bevy_gizmos"
 ] }
 rizlium_chart ={ path = "../rizlium_chart"}
-bevy_mod_raycast = "0.18.0"
+bevy_mod_raycast = {version = "0.18.0", features = ["2d"]}
 bevy-persistent = {version = "0.6.0", features = ["json","toml"]}
 serde ={ version = "*", features = ["derive"]}
 dirs = "*"
@@ -50,7 +50,7 @@ indexmap = {version = "*", features = ["serde"]}
 enum_dispatch = "*"
 snafu = "*"
 dyn-clone = "1"
-smallvec = "1"
+smallvec = {version = "1", features = ["serde"]}
 strum = { version = "0.26", features = ["derive"] }
 serde_json = "*"
 rust-i18n = "3"

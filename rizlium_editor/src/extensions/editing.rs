@@ -10,7 +10,7 @@ use self::{note::note_editor_vertical, tool_config_window::tool_config};
 use bevy::prelude::*;
 use egui::{emath::RectTransform, vec2, Color32, Sense, Stroke, Ui};
 use rizlium_chart::editing::EditHistory;
-use rizlium_render::{GameChart, GameTime, TimeControlEvent};
+use rizlium_render::{GameChart, GameTime};
 use rust_i18n::t;
 use spline::SplineView;
 

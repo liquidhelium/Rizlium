@@ -8,7 +8,7 @@ use bevy::{
     },
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
-use egui::{Context, InputState, PointerButton, Response, Sense, Ui};
+use egui::{InputState, PointerButton, Response, Sense, Ui};
 use rust_i18n::t;
 use tools::Tool;
 
@@ -33,6 +33,7 @@ impl Plugin for WorldViewPlugin {
             PreStartup,
             setup_world_cam.after(bevy_egui::EguiStartupSet::InitContexts),
         )
+        .add_systems(Last, bug_detect)
         .add_plugins((RaycastPlugin, ToolsPlugin))
         .register_tab(
             "edit.world_view",
@@ -239,4 +240,29 @@ fn get_event_type(response: &Response, drag_delta: egui::Vec2, input: &InputStat
     } else {
         MouseEventType::Hover
     }
+}
+
+fn bug_detect(mut ev: EventReader<AssetEvent<Mesh>>) {
+    ev.read().for_each(|ev| {
+        if is_index(get_id(ev), 5) {
+            debug!("{:?}", ev);
+        }
+    })
+}
+
+fn get_id(ev: &AssetEvent<Mesh>) -> &AssetId<Mesh>{
+    use AssetEvent::*;
+    match ev {
+        Added { id } | 
+        Modified { id} | 
+        Removed { id }| 
+        Unused { id }|
+        LoadedWithDependencies { id } => {
+            id
+        }
+    }
+}
+
+fn is_index(id: &AssetId<Mesh>, index: u64) -> bool {
+    matches!(*id, AssetId::Index { index: idx,marker: _ } if idx.to_bits() & u32::MAX as u64 == index)
 }

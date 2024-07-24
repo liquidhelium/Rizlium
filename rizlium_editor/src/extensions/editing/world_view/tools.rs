@@ -1,16 +1,16 @@
 use rust_i18n::t;
 use strum::EnumIter;
 
-use bevy::{input::mouse::MouseWheel, math::vec2, prelude::*};
+use bevy::{input::mouse::MouseWheel, prelude::*};
 use egui::Ui;
 use rizlium_chart::{
-    chart::{ColorRGBA, EasingId, KeyPoint, Line, LinePointData},
-    editing::commands::{EditPoint, InsertLine, InsertPoint, Nop},
+    chart::{ColorRGBA, KeyPoint, Line, LinePointData},
+    editing::{chart_path::{LinePath, LinePointPath}, commands::{EditPoint, InsertLine, InsertPoint, Nop}},
 };
 use rizlium_render::{ChartLineId, GameChart};
 
 use crate::{
-    extensions::editing::ChartEditHistory,
+    extensions::{editing::ChartEditHistory, inspector::{ChartItem, SelectedItem}},
     hotkeys::{Hotkey, HotkeysExt, RuntimeTrigger, TriggerType},
     tab_system::tab_opened,
     utils::WorldToGame,
@@ -43,7 +43,7 @@ impl Plugin for ToolsPlugin {
             .init_tool_config::<tool_configs::PencilToolConfig>()
             .add_systems(
                 Update,
-                (view_tool, pencil_tool).run_if(tab_opened("edit.world_view")),
+                (view_tool, pencil_tool, select_tool).run_if(tab_opened("edit.world_view")),
             );
         app.register_action(
             "edit.world_view.temp_toggle_view",
@@ -320,20 +320,25 @@ fn get_point(
 fn select_tool(
     mut mouse_events: EventReader<WorldMouseEvent>,
     tool: Res<Tool>,
-    to_game: &WorldToGame,
-    lines: Query<(Entity, &ChartLineId)>
+    to_game: WorldToGame,
+    lines: Query<(Entity, &ChartLineId)>,
+    mut selected_item: ResMut<SelectedItem>,
 ) {
-    if *tool != Tool::Pencil || !to_game.avalible() {
+    if *tool != Tool::Select || !to_game.avalible() {
         mouse_events.clear();
         return;
     }
     for event in mouse_events.read() {
-        if let Some(entity) = event.casted_entity {
-            let Some((_, line)) = lines.iter().filter(|e| e.0 == entity).next() else {
-                continue;
-            };
-            
-
+        if event.event.event_type.is_click() {
+            if let Some(entity) = event.casted_entity {
+                let Some((_, line)) = lines.iter().find(|e| e.0 == entity) else {
+                    continue;
+                };
+                selected_item.item = Some(ChartItem::LinePoint(LinePointPath(LinePath(line.line_idx()),line.keypoint_idx())))
+            }
+            else {
+                selected_item.item = None
+            }
         }
     }
 }

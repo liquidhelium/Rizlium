@@ -1,7 +1,5 @@
 use bevy::prelude::*;
 use rizlium_chart::chart::EasingId;
-use strum::IntoEnumIterator;
-use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use egui::{Slider, Ui};
@@ -9,7 +7,6 @@ use rizlium_render::GameChart;
 
 use crate::widgets::enum_selector;
 
-use super::Tool;
 
 pub(crate) fn show_window<T: ToolConfig>(ui: &mut Ui, world: &mut World) {
     world.resource_scope(|world, mut stroage: Mut<'_, ToolConfigStorage<T>>| {
@@ -47,7 +44,7 @@ impl ToolConfigExt for App {
     where
         T: ToolConfig + Resource + Default,
     {
-        let resource = ToolConfigStorage::<T>::default().init_with(&mut self.world_mut());
+        let resource = ToolConfigStorage::<T>::default().init_with(self.world_mut());
         self.init_resource::<T>().insert_resource(resource)
     }
 }

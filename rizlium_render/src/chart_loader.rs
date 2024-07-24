@@ -1,4 +1,4 @@
-use std::{borrow::Cow, io::{Cursor, Read}, error::Error};
+use std::{borrow::Cow, io::{Cursor, Read}};
 
 use bevy::{
     prelude::{ResMut, *},

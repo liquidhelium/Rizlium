@@ -3,4 +3,8 @@
         "rizlium_editor/locales"
     ],
     "i18n-ally.keystyle": "flat",
+    "lldb.displayFormat": "auto",
+    "lldb.showDisassembly": "auto",
+    "lldb.dereferencePointers": true,
+    "lldb.consoleMode": "evaluate",
 }

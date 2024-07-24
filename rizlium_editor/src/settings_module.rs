@@ -1,4 +1,4 @@
-use std::{borrow::{Borrow, Cow}, marker::PhantomData};
+use std::{borrow::Cow, marker::PhantomData};
 
 use bevy::{
     app::{App, Plugin},
@@ -7,8 +7,7 @@ use bevy::{
         world::{Mut, World},
     },
     log::error,
-    prelude::{Deref, DerefMut},
-    utils::HashMap,
+    prelude::Deref,
 };
 use egui::{Align, Button, CentralPanel, Layout, ScrollArea, SidePanel, Ui};
 use indexmap::IndexMap;

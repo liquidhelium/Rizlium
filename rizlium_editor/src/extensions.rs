@@ -7,7 +7,7 @@ pub mod i18n;
 
 use std::borrow::Cow;
 
-use bevy::{ecs::world::World, prelude::{App, Deref, DerefMut, Plugin, Resource}};
+use bevy::{asset::{AssetId, Assets}, ecs::world::World, prelude::{App, Deref, DerefMut, Plugin, Resource}, render::{mesh::{Mesh, PrimitiveTopology}, render_asset::RenderAssetUsages}};
 use snafu::Snafu;
 
 use crate::menu::{

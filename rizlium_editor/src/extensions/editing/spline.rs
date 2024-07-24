@@ -1,28 +1,11 @@
-use bevy::{
-    log::{debug, info},
-    math::{vec2, Vec2},
-    utils::default,
-};
 use egui::{
-    emath::RectTransform, epaint::PathShape, pos2, remap, Color32, Layout, NumExt, Pos2, Rangef,
-    Rect, Response, Sense, Stroke, Ui,
+    emath::RectTransform, epaint::PathShape, pos2, remap, Color32, Pos2, Rect, Response, Sense,
+    Stroke, Ui,
 };
 use rizlium_chart::{
     chart::invlerp,
     prelude::{Spline, Tween},
 };
-
-use super::timeline::timeline_horizontal;
-
-#[derive(Clone)]
-pub struct SplineEditorResponse {
-    pub edit: Option<()>, // todo
-    pub to_focus: Option<usize>,
-    pub value_range_changed: bool,
-    pub scale_changed: bool,
-    pub view_rect: egui::Rect,
-    pub seek_to: Option<f32>,
-}
 
 pub trait TransformHelper {
     fn map_x(&self, x: f32) -> f32;
@@ -51,11 +34,16 @@ pub struct SplineView<'a, R> {
     visible_spline_area: Rect,
     screen2view: RectTransform,
     view2visible: RectTransform,
-    orientation: Orientation
+    orientation: Orientation,
 }
 
 impl<'a, R> SplineView<'a, R> {
-    pub fn new(ui: &mut Ui, spline: &'a Spline<f32, R>, visible_spline_area: Option<Rect>, orientation: Orientation) -> Self {
+    pub fn new(
+        ui: &mut Ui,
+        spline: &'a Spline<f32, R>,
+        visible_spline_area: Option<Rect>,
+        orientation: Orientation,
+    ) -> Self {
         let screen_area = ui.ctx().screen_rect();
         let view_area = ui.available_rect_before_wrap();
         let view_area = view_area.translate(-view_area.left_bottom().to_vec2());
@@ -72,7 +60,7 @@ impl<'a, R> SplineView<'a, R> {
             visible_spline_area,
             screen2view: RectTransform::from_to(screen_area, view_area),
             view2visible: RectTransform::from_to(view_area, visible_spline_area),
-            orientation
+            orientation,
         }
     }
 

@@ -1,4 +1,5 @@
 use bevy::log::{Level, LogPlugin};
+use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use rizlium_editor::extensions::command_panel::CommandPanelImpl;
 use rizlium_editor::extensions::{EditorMenuEntrys, ExtensionsPlugin};
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
@@ -8,7 +9,7 @@ use rizlium_editor::settings_module::SettingsPlugin;
 use rizlium_editor::tab_system::{FocusedTab, TabPlugin, TabRegistry};
 use rizlium_editor::widgets::{widget, LayoutPresetEdit};
 use rizlium_editor::{
-    ActionPlugin, EventCollectorResource, FilePlugin, RizTabViewerNext, WindowUpdateControlPlugin,
+    ActionPlugin, EventCollectorResource, FilePlugin, RizTabViewer, WindowUpdateControlPlugin,
 };
 
 use bevy::window::PrimaryWindow;
@@ -42,6 +43,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins.build().disable::<LogPlugin>(),
             EguiPlugin,
+            DefaultInspectorConfigPlugin,
             RizliumRenderingPlugin {
                 config: (),
                 init_with_chart: None,
@@ -170,7 +172,7 @@ fn egui_render(world: &mut World) {
             }
             DockArea::new(&mut state.state).show(
                 ctx,
-                &mut RizTabViewerNext {
+                &mut RizTabViewer {
                     registry: &mut registry,
                     world,
                 },

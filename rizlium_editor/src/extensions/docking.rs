@@ -1,7 +1,6 @@
 use bevy::prelude::*;
-use egui::Ui;
 
-use crate::{menu::Custom, tab_system::TabRegistrationExt, widgets::{widget, DockButtons}};
+use crate::{menu::Custom, widgets::{widget, DockButtons}};
 
 use super::MenuExt;
 pub struct Docking;

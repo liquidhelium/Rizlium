@@ -3,9 +3,8 @@ use std::borrow::{Borrow, Cow};
 use bevy::{
     app::{Plugin, Update},
     ecs::{
-        schedule::{common_conditions::resource_changed, IntoSystemConfigs},
         system::{In, Res, ResMut, Resource},
-    }, log::debug,
+    },
 };
 use bevy_persistent::{Persistent, StorageFormat};
 use egui::Ui;

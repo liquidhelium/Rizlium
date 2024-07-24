@@ -13,12 +13,12 @@ use self::tab_system::{TabId, TabRegistry};
 #[derive(Resource, Serialize, Deserialize, Default, DerefMut, Deref)]
 pub struct RizTabPresets(Vec<(String, DockState<TabId>)>);
 
-pub struct RizTabViewerNext<'a> {
+pub struct RizTabViewer<'a> {
     pub world: &'a mut World,
     pub registry: &'a mut TabRegistry,
 }
 
-impl<'a> TabViewer for RizTabViewerNext<'a> {
+impl<'a> TabViewer for RizTabViewer<'a> {
     type Tab = TabId;
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         self.registry

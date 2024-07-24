@@ -1,4 +1,4 @@
-use bevy::{prelude::*, render::view::RenderLayers, math::Ray3d};
+use bevy::{color::palettes::css::WHITE, math::Ray3d, prelude::*, render::view::RenderLayers};
 use bevy_mod_raycast::immediate::{Raycast, RaycastSettings};
 use rizlium_render::ChartLine;
 use strum::EnumIs;
@@ -69,17 +69,19 @@ fn ray_cast(
     mut meshes: Query<(Entity, Option<&RenderLayers>, &mut CamResponse)>,
     mut screen_mouse_events: EventReader<ScreenMouseEvent>,
     mut world_mouse_events: EventWriter<WorldMouseEvent>,
+    mut gizmos: Gizmos,
 ) {
     let (cam, trans, cam_layers) = camera.single();
     screen_mouse_events.read().for_each(|ev| {
         let mut owned_event;
-        let [(cast_entity, cast_data)] = raycast.cast_ray(
+        let [(cast_entity, cast_data)] = raycast.debug_cast_ray(
             {
                 let Some(ray) = to_ray(ev.0.pos.xy(), cam, trans) else {
                     return;
                 };
                 owned_event = ev.0.clone();
                 owned_event.pos = ray.origin;
+                gizmos.circle_2d(ray.origin.xy(), 10., WHITE);
                 ray
             },
             &RaycastSettings::default()
@@ -91,7 +93,7 @@ fn ray_cast(
                         let cam_layers = cam_layers.unwrap_or(&default_layer);
                         layers.intersects(cam_layers)
                     })
-                }),
+                }), &mut gizmos
         ) else {
             world_mouse_events.send(WorldMouseEvent {
                 event: owned_event.clone(),
@@ -101,7 +103,7 @@ fn ray_cast(
         };
         world_mouse_events.send(WorldMouseEvent {
             event: owned_event.clone(),
-            casted_entity: Some(cast_entity.clone()),
+            casted_entity: Some(*cast_entity),
         });
         owned_event.pos = cast_data.position();
         meshes.par_iter_mut().for_each(|(entity, _, mut response)| {
