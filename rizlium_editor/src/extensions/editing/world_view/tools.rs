@@ -5,12 +5,18 @@ use bevy::{input::mouse::MouseWheel, prelude::*};
 use egui::Ui;
 use rizlium_chart::{
     chart::{ColorRGBA, KeyPoint, Line, LinePointData},
-    editing::{chart_path::{LinePath, LinePointPath}, commands::{EditPoint, InsertLine, InsertPoint, Nop}},
+    editing::{
+        chart_path::{LinePath, LinePointPath},
+        commands::{EditPoint, InsertLine, InsertPoint, Nop},
+    },
 };
 use rizlium_render::{ChartLineId, GameChart};
 
 use crate::{
-    extensions::{editing::ChartEditHistory, inspector::{ChartItem, SelectedItem}},
+    extensions::{
+        editing::ChartEditHistory,
+        inspector::{ChartItem, SelectedItem},
+    },
     hotkeys::{Hotkey, HotkeysExt, RuntimeTrigger, TriggerType},
     tab_system::tab_opened,
     utils::WorldToGame,
@@ -334,9 +340,11 @@ fn select_tool(
                 let Some((_, line)) = lines.iter().find(|e| e.0 == entity) else {
                     continue;
                 };
-                selected_item.item = Some(ChartItem::LinePoint(LinePointPath(LinePath(line.line_idx()),line.keypoint_idx())))
-            }
-            else {
+                selected_item.item = Some(ChartItem::LinePoint(LinePointPath(
+                    LinePath(line.line_idx()),
+                    line.keypoint_idx(),
+                )))
+            } else {
                 selected_item.item = None
             }
         }

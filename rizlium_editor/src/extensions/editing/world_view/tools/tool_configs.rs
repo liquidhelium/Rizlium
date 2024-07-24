@@ -7,18 +7,15 @@ use rizlium_render::GameChart;
 
 use crate::widgets::enum_selector;
 
-
 pub(crate) fn show_window<T: ToolConfig>(ui: &mut Ui, world: &mut World) {
+    let child = ui.child_ui(ui.max_rect(), *ui.layout(), None);
     world.resource_scope(|world, mut stroage: Mut<'_, ToolConfigStorage<T>>| {
-        stroage.0.run(unsafe { &mut *(ui as *mut Ui) }, world);
+        stroage.0.run(child, world);
     });
 }
 
 #[derive(Resource)]
-pub struct ToolConfigStorage<T: ToolConfig>(
-    Box<dyn System<In = &'static mut Ui, Out = ()>>,
-    PhantomData<T>,
-);
+pub struct ToolConfigStorage<T: ToolConfig>(Box<dyn System<In = Ui, Out = ()>>, PhantomData<T>);
 
 impl<T: ToolConfig> ToolConfigStorage<T> {
     pub(crate) fn init_with(mut self, world: &mut World) -> Self {
@@ -50,11 +47,11 @@ impl ToolConfigExt for App {
 }
 
 pub trait ToolConfig: Send + Sync + 'static {
-    fn config_system() -> impl System<In = &'static mut Ui, Out = ()>;
+    fn config_system() -> impl System<In = Ui, Out = ()>;
 }
 
 impl ToolConfig for PencilToolConfig {
-    fn config_system() -> impl System<In = &'static mut Ui, Out = ()> {
+    fn config_system() -> impl System<In = Ui, Out = ()> {
         IntoSystem::into_system(Self::system)
     }
 }
@@ -63,15 +60,11 @@ impl ToolConfig for PencilToolConfig {
 pub struct PencilToolConfig {
     pub canvas: usize,
     pub pen_color: egui::Color32,
-    pub easing: EasingId
+    pub easing: EasingId,
 }
 
 impl PencilToolConfig {
-    pub(crate) fn system(
-        In(ui): In<&'static mut Ui>,
-        mut this: ResMut<Self>,
-        chart: Res<GameChart>,
-    ) {
+    pub(crate) fn system(In(mut ui): In<Ui>, mut this: ResMut<Self>, chart: Res<GameChart>) {
         ui.columns(2, |uis| {
             let [uil, uir] = uis else {
                 // must be two
@@ -89,4 +82,3 @@ impl PencilToolConfig {
         })
     }
 }
-

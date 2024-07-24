@@ -10,8 +10,8 @@ use bevy::{
     prelude::*,
 };
 use egui::Ui;
-use strum::IntoEnumIterator;
 use std::fmt::Debug;
+use strum::IntoEnumIterator;
 pub trait WidgetSystem: SystemParam + 'static {
     type Extra<'a>;
     fn system(

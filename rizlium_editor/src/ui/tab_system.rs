@@ -5,11 +5,14 @@ use egui::Ui;
 use rust_i18n::t;
 use snafu::Snafu;
 
-use crate::{utils::{dot_path::DotPath, new_condition}, RizDockState};
+use crate::{
+    utils::{dot_path::DotPath, new_condition},
+    RizDockState,
+};
 pub type TabId = DotPath;
 
 pub struct TabStorage {
-    boxed: Box<dyn System<In = &'static mut Ui, Out = ()>>,
+    boxed: Box<dyn System<In = Ui, Out = ()>>,
     avalible_condition: BoxedCondition,
     tab_title: Cow<'static, str>,
 }
@@ -31,17 +34,17 @@ pub fn tab_opened(tab: impl Into<DotPath>) -> impl Condition<()> {
 
 impl TabStorage {
     pub fn run_with(&mut self, world: &mut World, ui: &mut Ui) -> TabResult {
-        unsafe {
-            self.avalible_condition
-                .run_readonly((), world)
-                .then(|| {
-                    self.boxed.run(&mut *(ui as *mut Ui), world);
-                    self.boxed.apply_deferred(world)
-                })
-                .ok_or(TabError::NotAvalible {
-                    name: self.tab_title.clone(),
-                })
-        }
+        let child = ui.child_ui(ui.max_rect(), *ui.layout(), None);
+
+        self.avalible_condition
+            .run_readonly((), world)
+            .then(|| {
+                self.boxed.run(child, world);
+                self.boxed.apply_deferred(world)
+            })
+            .ok_or(TabError::NotAvalible {
+                name: self.tab_title.clone(),
+            })
     }
     pub fn title(&self) -> Cow<'static, str> {
         self.tab_title.clone()
@@ -64,7 +67,10 @@ impl TabRegistry {
 
         if let Some(tab) = self.0.get_mut(tab) {
             let Ok(()) = tab.run_with(world, ui) else {
-                ui.colored_label(Color32::GRAY, RichText::new(t!("tab.not_avalible")).italics());
+                ui.colored_label(
+                    Color32::GRAY,
+                    RichText::new(t!("tab.not_avalible")).italics(),
+                );
                 return;
             };
         } else {
@@ -78,7 +84,7 @@ pub trait TabRegistrationExt {
         &mut self,
         id: impl Into<TabId>,
         name: Cow<'static, str>,
-        system: impl IntoSystem<&'static mut Ui, (), M1>,
+        system: impl IntoSystem<Ui, (), M1>,
         avalible_when: impl Condition<M2>,
     ) -> &mut Self;
 }
@@ -88,7 +94,7 @@ impl TabRegistrationExt for App {
         &mut self,
         id: impl Into<TabId>,
         name: Cow<'static, str>,
-        system: impl IntoSystem<&'static mut Ui, (), M1>,
+        system: impl IntoSystem<Ui, (), M1>,
         avalible_when: impl Condition<M2>,
     ) -> &mut Self {
         self.world_mut()

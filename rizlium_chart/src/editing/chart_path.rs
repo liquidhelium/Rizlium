@@ -100,7 +100,7 @@ impl From<usize> for LinePath {
 pub struct LinePointPath(pub LinePath, pub usize);
 
 impl ChartPath for LinePointPath {
-    type Out = KeyPoint<f32,LinePointData>;
+    type Out = KeyPoint<f32, LinePointData>;
     fn get<'c>(&self, chart: &'c Chart) -> Result<&'c Self::Out> {
         self.0
             .get(chart)?
@@ -113,29 +113,27 @@ impl ChartPath for LinePointPath {
             })
     }
     fn get_mut<'c>(&self, chart: &'c mut Chart) -> Result<&'c mut Self::Out> {
-        self.0
-            .get_mut(chart)?
-            .points
-            .points
-            .get_mut(self.1)
+        self.0.get_mut(chart)?.points.points.get_mut(self.1).ok_or(
+            ChartConflictError::NoSuchPoint {
+                line_path: self.0,
+                point: self.1,
+            },
+        )
+    }
+    fn remove(&self, chart: &mut Chart) -> Result<Self::Out> {
+        let line = self.0.get_mut(chart)?;
+        line.points
+            .remove(self.1)
             .ok_or(ChartConflictError::NoSuchPoint {
                 line_path: self.0,
                 point: self.1,
             })
     }
-    fn remove(&self, chart: &mut Chart) -> Result<Self::Out> {
-        let line = self.0.get_mut(chart)?;
-        line.points.remove(self.1).ok_or(ChartConflictError::NoSuchPoint {
-            line_path: self.0,
-            point: self.1,
-        })
-    }
     fn valid(&self, chart: &Chart) -> Result<()> {
         let line = self.0.get(chart)?;
         if line.points.len() > self.1 {
             Ok(())
-        }
-        else {
+        } else {
             Err(ChartConflictError::NoSuchPoint {
                 line_path: self.0,
                 point: self.1,

@@ -2,9 +2,7 @@ use std::borrow::{Borrow, Cow};
 
 use bevy::{
     app::{Plugin, Update},
-    ecs::{
-        system::{In, Res, ResMut, Resource},
-    },
+    ecs::system::{In, Res, ResMut, Resource},
 };
 use bevy_persistent::{Persistent, StorageFormat};
 use egui::Ui;
@@ -34,11 +32,8 @@ impl Plugin for I18nPlugin {
             "settings.language",
             SettingsModuleStruct::new(language_ui, set_locale, t!("settings.language")),
         );
-        app.add_systems(
-            Update,
-            sync_locale,
-        );
-        
+        app.add_systems(Update, sync_locale);
+
         app.insert_resource(a);
     }
 }

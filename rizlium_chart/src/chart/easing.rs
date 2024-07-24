@@ -281,23 +281,25 @@ impl<T: Tween, R> From<Vec<KeyPoint<T, R>>> for Spline<T, R> {
 
 /// Geometry Properties
 impl<R> Spline<f32, R> {
-    pub fn rect(&self) -> [[f32;2];2] {
+    pub fn rect(&self) -> [[f32; 2]; 2] {
         [
-            [
-                self.first().map_or(0., |f| f.time),
-                self.min()
-            ],
-            [
-                self.last().map_or(0., |f| f.time),
-                self.max()
-            ]
+            [self.first().map_or(0., |f| f.time), self.min()],
+            [self.last().map_or(0., |f| f.time), self.max()],
         ]
     }
     pub fn max(&self) -> f32 {
-        self.points.iter().map(|k| k.value).reduce(f32::max).unwrap_or_default()
+        self.points
+            .iter()
+            .map(|k| k.value)
+            .reduce(f32::max)
+            .unwrap_or_default()
     }
     pub fn min(&self) -> f32 {
-        self.points.iter().map(|k| k.value).reduce(f32::min).unwrap_or_default()
+        self.points
+            .iter()
+            .map(|k| k.value)
+            .reduce(f32::min)
+            .unwrap_or_default()
     }
 }
 
@@ -342,7 +344,7 @@ impl<R: Clone> Spline<f32, R> {
                             Continue(Some(false))
                         }
                     }
-                    _ => Break(())
+                    _ => Break(()),
                 }
             })
             .is_continue()

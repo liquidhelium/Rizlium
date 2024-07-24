@@ -1,7 +1,7 @@
-#[cfg(feature = "serialize")]
-use serde::Serialize;
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;
+#[cfg(feature = "serialize")]
+use serde::Serialize;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]

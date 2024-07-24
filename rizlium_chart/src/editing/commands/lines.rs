@@ -25,7 +25,7 @@ impl ChartCommand for InsertLine {
         }
         .into())
     }
-    fn validate(&self,_chart: &Chart) -> crate::editing::Result<()> {
+    fn validate(&self, _chart: &Chart) -> crate::editing::Result<()> {
         Ok(())
     }
 }
@@ -43,7 +43,7 @@ impl ChartCommand for RemoveLine {
         }
         .into())
     }
-    fn validate(&self,chart: &Chart) -> crate::editing::Result<()> {
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
         self.line_path.valid(chart)
     }
 }
@@ -103,13 +103,15 @@ impl ChartCommand for EditPoint {
             new_x: self.new_x.map(|new| replace(&mut point.value, new)),
             new_canvas: old_canvas,
             new_color: old_color,
-            new_easing: self.new_easing.map(|new| replace(&mut point.ease_type, new))
+            new_easing: self
+                .new_easing
+                .map(|new| replace(&mut point.ease_type, new)),
         }
         .into())
     }
-    fn validate(&self,chart: &Chart) -> crate::editing::Result<()> {
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
         let canvas_len = chart.canvases.len();
-        if let Some(canvas) = self.new_canvas{
+        if let Some(canvas) = self.new_canvas {
             if canvas >= canvas_len {
                 return Err(ChartConflictError::NoSuchCanvas { canvas });
             }
@@ -120,11 +122,9 @@ impl ChartCommand for EditPoint {
                 line_path: self.line_path,
                 point: self.point_idx,
             })
-        }
-        else {
+        } else {
             Ok(())
         }
-
     }
 }
 
@@ -168,7 +168,7 @@ impl ChartCommand for InsertPoint {
         }
         .into())
     }
-    fn validate(&self,chart: &Chart) -> crate::editing::Result<()> {
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
         self.line_path.valid(chart)
     }
 }
@@ -196,15 +196,14 @@ impl ChartCommand for RemovePoint {
         }
         .into())
     }
-    fn validate(&self,chart: &Chart) -> crate::editing::Result<()> {
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
         let points_len = self.line_path.get(chart)?.points.len();
         if points_len < self.point_idx {
             Err(ChartConflictError::NoSuchPoint {
                 line_path: self.line_path,
                 point: self.point_idx,
             })
-        }
-        else {
+        } else {
             Ok(())
         }
     }

@@ -5,7 +5,6 @@ use std::time::Duration;
 use bevy::{
     core::FrameCount,
     prelude::*,
-    
     window::{PresentMode, PrimaryWindow, RequestRedraw},
     winit::WinitSettings,
 };
@@ -19,16 +18,16 @@ use rust_i18n::i18n;
 use ui::tab_system::TabId;
 pub use ui::*;
 mod editor_actions;
-pub mod hotkeys;
-mod files;
 pub mod extensions;
-pub mod utils;
+mod files;
+pub mod hotkeys;
 pub mod notification;
 pub mod settings_module;
-pub use files::*;
+pub mod utils;
 pub use editor_actions::*;
-mod ui;
+pub use files::*;
 pub mod extra_window_control;
+mod ui;
 #[derive(Debug, Resource, Default)]
 pub struct EditorState {
     pub debug_resources: DebugResources,
@@ -137,7 +136,6 @@ fn right_half(rect: &Rect) -> Rect {
 fn do114514<const LEN: usize>() -> String {
     ["114514"; LEN].join("")
 }
-
 
 pub struct WindowUpdateControlPlugin;
 

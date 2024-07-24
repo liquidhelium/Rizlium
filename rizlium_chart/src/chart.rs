@@ -96,7 +96,7 @@ pub struct ChartCache {
     /// 所有 [`Canvas`] 在某时间对应的高度 (从速度计算而来).
     pub canvas_y_by_real: Vec<Spline<f32>>,
     /// 由时间计算对应的 [`Canvas`] 高度.
-    pub real_to_canvas_y: Vec<Option<Spline<f32>>>
+    pub real_to_canvas_y: Vec<Option<Spline<f32>>>,
 }
 
 const LARGE: f32 = 1.0e10;
@@ -127,7 +127,10 @@ impl ChartCache {
                     (0., 0., 0.0f32),
                     |(last_start, last_real, last_value), keypoint| {
                         if keypoint.ease_type != EasingId::Start {
-                            warn!("non-constant speed {:?} is not supported (yet).", keypoint.ease_type);
+                            warn!(
+                                "non-constant speed {:?} is not supported (yet).",
+                                keypoint.ease_type
+                            );
                             keypoint.ease_type = EasingId::Linear;
                         }
                         let this_real = self.beat_remap.value_padding(keypoint.time).unwrap();
@@ -145,7 +148,11 @@ impl ChartCache {
                     .collect()
             })
             .collect();
-        self.real_to_canvas_y = self.canvas_y_by_real.iter().map(|s| s.is_invertible().then(|| s.clone_inverted())).collect();
+        self.real_to_canvas_y = self
+            .canvas_y_by_real
+            .iter()
+            .map(|s| s.is_invertible().then(|| s.clone_inverted()))
+            .collect();
     }
 
     /// 一个正值, 表示canvas所处的高度.

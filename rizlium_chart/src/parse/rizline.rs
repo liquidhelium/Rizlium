@@ -4,17 +4,20 @@ use crate::chart::{self, Spline};
 use crate::parse::EmptyBPMSnafu;
 use chart::{ChartCache, LinePointData};
 use log::info;
-#[cfg(feature = "serialize")]
-use serde::Serialize;
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;
+#[cfg(feature = "serialize")]
+use serde::Serialize;
 use snafu::{ensure, OptionExt};
 
 use super::{ConvertError, ConvertResult, HoldNoEndSnafu};
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct Theme {
     pub colors_list: [ColorRGBA; 3],
 }
@@ -35,7 +38,10 @@ impl Theme {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct ChallengeTime {
     pub check_point: f32,
 
@@ -47,9 +53,15 @@ pub struct ChallengeTime {
 }
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct Note {
-    #[cfg_attr(any(feature = "serialize", feature = "deserialize"),serde(rename = "type"))]
+    #[cfg_attr(
+        any(feature = "serialize", feature = "deserialize"),
+        serde(rename = "type")
+    )]
     pub note_type: u8,
 
     pub time: f32,
@@ -83,7 +95,10 @@ impl Note {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct ColorRGBA {
     pub r: u8,
 
@@ -107,7 +122,10 @@ impl From<ColorRGBA> for chart::ColorRGBA {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct LinePoint {
     pub time: f32,
 
@@ -123,11 +141,7 @@ pub struct LinePoint {
 }
 
 impl LinePoint {
-    fn convert(
-        self,
-    ) -> ConvertResult<
-        chart::KeyPoint<f32, chart::LinePointData>,
-        > {
+    fn convert(self) -> ConvertResult<chart::KeyPoint<f32, chart::LinePointData>> {
         let color: chart::ColorRGBA = self.color.into();
         let point = chart::KeyPoint {
             time: self.time,
@@ -140,15 +154,18 @@ impl LinePoint {
                 }))?,
             relevant: LinePointData {
                 canvas: self.canvas_index,
-                color
+                color,
             },
         };
-        Ok(point,)
+        Ok(point)
     }
 }
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct ColorKeyPoint {
     pub start_color: ColorRGBA,
 
@@ -168,7 +185,10 @@ impl From<ColorKeyPoint> for chart::KeyPoint<chart::ColorRGBA> {
 }
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct Line {
     pub line_points: Vec<LinePoint>,
 
@@ -217,7 +237,10 @@ fn scale_y(y: f32) -> f32 {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct CanvasMove {
     pub index: i32,
 
@@ -260,7 +283,10 @@ impl CanvasMove {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct KeyPoint {
     pub time: f32,
 
@@ -291,7 +317,10 @@ impl TryInto<chart::KeyPoint<f32>> for KeyPoint {
 // todo
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct CameraMove {
     pub scale_key_points: Vec<KeyPoint>,
 
@@ -300,7 +329,10 @@ pub struct CameraMove {
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
-#[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct RizlineChart {
     pub file_version: i32,
 
@@ -310,7 +342,10 @@ pub struct RizlineChart {
 
     pub challenge_times: Vec<ChallengeTime>,
 
-    #[cfg_attr(any(feature = "serialize", feature = "deserialize"), serde(rename = "bPM"))]
+    #[cfg_attr(
+        any(feature = "serialize", feature = "deserialize"),
+        serde(rename = "bPM")
+    )]
     pub bpm: f32,
 
     pub bpm_shifts: Vec<KeyPoint>,

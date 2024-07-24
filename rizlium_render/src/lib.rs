@@ -11,9 +11,9 @@ use rings::RingPlugin;
 use rizlium_chart::{chart::Chart, prelude::ColorRGBA};
 
 pub use masks::MASK_LAYER;
+pub use rizlium_chart;
 use theme::BackgroundThemePlugin;
 pub use time_and_audio::TimeManager;
-pub use rizlium_chart;
 
 // 长类型让我抓狂
 #[macro_export]
@@ -27,11 +27,11 @@ macro_rules! chart_update {
 
 mod chart;
 mod line_rendering;
-pub use line_rendering::{ShowLines, ChartLine, ChartLineId};
+pub use line_rendering::{ChartLine, ChartLineId, ShowLines};
 mod chart_loader;
+mod hit_parcticles;
 mod theme;
 mod time_and_audio;
-mod hit_parcticles;
 pub use chart_loader::{ChartLoadingEvent, LoadChartEvent};
 
 mod notes;

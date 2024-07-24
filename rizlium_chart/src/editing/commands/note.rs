@@ -23,7 +23,7 @@ impl ChartCommand for ChangeNoteTime {
         }
         .into())
     }
-    fn validate(&self,chart: &Chart) -> Result<()> {
+    fn validate(&self, chart: &Chart) -> Result<()> {
         self.note_path.valid(chart)
     }
 }
@@ -45,7 +45,7 @@ impl ChartCommand for InsertNote {
         }
         .into())
     }
-    fn validate(&self,chart: &Chart) -> Result<()> {
+    fn validate(&self, chart: &Chart) -> Result<()> {
         self.line.valid(chart)
     }
 }
@@ -68,7 +68,7 @@ impl ChartCommand for RemoveNote {
         }
         .into())
     }
-    fn validate(&self,chart: &Chart) -> Result<()> {
+    fn validate(&self, chart: &Chart) -> Result<()> {
         self.note_path.valid(chart)
     }
 }

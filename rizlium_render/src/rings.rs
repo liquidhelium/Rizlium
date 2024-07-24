@@ -49,7 +49,7 @@ pub fn rings(
                 *vis = Visibility::Visible;
             }
             transform.translation = Vec2::from(pos).extend(20.);
-            let Some(line) = chart.lines.get(ring.0)else {
+            let Some(line) = chart.lines.get(ring.0) else {
                 return;
             };
             let mut color = line.ring_color.value_padding(**time).unwrap_or_default();

@@ -27,10 +27,7 @@ pub struct ActionDescription {
 }
 
 impl BoxedStorage {
-    fn get_command(
-        &self,
-        input: Box<dyn Reflect>,
-    ) -> Result<BoxedFn, String> {
+    fn get_command(&self, input: Box<dyn Reflect>) -> Result<BoxedFn, String> {
         self.boxed_action.get_command(input)
     }
     pub fn get_description(&self) -> &str {
@@ -72,10 +69,7 @@ impl ActionRegistry {
 type BoxedFn = Box<dyn FnOnce(&mut World) + Send + Sync + 'static>;
 
 pub trait DynActionStorage: Send + Sync {
-    fn get_command(
-        &self,
-        input: Box<dyn Reflect>,
-    ) -> Result<BoxedFn, String>;
+    fn get_command(&self, input: Box<dyn Reflect>) -> Result<BoxedFn, String>;
     fn input_type_info(&self) -> &'static TypeInfo;
 }
 

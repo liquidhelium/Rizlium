@@ -43,7 +43,7 @@ pub(crate) fn init_mask(mut commands: Commands) {
                 ..default()
             },
             Fill::default(),
-            RenderLayers::layer(MASK_LAYER)
+            RenderLayers::layer(MASK_LAYER),
         ))
         .insert(Name::new("mask_bottom"))
         .insert(MaskBottom);
@@ -58,7 +58,7 @@ pub(crate) fn init_mask(mut commands: Commands) {
                 ..default()
             },
             Fill::default(),
-            RenderLayers::layer(MASK_LAYER)
+            RenderLayers::layer(MASK_LAYER),
         ))
         .insert(Name::new("mask_top"))
         .insert(MaskTop);

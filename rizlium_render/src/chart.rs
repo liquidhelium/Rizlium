@@ -41,7 +41,7 @@ fn chart_cache(
 ) {
     let Some(mut cache) = cache else {
         info!("add cache");
-        commands.insert_resource(GameChartCache(ChartCache ::from_chart(&chart)));
+        commands.insert_resource(GameChartCache(ChartCache::from_chart(&chart)));
         return;
     };
     info!("update cache");

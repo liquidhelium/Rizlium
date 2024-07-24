@@ -1,4 +1,4 @@
-use bevy::{render::camera::ClearColorConfig, prelude::*};
+use bevy::{prelude::*, render::camera::ClearColorConfig};
 
 use crate::{chart::GameChart, colorrgba_to_color, time_and_audio::GameTime, GameCamera};
 
@@ -9,9 +9,8 @@ impl Plugin for BackgroundThemePlugin {
         app.add_systems(
             Update,
             change_bg.run_if(
-                resource_exists::<GameChart>.and_then(
-                    resource_changed::<GameChart>.or_else(resource_changed::<GameTime>),
-                ),
+                resource_exists::<GameChart>
+                    .and_then(resource_changed::<GameChart>.or_else(resource_changed::<GameTime>)),
             ),
         );
     }

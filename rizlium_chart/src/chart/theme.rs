@@ -1,10 +1,10 @@
 use crate::tween;
 
 use super::{ColorRGBA, Tween};
-#[cfg(feature = "serialize")]
-use serde::Serialize;
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;
+#[cfg(feature = "serialize")]
+use serde::Serialize;
 
 macro_rules! fields_str {
     ($this:ident, $match:ident,$($str:ident),+) => {

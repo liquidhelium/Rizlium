@@ -1,4 +1,7 @@
-use std::{borrow::Cow, io::{Cursor, Read}};
+use std::{
+    borrow::Cow,
+    io::{Cursor, Read},
+};
 
 use bevy::{
     prelude::{ResMut, *},
@@ -74,8 +77,12 @@ pub struct PendingChart(Option<Task<Result<BundledGameChart, ChartLoadingError>>
 
 #[derive(Snafu, Debug)]
 pub enum ChartLoadingError {
-    UnzipFileFailed {source: zip::result::ZipError,},
-    ReadingFileFailed {source: std::io::Error},
+    UnzipFileFailed {
+        source: zip::result::ZipError,
+    },
+    ReadingFileFailed {
+        source: std::io::Error,
+    },
     NoFileInZip {
         file_name: Cow<'static, str>,
         source: zip::result::ZipError,
@@ -84,7 +91,7 @@ pub enum ChartLoadingError {
         source: serde_json::Error,
     },
     InfoFormatInvalid {
-        source: serde_yaml::Error
+        source: serde_yaml::Error,
     },
     ChartConvertingFailed {
         source: rizlium_chart::parse::ConvertError,
@@ -96,26 +103,38 @@ pub enum ChartLoadingError {
 
 fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
     let r: Task<Result<BundledGameChart, _>> = IoTaskPool::get().spawn(async {
-        let mut file = async_fs::read(path.clone()).await.context(ReadingFileFailedSnafu)?;
-        let mut res = ZipArchive::new(Cursor::new(file.as_mut_slice())).context(UnzipFileFailedSnafu)?;
-        let info_file = res.by_name("info.yml").context(NoFileInZipSnafu { file_name: "info.yml"})?;
+        let mut file = async_fs::read(path.clone())
+            .await
+            .context(ReadingFileFailedSnafu)?;
+        let mut res =
+            ZipArchive::new(Cursor::new(file.as_mut_slice())).context(UnzipFileFailedSnafu)?;
+        let info_file = res.by_name("info.yml").context(NoFileInZipSnafu {
+            file_name: "info.yml",
+        })?;
         let info: ChartInfo = serde_yaml::from_reader(info_file).context(InfoFormatInvalidSnafu)?;
         let chart_path = &info.chart_path;
         let music_path = &info.music_path;
         let chart: Chart = match info.format {
             ChartFormat::Rizline => {
-
                 let chart: RizlineChart =
-                    serde_json::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {file_name: chart_path.clone()})?).context(ChartFormatInvalidSnafu)?;
+                    serde_json::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {
+                        file_name: chart_path.clone(),
+                    })?)
+                    .context(ChartFormatInvalidSnafu)?;
                 chart.try_into().context(ChartConvertingFailedSnafu)?
-            },
+            }
             ChartFormat::Rizlium => {
-                serde_json::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {file_name: chart_path.clone()})?).context(ChartFormatInvalidSnafu)?
+                serde_json::from_reader(res.by_name(chart_path).context(NoFileInZipSnafu {
+                    file_name: chart_path.clone(),
+                })?)
+                .context(ChartFormatInvalidSnafu)?
             }
         };
         let mut sound_data = Vec::new();
         res.by_name(music_path)
-            .context(NoFileInZipSnafu {file_name: music_path.clone()})?
+            .context(NoFileInZipSnafu {
+                file_name: music_path.clone(),
+            })?
             .read_to_end(&mut sound_data)
             .context(ReadingFileFailedSnafu)?;
         let music = bevy_kira_audio::AudioSource {
@@ -171,7 +190,9 @@ fn unpack_chart(
     };
     pending_chart.0 = None;
     match chart {
-        Err(err) => {ev.send(ChartLoadingEvent::err(err));},
+        Err(err) => {
+            ev.send(ChartLoadingEvent::err(err));
+        }
         Ok(bundle) => {
             commands.insert_resource(GameChart::new(bundle.chart));
             let audio_handle = audio_sources.add(bundle.music);

@@ -114,7 +114,7 @@ impl MenuItemProvider for Button {
             }
         });
     }
-    fn initialize(&mut self,world: &mut World) {
+    fn initialize(&mut self, world: &mut World) {
         self.avalible.initialize(world);
     }
 }

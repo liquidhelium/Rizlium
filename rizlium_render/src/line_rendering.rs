@@ -35,7 +35,7 @@ impl ChartLineId {
     pub fn line_idx(&self) -> usize {
         self.line_idx
     }
-    
+
     pub fn keypoint_idx(&self) -> usize {
         self.keypoint_idx
     }

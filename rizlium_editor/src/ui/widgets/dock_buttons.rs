@@ -9,7 +9,7 @@ use super::WidgetSystem;
 pub struct DockButtons<'w> {
     state: ResMut<'w, RizDockState>,
     // tabs: Res<'w, RizTabs>,
-    registry: Res<'w, TabRegistry>
+    registry: Res<'w, TabRegistry>,
 }
 
 impl WidgetSystem for DockButtons<'static> {
@@ -20,9 +20,12 @@ impl WidgetSystem for DockButtons<'static> {
         ui: &mut egui::Ui,
         _extra: Self::Extra<'_>,
     ) {
-        let DockButtons::<'_> { mut state , registry} = state.get_mut(world);
+        let DockButtons::<'_> {
+            mut state,
+            registry,
+        } = state.get_mut(world);
         let state = &mut state.state;
-        let opened:Vec<_> = state.iter_all_tabs().map(|i| i.1).collect();
+        let opened: Vec<_> = state.iter_all_tabs().map(|i| i.1).collect();
         let mut to_remove = None;
         let mut to_add = None;
         for (i, tab) in registry.iter() {

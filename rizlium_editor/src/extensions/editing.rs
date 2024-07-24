@@ -26,25 +26,24 @@ pub struct Editing;
 
 impl Plugin for Editing {
     fn build(&self, app: &mut App) {
-        let register_tab = app
-            .register_tab(
-                "edit.note",
-                t!("edit.note.tab"),
-                note_window,
-                resource_exists::<GameChart>,
-            )
-            .register_tab(
-                "edit.spline",
-                t!("edit.spline.tab"),
-                spline_edit,
-                resource_exists::<GameChart>,
-            )
-            .register_tab(
-                "edit.tool_config",
-                t!("edit.tool_config.tab"),
-                tool_config,
-                resource_exists::<GameChart>,
-            );
+        app.register_tab(
+            "edit.note",
+            t!("edit.note.tab"),
+            note_window,
+            resource_exists::<GameChart>,
+        )
+        .register_tab(
+            "edit.spline",
+            t!("edit.spline.tab"),
+            spline_edit,
+            resource_exists::<GameChart>,
+        )
+        .register_tab(
+            "edit.tool_config",
+            t!("edit.tool_config.tab"),
+            tool_config,
+            resource_exists::<GameChart>,
+        );
 
         app.add_plugins(world_view::WorldViewPlugin)
             .init_resource::<ChartEditHistory>();
@@ -85,13 +84,14 @@ impl Plugin for Editing {
 pub struct ChartEditHistory(EditHistory);
 
 fn note_window(
-    In(ui): In<&mut Ui>,
+    In(mut ui): In<Ui>,
     chart: Res<GameChart>,
     mut focused: Local<usize>,
     mut scale: Local<f32>,
     mut row_width: Local<f32>,
     time: Res<GameTime>,
 ) {
+    let ui = &mut ui;
     if *scale == 0. {
         *scale = 200.;
     }
@@ -128,11 +128,12 @@ fn note_window(
 }
 
 pub fn spline_edit(
-    In(ui): In<&mut Ui>,
+    In(mut ui): In<Ui>,
     chart: Res<GameChart>,
     mut current: Local<usize>,
     mut visible_rect: Local<Option<egui::Rect>>,
 ) {
+    let ui = &mut ui;
     let mut show_first = false;
     ui.scope(|ui| {
         ui.style_mut().spacing.slider_width = 500.;
@@ -147,22 +148,43 @@ pub fn spline_edit(
     let (res, spline_view) = ui
         .allocate_ui_at_rect(ui.available_rect_before_wrap(), |ui| {
             let spline = &chart.canvases[*current].speed;
-            let spline_view = SplineView::new(ui, spline, *visible_rect, spline::Orientation::Horizontal);
+            let spline_view =
+                SplineView::new(ui, spline, *visible_rect, spline::Orientation::Horizontal);
             let response = spline_view.ui(ui);
             let spline_area = spline_view.spline_area();
             const WIDTH: f32 = 80.0;
-            const RATIO: f32 = 9./16.;
-            let indicating_rect_full = egui::Rect::from_min_size(response.rect.min + vec2(20., 20.), vec2(WIDTH, WIDTH*RATIO)); 
-            let spline_to_interact = RectTransform::from_to(spline_area, indicating_rect_full); let indicating_rect_inner = spline_to_interact.transform_rect(spline_view.visible_spline_area());
-            ui.painter_at(response.rect).rect(indicating_rect_full, 0., Color32::from_white_alpha(20), Stroke::new(1., Color32::BLACK));
+            const RATIO: f32 = 9. / 16.;
+            let indicating_rect_full = egui::Rect::from_min_size(
+                response.rect.min + vec2(20., 20.),
+                vec2(WIDTH, WIDTH * RATIO),
+            );
+            let spline_to_interact = RectTransform::from_to(spline_area, indicating_rect_full);
+            let indicating_rect_inner =
+                spline_to_interact.transform_rect(spline_view.visible_spline_area());
+            ui.painter_at(response.rect).rect(
+                indicating_rect_full,
+                0.,
+                Color32::from_white_alpha(20),
+                Stroke::new(1., Color32::BLACK),
+            );
             let mut alpha = 20;
-            let inner_interact = ui.interact(indicating_rect_inner, ui.id().with("indicating_rect_inner"), Sense::drag());
+            let inner_interact = ui.interact(
+                indicating_rect_inner,
+                ui.id().with("indicating_rect_inner"),
+                Sense::drag(),
+            );
             if inner_interact.hovered() {
                 alpha += 10;
             }
-            ui.painter_at(response.rect).rect_filled(indicating_rect_inner, 0., Color32::from_white_alpha(alpha));
+            ui.painter_at(response.rect).rect_filled(
+                indicating_rect_inner,
+                0.,
+                Color32::from_white_alpha(alpha),
+            );
             if inner_interact.dragged() {
-                let transformed = spline_to_interact.inverse().transform_rect(indicating_rect_inner.translate(inner_interact.drag_delta()));
+                let transformed = spline_to_interact
+                    .inverse()
+                    .transform_rect(indicating_rect_inner.translate(inner_interact.drag_delta()));
                 *visible_rect = Some(transformed);
             }
 

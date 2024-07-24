@@ -1,27 +1,38 @@
 pub mod command_panel;
 pub mod docking;
-mod game;
 mod editing;
-mod inspector;
+mod game;
 pub mod i18n;
+mod inspector;
 
 use std::borrow::Cow;
 
-use bevy::{asset::{AssetId, Assets}, ecs::world::World, prelude::{App, Deref, DerefMut, Plugin, Resource}, render::{mesh::{Mesh, PrimitiveTopology}, render_asset::RenderAssetUsages}};
+use bevy::{
+    asset::{AssetId, Assets},
+    ecs::world::World,
+    prelude::{App, Deref, DerefMut, Plugin, Resource},
+    render::{
+        mesh::{Mesh, PrimitiveTopology},
+        render_asset::RenderAssetUsages,
+    },
+};
 use snafu::Snafu;
 
 use crate::menu::{
     Category, ItemAsContainer, ItemGroup, MenuItem, MenuItemProvider, MenuItemVariant, SubMenu,
 };
 
-use self::{command_panel::CommandPanel, docking::Docking, editing::Editing, game::Game, i18n::I18nPlugin, inspector::Inspector};
+use self::{
+    command_panel::CommandPanel, docking::Docking, editing::Editing, game::Game, i18n::I18nPlugin,
+    inspector::Inspector,
+};
 
 pub struct ExtensionsPlugin;
 
 impl Plugin for ExtensionsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<EditorMenuEntrys>();
-        app.add_plugins((I18nPlugin, Game, Docking, CommandPanel, Editing, Inspector, ));
+        app.add_plugins((I18nPlugin, Game, Docking, CommandPanel, Editing, Inspector));
     }
 }
 
@@ -34,7 +45,7 @@ pub trait MenuExt {
 
 pub struct MenuContext<'w> {
     item: ItemAsContainer<'w>,
-    world: &'w mut World
+    world: &'w mut World,
 }
 
 impl MenuContext<'_> {
@@ -52,7 +63,7 @@ impl MenuContext<'_> {
                 .source
                 .as_container()
                 .ok_or(MenuError::NotAContainer { id })?,
-            world: self.world
+            world: self.world,
         });
         Ok(())
     }
@@ -98,10 +109,15 @@ impl MenuContext<'_> {
 
 impl MenuExt for App {
     fn menu_context(&mut self, add_menu: impl FnOnce(MenuContext)) -> &mut Self {
-        self.world_mut().resource_scope(|world, mut entrys:bevy::prelude::Mut<'_, EditorMenuEntrys> | {
-            let container = entrys.as_container();
-            add_menu(MenuContext { item: container, world });
-        });
+        self.world_mut().resource_scope(
+            |world, mut entrys: bevy::prelude::Mut<'_, EditorMenuEntrys>| {
+                let container = entrys.as_container();
+                add_menu(MenuContext {
+                    item: container,
+                    world,
+                });
+            },
+        );
         self
     }
 }

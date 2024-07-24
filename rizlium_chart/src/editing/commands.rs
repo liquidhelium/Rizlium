@@ -1,8 +1,8 @@
 use std::{any::type_name, borrow::Cow};
 
 use super::Result;
-use enum_dispatch::enum_dispatch;
 use crate::prelude::Chart;
+use enum_dispatch::enum_dispatch;
 mod note;
 pub use note::*;
 mod lines;
@@ -48,18 +48,20 @@ impl ChartCommand for CommandSequence {
         }
         .into())
     }
-    fn validate(&self,chart: &Chart) -> Result<()> {
-        self.commands.iter().try_for_each(|command| command.validate(chart))
+    fn validate(&self, chart: &Chart) -> Result<()> {
+        self.commands
+            .iter()
+            .try_for_each(|command| command.validate(chart))
     }
 }
 
 pub struct Nop;
 
 impl ChartCommand for Nop {
-    fn apply(self,_chart: &mut Chart) -> Result<ChartCommands> {
+    fn apply(self, _chart: &mut Chart) -> Result<ChartCommands> {
         Ok(Nop.into())
     }
-    fn validate(&self,_chart: &Chart) -> Result<()> {
+    fn validate(&self, _chart: &Chart) -> Result<()> {
         Ok(())
     }
 }

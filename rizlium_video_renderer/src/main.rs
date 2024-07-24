@@ -97,7 +97,6 @@ fn start_rendering(
             .output("video.mp4")
             .codec_video("libx264")
             .print_command(); // todo: use config structure
-        
     });
     state.current_rendering_thread = Some(RenderingData {
         thread_handle: handle,
@@ -155,7 +154,7 @@ fn _old_main() {
                     .deref()
                     .clone(),
             ),
-            manual_time_control: true
+            manual_time_control: true,
         })
         .add_plugins(RenderAssetPlugin::<VideoTexture>::default())
         .add_systems(PostStartup, setup_game_view);

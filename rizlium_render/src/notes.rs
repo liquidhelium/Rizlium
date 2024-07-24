@@ -82,24 +82,22 @@ fn update_pos(
     game_time: Res<GameTime>,
     mut notes: Query<(&mut Transform, &ChartNoteId)>,
 ) {
-    notes
-        .par_iter_mut()
-        .for_each(|(mut transform, note_id)| {
-            let time;
-            {
-                let Some(line) = chart.lines.get(note_id.line_idx) else {
-                    return;
-                };
-                let Some(note) = line.notes.get(note_id.note_idx) else {
-                    return;
-                };
-                time = note.time;
-            }
-            let chart_with_cache = chart.with_cache(&cache);
-            let pos: Vec2 = chart_with_cache
-                .line_pos_at_clamped(note_id.line_idx, time, **game_time)
-                .unwrap()
-                .into();
-            *transform = transform.with_translation(pos.extend(0.));
-        });
+    notes.par_iter_mut().for_each(|(mut transform, note_id)| {
+        let time;
+        {
+            let Some(line) = chart.lines.get(note_id.line_idx) else {
+                return;
+            };
+            let Some(note) = line.notes.get(note_id.note_idx) else {
+                return;
+            };
+            time = note.time;
+        }
+        let chart_with_cache = chart.with_cache(&cache);
+        let pos: Vec2 = chart_with_cache
+            .line_pos_at_clamped(note_id.line_idx, time, **game_time)
+            .unwrap()
+            .into();
+        *transform = transform.with_translation(pos.extend(0.));
+    });
 }

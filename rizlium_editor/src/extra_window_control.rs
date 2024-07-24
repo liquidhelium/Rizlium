@@ -29,7 +29,7 @@ macro_rules! fn_events {
         })*
     };
 }
-impl ExtraWindowEvents<'_,'_> {
+impl ExtraWindowEvents<'_, '_> {
     fn_events!(drag_window, maximize, minimize);
 }
 
@@ -41,7 +41,7 @@ fn dispatch_events(
     if events.all_empty() {
         return;
     }
-    
+
     let entity = windows.single_mut();
     let winit_windows = winit_windows
         .get_window(entity)

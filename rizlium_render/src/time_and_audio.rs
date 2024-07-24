@@ -40,34 +40,36 @@ impl Plugin for TimeAndAudioPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(bevy_kira_audio::AudioPlugin)
             .init_resource::<GameTime>();
-            
+
         if !self.manual_time_control {
             app.add_event::<TimeControlEvent>()
-            .add_systems(Startup, init_time_manager)
-            .add_systems(
-                Update,
-                (
-                    dispatch_events.run_if(resource_exists::<CurrentGameAudio>),
-                    update_timemgr,
-                    sync_audio.run_if(resource_exists_and_changed::<GameAudioSource>),
-                    align_or_restart_audio.run_if(resource_exists::<CurrentGameAudio>),
-                    game_time.run_if(
-                        resource_exists::<GameChartCache>.and_then(
-                            resource_changed::<GameChartCache>
-                                .or_else(resource_exists_and_changed::<TimeManager>),
+                .add_systems(Startup, init_time_manager)
+                .add_systems(
+                    Update,
+                    (
+                        dispatch_events.run_if(resource_exists::<CurrentGameAudio>),
+                        update_timemgr,
+                        sync_audio.run_if(resource_exists_and_changed::<GameAudioSource>),
+                        align_or_restart_audio.run_if(resource_exists::<CurrentGameAudio>),
+                        game_time.run_if(
+                            resource_exists::<GameChartCache>.and_then(
+                                resource_changed::<GameChartCache>
+                                    .or_else(resource_exists_and_changed::<TimeManager>),
+                            ),
                         ),
                     ),
-                ),
-            );
-        }
-        else {
+                );
+        } else {
             app.init_resource::<ManualGameTime>()
                 .add_systems(PreUpdate, update_gametime_manual);
-
         }
     }
 }
-fn update_gametime_manual(cache: Res<GameChartCache>, time: Res<ManualGameTime>, mut game_time: ResMut<GameTime>) {
+fn update_gametime_manual(
+    cache: Res<GameChartCache>,
+    time: Res<ManualGameTime>,
+    mut game_time: ResMut<GameTime>,
+) {
     *game_time = GameTime(cache.map_time(time.0));
 }
 #[derive(Event, Debug, Reflect)]
@@ -106,7 +108,9 @@ fn dispatch_events(
             TimeControlEvent::Seek(pos) => {
                 let pos = pos.clamp(0., audio_data.sound.duration().as_secs_f32() - 0.01);
                 time.seek(pos);
-                if let Some(e) = audio.seek_to(pos.into()) { warn!("error when seeking: {}", e) }
+                if let Some(e) = audio.seek_to(pos.into()) {
+                    warn!("error when seeking: {}", e)
+                }
             }
             TimeControlEvent::Toggle => time.toggle_paused(),
             TimeControlEvent::SetPaused(paused) => time.set_paused(*paused),
@@ -116,7 +120,9 @@ fn dispatch_events(
                     audio_data.sound.duration().as_secs_f32() - 0.01 - time.current(),
                 );
                 time.advance(duration);
-                if let Some(e) = audio.seek_by(duration.into()) { warn!("error when seeking: {}", e) }
+                if let Some(e) = audio.seek_by(duration.into()) {
+                    warn!("error when seeking: {}", e)
+                }
             }
         }
     }
@@ -222,7 +228,7 @@ fn align_or_restart_audio(
     mut audio: ResMut<CurrentGameAudio>,
     mut audios: ResMut<Assets<AudioInstance>>,
     player: Res<Audio>,
-    source: Res<GameAudioSource>
+    source: Res<GameAudioSource>,
 ) {
     let Some(current_audio) = audios.get_mut(&audio.0) else {
         info!("Restarting audio");

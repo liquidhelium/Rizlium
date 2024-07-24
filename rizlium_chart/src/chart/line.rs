@@ -30,17 +30,17 @@ pub struct LinePointData {
 impl Line {
     pub fn new_from_points(points: impl IntoIterator<Item = KeyPoint<f32, LinePointData>>) -> Self {
         let mut points: Vec<_> = points.into_iter().collect();
-        points.iter_mut().fold(f32::NEG_INFINITY, |lower_limit, point| {
-            let src = point.time.max(lower_limit);
-            replace(&mut point.time, src)
-        });
+        points
+            .iter_mut()
+            .fold(f32::NEG_INFINITY, |lower_limit, point| {
+                let src = point.time.max(lower_limit);
+                replace(&mut point.time, src)
+            });
         Self {
-            points: Spline {
-                points
-            },
+            points: Spline { points },
             notes: vec![],
             ring_color: Spline::EMPTY,
-            line_color: Spline::EMPTY
+            line_color: Spline::EMPTY,
         }
     }
 }

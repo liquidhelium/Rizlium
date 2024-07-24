@@ -133,7 +133,7 @@ fn scroll_time(
 ) {
     if state.0 {
         for i in wheel.read() {
-            time.send(TimeControlEvent::Advance(i.y*0.01));
+            time.send(TimeControlEvent::Advance(i.y * 0.01));
         }
     }
 }
@@ -171,13 +171,14 @@ fn keep_ratio(ui: &mut Ui, ratio: f32, mut add_fn: impl FnMut(&mut Ui, egui::Vec
 }
 
 pub fn game_view_tab(
-    In(ui): In<&mut Ui>,
+    In(mut ui): In<Ui>,
     gameview: Res<GameView>,
     textures: Res<EguiUserTextures>,
     time: Res<TimeManager>,
     game_time: Res<GameTime>,
     mut ev: EventWriter<TimeControlEvent>,
 ) {
+    let ui = &mut ui;
     let img = textures
         .image_id(&gameview.0)
         .expect("no gameview image found!");

@@ -105,7 +105,7 @@ impl Default for Scale {
 }
 
 fn world_tab(
-    In(ui): In<&mut Ui>,
+    In(mut ui): In<Ui>,
     mut images: ResMut<Assets<Image>>,
     large_view: Res<WorldView>,
     textures: Res<EguiUserTextures>,
@@ -115,6 +115,7 @@ fn world_tab(
     mut event_writer: EventWriter<ScreenMouseEvent>,
     mut tool: ResMut<Tool>,
 ) {
+    let ui = &mut ui;
     let (mut projection, mut transform) = camera.single_mut();
     egui::TopBottomPanel::top("view_control").show_inside(ui, |ui| {
         ui.horizontal_centered(|ui| {
@@ -172,13 +173,12 @@ fn world_tab(
                         } else {
                             egui::Vec2::ZERO
                         },
-                        input
+                        input,
                     ),
                     button: response
                         .interact_pointer_pos()
                         .is_some()
-                        .then(|| {iter_pointer(|b| input.pointer.button_clicked(b))
-                        })
+                        .then(|| iter_pointer(|b| input.pointer.button_clicked(b)))
                         .flatten(),
                     pos: releative_pos.extend(0.),
                 }));
@@ -220,12 +220,14 @@ fn iter_pointer(mut check: impl FnMut(PointerButton) -> bool) -> Option<MouseBut
     }
 }
 
-fn get_event_type(response: &Response, drag_delta: egui::Vec2, input: &InputState) -> MouseEventType {
-    if iter_pointer(|b| input.pointer.button_triple_clicked(b)).is_some()
-    {
+fn get_event_type(
+    response: &Response,
+    drag_delta: egui::Vec2,
+    input: &InputState,
+) -> MouseEventType {
+    if iter_pointer(|b| input.pointer.button_triple_clicked(b)).is_some() {
         MouseEventType::Click(ClickEventType::Triple)
-    } else if iter_pointer(|b| input.pointer.button_double_clicked(b)).is_some()
-    {
+    } else if iter_pointer(|b| input.pointer.button_double_clicked(b)).is_some() {
         MouseEventType::Click(ClickEventType::Double)
     } else if response.clicked {
         MouseEventType::Click(ClickEventType::Single)
@@ -250,16 +252,14 @@ fn bug_detect(mut ev: EventReader<AssetEvent<Mesh>>) {
     })
 }
 
-fn get_id(ev: &AssetEvent<Mesh>) -> &AssetId<Mesh>{
+fn get_id(ev: &AssetEvent<Mesh>) -> &AssetId<Mesh> {
     use AssetEvent::*;
     match ev {
-        Added { id } | 
-        Modified { id} | 
-        Removed { id }| 
-        Unused { id }|
-        LoadedWithDependencies { id } => {
-            id
-        }
+        Added { id }
+        | Modified { id }
+        | Removed { id }
+        | Unused { id }
+        | LoadedWithDependencies { id } => id,
     }
 }
 

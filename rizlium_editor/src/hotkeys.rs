@@ -52,7 +52,11 @@ impl RuntimeTrigger {
 }
 
 impl TriggerType {
-    fn check_trigger(&self, code: KeyCode, input: &mut ButtonInput<KeyCode>) -> Option<RuntimeTrigger> {
+    fn check_trigger(
+        &self,
+        code: KeyCode,
+        input: &mut ButtonInput<KeyCode>,
+    ) -> Option<RuntimeTrigger> {
         use TriggerType::*;
         let runtime_trigger = match self {
             Pressed if input.just_pressed(code) => Some(RuntimeTrigger::Pressed),
@@ -114,7 +118,7 @@ impl Hotkey {
         }
         let mut input = world.resource_mut::<ButtonInput<KeyCode>>();
         let mut other_all_pressed = true;
-        for code in self.key.iter().take(self.key.len()-1).copied() {
+        for code in self.key.iter().take(self.key.len() - 1).copied() {
             other_all_pressed &= input.pressed(code);
         }
         other_all_pressed
@@ -172,7 +176,9 @@ fn dispatch_hotkey(world: &mut World) {
                     world
                         .resource_scope(
                             |world: &mut World, mut actions: Mut<'_, ActionRegistry>| {
-                                actions.run_instant(id, trigger, world).or_else(|_| actions.run_instant(id, (), world))
+                                actions
+                                    .run_instant(id, trigger, world)
+                                    .or_else(|_| actions.run_instant(id, (), world))
                             },
                         )
                         .expect("encountered err (todo handle this)");
@@ -196,8 +202,8 @@ impl HotkeysExt for App {
         id: impl Into<ActionId>,
         hotkey_list: impl IntoIterator<Item = Hotkey>,
     ) -> &mut Self {
-        self.world_mut()
-            .resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyRegistry>| {
+        self.world_mut().resource_scope(
+            |world: &mut World, mut hotkeys: Mut<'_, HotkeyRegistry>| {
                 let mut hotkey_list: SmallVec<[Hotkey; 3]> = hotkey_list
                     .into_iter()
                     .map(|mut k| {
@@ -207,7 +213,8 @@ impl HotkeysExt for App {
                     .collect();
                 let listeners = hotkeys.0.entry(id.into()).or_default();
                 listeners.append(&mut hotkey_list);
-            });
+            },
+        );
         self
     }
 }

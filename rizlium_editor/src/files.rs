@@ -17,7 +17,14 @@ impl Plugin for FilePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PendingDialog>()
             .init_resource::<PendingSave>()
-            .add_systems(PostUpdate, (open_chart, report_error_or_add_current, poll_pending_save.run_if(|res: Res<PendingSave>| res.0.is_some())));
+            .add_systems(
+                PostUpdate,
+                (
+                    open_chart,
+                    report_error_or_add_current,
+                    poll_pending_save.run_if(|res: Res<PendingSave>| res.0.is_some()),
+                ),
+            );
     }
 }
 
@@ -36,10 +43,7 @@ pub fn open_dialog(container: &mut PendingDialog) {
     }));
 }
 
-fn open_chart(
-    mut dialog: ResMut<PendingDialog>,
-    mut editor_command: EditorCommands,
-) {
+fn open_chart(mut dialog: ResMut<PendingDialog>, mut editor_command: EditorCommands) {
     if let Some(chart) = dialog
         .0
         .as_mut()
@@ -73,7 +77,6 @@ fn report_error_or_add_current(
 #[derive(Resource, Deref)]
 pub struct CurrentChartPath(String);
 
-
 pub fn save_chart(
     chart: Option<Res<GameChart>>,
     current_path: Option<Res<CurrentChartPath>>,
@@ -81,9 +84,7 @@ pub fn save_chart(
     mut save: ResMut<PendingSave>,
 ) {
     let (Some(chart), Some(current_path)) = (chart, current_path) else {
-        toasts.error(
-            "No chart loaded",
-        );
+        toasts.error("No chart loaded");
         return;
     };
     let path = std::path::Path::new(&**current_path);
@@ -99,13 +100,14 @@ pub fn save_chart(
         .unwrap_or(std::borrow::Cow::Borrowed("chart"));
     let target = parent.join(name.into_owned() + ".rzl");
     let owned_chart = (**chart).clone();
-    let task: Task<Result<(), Box<dyn std::error::Error + Send + Sync>>>= IoTaskPool::get().spawn(async move {
-        let mut file = async_fs::File::create(target).await?;
-        let serialized = serde_json::to_vec(&owned_chart)?;
-        file.write_all(&serialized).await?;
-        file.close().await?;
-        Ok(())
-    });
+    let task: Task<Result<(), Box<dyn std::error::Error + Send + Sync>>> =
+        IoTaskPool::get().spawn(async move {
+            let mut file = async_fs::File::create(target).await?;
+            let serialized = serde_json::to_vec(&owned_chart)?;
+            file.write_all(&serialized).await?;
+            file.close().await?;
+            Ok(())
+        });
     save.0 = Some(task);
 }
 
@@ -114,18 +116,17 @@ pub struct PendingSave(Option<Task<Result<(), Box<dyn std::error::Error + Send +
 
 fn poll_pending_save(mut save: ResMut<PendingSave>, mut toasts: ResMut<ToastsStorage>) {
     let Some(result) = save
-    .0
-    .as_mut()
-    .and_then(|c| futures_lite::future::block_on(futures_lite::future::poll_once(c))) else {
+        .0
+        .as_mut()
+        .and_then(|c| futures_lite::future::block_on(futures_lite::future::poll_once(c)))
+    else {
         return;
     };
     save.0 = None;
     match result {
         Ok(()) => toasts.success("Chart saved!"),
-        Err(err) => toasts.error(format!("error encountered while saving chart: {err}"))
+        Err(err) => toasts.error(format!("error encountered while saving chart: {err}")),
     };
-    
-
 }
 
 #[derive(Resource, Serialize, Deserialize, Debug, Deref)]

@@ -29,7 +29,6 @@ impl Plugin for Inspector {
     fn build(&self, app: &mut App) {
         app.register_tab("inspector", t!("inspector.tab"), bevy_inspector, || true)
             .init_resource::<SelectedItem>();
-
     }
 }
 
@@ -39,7 +38,6 @@ fn logs(In(ui): In<&mut Ui>, chart: Res<GameChart>, selected: Res<SelectedItem>)
     };
     match item {
         ChartItem::LinePoint(l) => show_ui(ui, l.clone(), &chart, |ui, line_point| {
-            
             ui.columns(2, |columns| {
                 columns[0].label("easing:");
                 columns[1].label(format!("{:?}", line_point.ease_type));
@@ -67,6 +65,6 @@ fn show_ui<P: ChartPath>(
     };
 }
 
-fn bevy_inspector(In(ui): In<&mut Ui>, world: &mut World) {
-    bevy_inspector_egui::bevy_inspector::ui_for_world(world, ui);
+fn bevy_inspector(In(mut ui): In<Ui>, world: &mut World) {
+    bevy_inspector_egui::bevy_inspector::ui_for_world(world, &mut ui);
 }

@@ -93,7 +93,8 @@ fn ray_cast(
                         let cam_layers = cam_layers.unwrap_or(&default_layer);
                         layers.intersects(cam_layers)
                     })
-                }), &mut gizmos
+                }),
+            &mut gizmos,
         ) else {
             world_mouse_events.send(WorldMouseEvent {
                 event: owned_event.clone(),

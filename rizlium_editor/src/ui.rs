@@ -1,4 +1,4 @@
-use bevy::prelude::{Deref, DerefMut, World, Resource};
+use bevy::prelude::{Deref, DerefMut, Resource, World};
 
 use egui::Ui;
 use egui_dock::{DockState, TabViewer};

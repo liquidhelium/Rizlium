@@ -45,16 +45,12 @@ impl Plugin for SettingsPlugin {
         app.init_resource::<SettingsModuleRegistry>();
     }
     fn finish(&self, app: &mut App) {
-        app.register_tab(
-            "settings",
-            t!("settings.tab"),
-            settings_tab,
-            || true,
-        );
+        app.register_tab("settings", t!("settings.tab"), settings_tab, || true);
     }
 }
 
-fn settings_tab(In(ui): In<&mut Ui>, world: &mut World, mut opened_tab: Local<usize>) {
+fn settings_tab(In(mut ui): In<Ui>, world: &mut World, mut opened_tab: Local<usize>) {
+    let ui = &mut ui;
     world.resource_scope(
         |world: &mut World, mut registry: Mut<SettingsModuleRegistry>| {
             ui.heading("Settings");
@@ -65,7 +61,10 @@ fn settings_tab(In(ui): In<&mut Ui>, world: &mut World, mut opened_tab: Local<us
                     .show_inside(ui, |ui| {
                         ScrollArea::new([false, true]).show(ui, |ui| {
                             for (i, runner) in registry.0.values_mut().enumerate() {
-                                if ui.selectable_label(i == *opened_tab, runner.name()).clicked() {
+                                if ui
+                                    .selectable_label(i == *opened_tab, runner.name())
+                                    .clicked()
+                                {
                                     *opened_tab = i
                                 }
                             }
@@ -81,7 +80,6 @@ fn settings_tab(In(ui): In<&mut Ui>, world: &mut World, mut opened_tab: Local<us
                             }
                         });
                     }
-                    
                 })
             });
         },
