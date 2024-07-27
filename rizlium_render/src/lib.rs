@@ -3,8 +3,10 @@ use bevy::{
     render::{camera::RenderTarget, view::RenderLayers},
 };
 
+use bevy_hanabi::HanabiPlugin;
 use bevy_prototype_lyon::prelude::*;
 use chart_loader::ChartLoadingPlugin;
+use hit_parcticles::HitParticlePlugin;
 use masks::MaskPlugin;
 use notes::ChartNotePlugin;
 use rings::RingPlugin;
@@ -72,6 +74,7 @@ impl Plugin for RizliumRenderingPlugin {
             .add_plugins((
                 ShapePlugin,
                 TypeRegisterPlugin,
+                HanabiPlugin,
                 ChartCachePlugin,
                 line_rendering::ChartLinePlugin,
                 TimeAndAudioPlugin {
@@ -82,6 +85,7 @@ impl Plugin for RizliumRenderingPlugin {
                 ChartNotePlugin,
                 RingPlugin,
                 MaskPlugin,
+                HitParticlePlugin,
             ))
             .add_systems(Startup, spawn_game_camera)
             .add_systems(PostUpdate, bind_gameview);

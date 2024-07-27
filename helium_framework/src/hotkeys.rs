@@ -10,8 +10,8 @@ use bevy::{
 use bevy_egui::EguiOutput;
 use smallvec::SmallVec;
 
-use crate::{utils::new_condition, ActionId, ActionRegistry};
-
+use crate::prelude::{ActionId, ActionRegistry};
+use crate::utils::new_condition;
 pub enum TriggerType {
     Pressed,
     Released,

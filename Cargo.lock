@@ -2938,12 +2938,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dyn-clone"
-version = "1.0.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d6ef0072f8a535281e4876be788938b528e9a1d43900b82c2569af7da799125"
-
-[[package]]
 name = "ecolor"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3854,6 +3848,23 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
+name = "helium_framework"
+version = "0.1.0"
+dependencies = [
+ "bevy 0.14.0",
+ "bevy_egui 0.28.0",
+ "egui 0.28.1",
+ "egui-notify",
+ "egui_dock",
+ "enum_dispatch",
+ "indexmap 2.2.6",
+ "rust-i18n",
+ "serde",
+ "smallvec",
+ "snafu",
+]
 
 [[package]]
 name = "hermit-abi"
@@ -5562,7 +5573,6 @@ dependencies = [
  "bevy_egui 0.28.0",
  "bevy_mod_raycast",
  "dirs",
- "dyn-clone",
  "egui 0.28.1",
  "egui-notify",
  "egui_dock",

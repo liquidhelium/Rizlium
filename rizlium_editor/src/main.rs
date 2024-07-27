@@ -66,7 +66,7 @@ fn main() {
         .add_event::<DragWindowRequested>()
         .insert_resource(EventCollectorResource(collector))
         .add_systems(Startup, (setup_persistent, setup_font))
-        .add_systems(Update, egui_render)
+        // .add_systems(Update, egui_render)
         .run();
 }
 
@@ -92,6 +92,7 @@ fn setup_persistent(mut commands: Commands) {
             .build()
             .expect("failed to setup recent files"),
     );
+    commands.spawn(Camera2dBundle::default());
 }
 
 fn setup_font(mut context: Query<&mut EguiContext>) {

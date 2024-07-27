@@ -4,7 +4,7 @@ members= [
     "rizlium_render",
     "rizlium_editor",
     "rizlium_video_renderer"
-]
+, "helium_framework"]
 repository = "https://github.com/liquidhelium/Rizlium"
 resolver="2"
 

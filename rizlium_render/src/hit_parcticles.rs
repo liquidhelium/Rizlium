@@ -19,18 +19,32 @@ impl Plugin for HitParticlePlugin {
             "../assets/particle.json",
             |a, _| serde_json::from_str(a).expect("Bad effect asset")
         );
+        app.add_systems(Startup, setup1).add_systems(PreUpdate, spawn_particle_system);
     }
 }
 
 #[derive(Component)]
 pub struct LatestParticleTime(Duration);
+#[derive(Resource)]
+pub struct ParticleTimer(Timer);
+
+fn setup1(mut commands: Commands) {
+    commands.insert_resource(ParticleTimer(Timer::new(
+        Duration::from_secs(2),
+        TimerMode::Repeating,
+    )));
+}
 
 fn spawn_particle_system(
     mut commands: Commands,
+    mut timer: ResMut<ParticleTimer>,
+    time: Res<Time>,
     notes: Query<(&ChartNoteId, &LatestParticleTime)>,
-) {
-    commands.spawn(ParticleEffectBundle {
-        effect: ParticleEffect::new(BUILTIN_HIT_PARTICLE).with_z_layer_2d(Some(30.)),
-        ..default()
-    });
+) {timer.0.tick(time.delta());
+    if timer.0.just_finished() {
+        commands.spawn(ParticleEffectBundle {
+            effect: ParticleEffect::new(BUILTIN_HIT_PARTICLE).with_z_layer_2d(Some(0.1)),
+            ..default()
+        });
+    }
 }

@@ -1,12 +1,14 @@
 {
   "name": "2d",
-  "capacity": 10,
+  "capacities": [
+    4096
+  ],
   "spawner": {
     "num_particles": {
-      "Single": 6.0
+      "Single": 30.0
     },
     "spawn_time": {
-      "Single": 0.0
+      "Single": 1.0
     },
     "period": {
       "Single": 1.0
@@ -19,223 +21,185 @@
   "simulation_condition": "WhenVisible",
   "init_modifiers": [
     {
-      "SetPositionCircleModifier": {
-        "center": {
-          "index": 3
-        },
-        "axis": {
-          "index": 4
-        },
-        "radius": {
-          "index": 5
-        },
-        "dimension": "Surface"
-      }
+      "modifier": {
+        "SetPositionCircleModifier": {
+          "center": 3,
+          "axis": 4,
+          "radius": 5,
+          "dimension": "Surface"
+        }
+      },
+      "groups": 1
     },
     {
-      "SetVelocityCircleModifier": {
-        "center": {
-          "index": 6
-        },
-        "axis": {
-          "index": 7
-        },
-        "speed": {
-          "index": 8
+      "modifier": {
+        "SetVelocityCircleModifier": {
+          "center": 6,
+          "axis": 7,
+          "speed": 8
         }
-      }
+      },
+      "groups": 1
     },
     {
-      "SetAttributeModifier": {
-        "attribute": "age",
-        "value": {
-          "index": 1
+      "modifier": {
+        "SetAttributeModifier": {
+          "attribute": "age",
+          "value": 1
         }
-      }
+      },
+      "groups": 1
     },
     {
-      "SetAttributeModifier": {
-        "attribute": "lifetime",
-        "value": {
-          "index": 2
+      "modifier": {
+        "SetAttributeModifier": {
+          "attribute": "lifetime",
+          "value": 2
         }
-      }
+      },
+      "groups": 1
     }
   ],
   "update_modifiers": [
     {
-      "RadialAccelModifier": {
-        "origin": {
-          "index": 13
-        },
-        "accel": {
-          "index": 12
+      "modifier": {
+        "RadialAccelModifier": {
+          "origin": 13,
+          "accel": 12
         }
-      }
+      },
+      "groups": 4294967295
     }
   ],
   "render_modifiers": [
     {
-      "SizeOverLifetimeModifier": {
-        "gradient": {
-          "keys": [
-            {
-              "ratio": 0.0,
-              "value": [
-                0.02,
-                0.02
-              ]
-            }
-          ]
-        },
-        "screen_space_size": false
-      }
+      "modifier": {
+        "SizeOverLifetimeModifier": {
+          "gradient": {
+            "keys": [
+              {
+                "ratio": 0.0,
+                "value": [
+                  0.02,
+                  0.02
+                ]
+              }
+            ]
+          },
+          "screen_space_size": false
+        }
+      },
+      "groups": 4294967295
     },
     {
-      "ColorOverLifetimeModifier": {
-        "gradient": {
-          "keys": [
-            {
-              "ratio": 0.0,
-              "value": [
-                0.5,
-                0.5,
-                1.0,
-                1.0
-              ]
-            },
-            {
-              "ratio": 1.0,
-              "value": [
-                0.5,
-                0.5,
-                1.0,
-                0.0
-              ]
-            }
-          ]
+      "modifier": {
+        "ColorOverLifetimeModifier": {
+          "gradient": {
+            "keys": [
+              {
+                "ratio": 0.0,
+                "value": [
+                  0.5,
+                  0.5,
+                  1.0,
+                  1.0
+                ]
+              },
+              {
+                "ratio": 1.0,
+                "value": [
+                  0.5,
+                  0.5,
+                  1.0,
+                  0.0
+                ]
+              }
+            ]
+          }
         }
-      }
+      },
+      "groups": 4294967295
     }
   ],
-  "properties": [],
   "motion_integration": "PostUpdate",
   "module": {
     "expressions": [
       {
         "Literal": {
-          "value": {
-            "Scalar": {
-              "Float": 0.0
-            }
+          "Scalar": {
+            "Float": 0.0
           }
         }
       },
       {
         "Literal": {
-          "value": {
-            "Scalar": {
-              "Float": 0.7
-            }
+          "Scalar": {
+            "Float": 5.0
           }
         }
       },
       {
         "Literal": {
-          "value": {
-            "Vector": {
-              "vector_type": {
-                "elem_type": "Float",
-                "count": 3
-              },
-              "storage": [
-                0,
-                0,
-                0,
-                0
-              ]
-            }
+          "Vector": {
+            "Vec3": [
+              0.0,
+              0.0,
+              0.0
+            ]
           }
         }
       },
       {
         "Literal": {
-          "value": {
-            "Vector": {
-              "vector_type": {
-                "elem_type": "Float",
-                "count": 3
-              },
-              "storage": [
-                0,
-                0,
-                1065353216,
-                0
-              ]
-            }
+          "Vector": {
+            "Vec3": [
+              0.0,
+              0.0,
+              1.0
+            ]
           }
         }
       },
       {
         "Literal": {
-          "value": {
-            "Scalar": {
-              "Float": 0.05
-            }
+          "Scalar": {
+            "Float": 0.05
           }
         }
       },
       {
         "Literal": {
-          "value": {
-            "Vector": {
-              "vector_type": {
-                "elem_type": "Float",
-                "count": 3
-              },
-              "storage": [
-                0,
-                0,
-                0,
-                0
-              ]
-            }
+          "Vector": {
+            "Vec3": [
+              0.0,
+              0.0,
+              0.0
+            ]
           }
         }
       },
       {
         "Literal": {
-          "value": {
-            "Vector": {
-              "vector_type": {
-                "elem_type": "Float",
-                "count": 3
-              },
-              "storage": [
-                0,
-                0,
-                1065353216,
-                0
-              ]
-            }
+          "Vector": {
+            "Vec3": [
+              0.0,
+              0.0,
+              1.0
+            ]
           }
         }
       },
       {
         "Literal": {
-          "value": {
-            "Scalar": {
-              "Float": 1.0
-            }
+          "Scalar": {
+            "Float": 0.1
           }
         }
       },
       {
         "Literal": {
-          "value": {
-            "Scalar": {
-              "Float": -7.0
-            }
+          "Scalar": {
+            "Float": -1.0
           }
         }
       },
@@ -247,41 +211,29 @@
       {
         "Unary": {
           "op": "Length",
-          "expr": {
-            "index": 10
-          }
+          "expr": 10
         }
       },
       {
         "Binary": {
           "op": "Mul",
-          "left": {
-            "index": 9
-          },
-          "right": {
-            "index": 11
-          }
+          "left": 9,
+          "right": 11
         }
       },
       {
         "Literal": {
-          "value": {
-            "Vector": {
-              "vector_type": {
-                "elem_type": "Float",
-                "count": 3
-              },
-              "storage": [
-                0,
-                0,
-                0,
-                0
-              ]
-            }
+          "Vector": {
+            "Vec3": [
+              0.0,
+              0.0,
+              0.0
+            ]
           }
         }
       }
-    ]
+    ],
+    "properties": []
   },
   "alpha_mode": "Blend"
 }

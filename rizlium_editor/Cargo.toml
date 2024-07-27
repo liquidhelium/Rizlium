@@ -49,7 +49,6 @@ async-fs = "*"
 indexmap = {version = "*", features = ["serde"]}
 enum_dispatch = "*"
 snafu = "*"
-dyn-clone = "1"
 smallvec = {version = "1", features = ["serde"]}
 strum = { version = "0.26", features = ["derive"] }
 serde_json = "*"
