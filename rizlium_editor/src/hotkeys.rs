@@ -1,12 +1,7 @@
 //! Hotkey 实现。
 //! 工作方式：多个键时，最后一个键使用 [`TriggerType`] 定义的触发方式，其他键要保持按下。
 
-use bevy::{
-    ecs::schedule::BoxedCondition,
-    prelude::*,
-    utils::HashMap,
-    window::PrimaryWindow,
-};
+use bevy::{ecs::schedule::BoxedCondition, prelude::*, utils::HashMap, window::PrimaryWindow};
 use bevy_egui::EguiOutput;
 use smallvec::SmallVec;
 

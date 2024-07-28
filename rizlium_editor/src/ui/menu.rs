@@ -118,16 +118,9 @@ impl MenuItemProvider for Button {
     }
 }
 
-pub trait UiFunc:
-    Fn(&mut Ui, &mut World, &str) + Sync + Send + 'static
-{
-}
+pub trait UiFunc: Fn(&mut Ui, &mut World, &str) + Sync + Send + 'static {}
 
-impl<T> UiFunc for T where
-    T: Fn(&mut Ui, &mut World, &str) + Sync + Send + 'static
-{
-}
-
+impl<T> UiFunc for T where T: Fn(&mut Ui, &mut World, &str) + Sync + Send + 'static {}
 
 pub struct Custom(pub Box<dyn UiFunc>);
 

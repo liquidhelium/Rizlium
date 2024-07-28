@@ -19,7 +19,8 @@ impl Plugin for HitParticlePlugin {
             "../assets/particle.json",
             |a, _| serde_json::from_str(a).expect("Bad effect asset")
         );
-        app.add_systems(Startup, setup1).add_systems(PreUpdate, spawn_particle_system);
+        app.add_systems(Startup, setup1)
+            .add_systems(PreUpdate, spawn_particle_system);
     }
 }
 
@@ -40,7 +41,8 @@ fn spawn_particle_system(
     mut timer: ResMut<ParticleTimer>,
     time: Res<Time>,
     notes: Query<(&ChartNoteId, &LatestParticleTime)>,
-) {timer.0.tick(time.delta());
+) {
+    timer.0.tick(time.delta());
     if timer.0.just_finished() {
         commands.spawn(ParticleEffectBundle {
             effect: ParticleEffect::new(BUILTIN_HIT_PARTICLE).with_z_layer_2d(Some(0.1)),
