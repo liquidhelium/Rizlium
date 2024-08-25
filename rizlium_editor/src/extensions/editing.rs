@@ -1,15 +1,9 @@
-use crate::{
-    extensions::MenuExt,
-    hotkeys::{Hotkey, HotkeysExt},
-    menu::Button,
-    tab_system::TabRegistrationExt,
-    ActionsExt,
-};
+use helium_framework::{menu::{Button, MenuExt}, prelude::*};
 
 use self::{note::note_editor_vertical, tool_config_window::tool_config};
 use bevy::prelude::*;
 use egui::{emath::RectTransform, vec2, Color32, Sense, Stroke, Ui};
-use rizlium_chart::editing::EditHistory;
+use rizlium_chart::{chart::Spline, editing::EditHistory};
 use rizlium_render::{GameChart, GameTime};
 use rust_i18n::t;
 use spline::SplineView;
@@ -132,6 +126,7 @@ pub fn spline_edit(
     chart: Res<GameChart>,
     mut current: Local<usize>,
     mut visible_rect: Local<Option<egui::Rect>>,
+    mut external: Local<Spline<f32>>,
 ) {
     let ui = &mut ui;
     let mut show_first = false;

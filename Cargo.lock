@@ -3850,6 +3850,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
+name = "helium_framework"
+version = "0.1.0"
+source = "git+https://github.com/liquidhelium/helium_framework#60a2731ad6165e5f9254c2b7fe580a5176a8a58a"
+dependencies = [
+ "bevy 0.14.0",
+ "bevy_egui 0.28.0",
+ "egui 0.28.1",
+ "egui-notify",
+ "egui_dock",
+ "enum_dispatch",
+ "indexmap 2.2.6",
+ "rust-i18n",
+ "serde",
+ "smallvec",
+ "snafu",
+]
+
+[[package]]
 name = "hermit-abi"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4008,7 +4026,6 @@ checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
  "hashbrown 0.12.3",
- "serde",
 ]
 
 [[package]]
@@ -4019,6 +4036,7 @@ checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.5",
+ "serde",
 ]
 
 [[package]]
@@ -5562,7 +5580,8 @@ dependencies = [
  "egui_tracing",
  "enum_dispatch",
  "futures-lite",
- "indexmap 1.9.3",
+ "helium_framework",
+ "indexmap 2.2.6",
  "rfd",
  "rizlium_chart",
  "rizlium_render",

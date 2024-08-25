@@ -85,7 +85,7 @@ impl Plugin for RizliumRenderingPlugin {
                 ChartNotePlugin,
                 RingPlugin,
                 MaskPlugin,
-                HitParticlePlugin,
+                // HitParticlePlugin,
             ))
             .add_systems(Startup, spawn_game_camera)
             .add_systems(PostUpdate, bind_gameview);

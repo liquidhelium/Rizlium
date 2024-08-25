@@ -6,16 +6,16 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rizlium_render = {path="../rizlium_render"}
+rizlium_render = { path = "../rizlium_render" }
 bevy_egui = "0.28.0"
 egui = "0.28.1"
-egui_dock = {version = "0.13.0", features = ["serde"]}
-egui_tracing = {git = "https://github.com/liquidhelium/egui_tracing"}
+egui_dock = { version = "0.13.0", features = ["serde"] }
+egui_tracing = { git = "https://github.com/liquidhelium/egui_tracing" }
 egui-notify = "0.15.0"
 tracing-subscriber = "*"
 bevy-inspector-egui = "*"
 # Todo: split x11, wayland and webgl2
-bevy = { version = "0.14.0", default-features = false, features = [
+bevy = { version = "0.14", default-features = false, features = [
     # "animation",
     "bevy_asset",
     # "bevy_scene",
@@ -35,24 +35,27 @@ bevy = { version = "0.14.0", default-features = false, features = [
     "webgl2",
     "wayland",
     "multi_threaded",
-    "bevy_gizmos"
+    "bevy_gizmos",
 ] }
-rizlium_chart ={ path = "../rizlium_chart"}
-bevy_mod_raycast = {version = "0.18.0", features = ["2d"]}
-bevy-persistent = {version = "0.6.0", features = ["json","toml"]}
-serde ={ version = "*", features = ["derive"]}
+rizlium_chart = { path = "../rizlium_chart" }
+bevy_mod_raycast = { version = "0.18.0", features = ["2d"] }
+bevy-persistent = { version = "0.6.0", features = ["json", "toml"] }
+serde = { version = "*", features = ["derive"] }
 dirs = "*"
 rfd = "*"
 # Needed to poll Task
 futures-lite = "2"
 async-fs = "*"
-indexmap = {version = "*", features = ["serde"]}
+indexmap = { version = "*", features = ["serde"] }
 enum_dispatch = "*"
 snafu = "*"
-smallvec = {version = "1", features = ["serde"]}
+smallvec = { version = "1", features = ["serde"] }
 strum = { version = "0.26", features = ["derive"] }
 serde_json = "*"
 rust-i18n = "3"
+helium_framework = { git = "https://github.com/liquidhelium/helium_framework", features = [
+    "serde",
+] }
 [dev-dependencies]
 serde_json = "*"
 

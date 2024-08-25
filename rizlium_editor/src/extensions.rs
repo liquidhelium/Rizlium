@@ -18,7 +18,7 @@ use bevy::{
 };
 use snafu::Snafu;
 
-use crate::menu::{
+use helium_framework::menu::{
     Category, ItemAsContainer, ItemGroup, MenuItem, MenuItemProvider, MenuItemVariant, SubMenu,
 };
 
@@ -31,7 +31,6 @@ pub struct ExtensionsPlugin;
 
 impl Plugin for ExtensionsPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<EditorMenuEntrys>();
         app.add_plugins((I18nPlugin, Game, Docking, CommandPanel, Editing, Inspector));
     }
 }

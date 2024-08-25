@@ -12,7 +12,7 @@ use egui::{InputState, PointerButton, Response, Sense, Ui};
 use rust_i18n::t;
 use tools::Tool;
 
-use crate::tab_system::{tab_focused, TabRegistrationExt};
+use helium_framework::prelude::*;
 
 use self::{
     cam_response::{

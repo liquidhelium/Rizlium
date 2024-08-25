@@ -15,12 +15,10 @@ use rizlium_render::GameTime;
 i18n!();
 
 use rust_i18n::i18n;
-use ui::tab_system::TabId;
 pub use ui::*;
 mod editor_actions;
 pub mod extensions;
 mod files;
-pub mod hotkeys;
 pub mod notification;
 pub mod settings_module;
 pub mod utils;
@@ -41,19 +39,6 @@ pub struct DebugResources {
 
 #[derive(Resource)]
 pub struct EventCollectorResource(pub EventCollector);
-
-#[derive(Debug, Resource)]
-pub struct RizDockState {
-    pub state: DockState<TabId>,
-}
-
-impl Default for RizDockState {
-    fn default() -> Self {
-        Self {
-            state: DockState::new(vec!["game.view".into()]),
-        }
-    }
-}
 
 pub struct CountFpsPlugin;
 

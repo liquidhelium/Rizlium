@@ -17,12 +17,9 @@ use crate::{
         editing::ChartEditHistory,
         inspector::{ChartItem, SelectedItem},
     },
-    hotkeys::{Hotkey, HotkeysExt, RuntimeTrigger, TriggerType},
-    tab_system::tab_opened,
     utils::WorldToGame,
-    ActionsExt,
 };
-
+use helium_framework::prelude::*;
 use self::tool_configs::{PencilToolConfig, ToolConfigExt};
 
 use super::{

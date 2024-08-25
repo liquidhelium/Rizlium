@@ -10,7 +10,7 @@ use rizlium_chart::{
 use rizlium_render::GameChart;
 use rust_i18n::t;
 
-use crate::tab_system::TabRegistrationExt;
+use helium_framework::prelude::*;
 
 #[derive(Resource, Default)]
 pub struct SelectedItem {

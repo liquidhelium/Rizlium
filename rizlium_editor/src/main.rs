@@ -1,13 +1,14 @@
 use bevy::log::{Level, LogPlugin};
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-use rizlium_editor::extensions::command_panel::CommandPanelImpl;
-use rizlium_editor::extensions::{EditorMenuEntrys, ExtensionsPlugin};
+use helium_framework::menu::EditorMenuEntrys;
+use helium_framework::prelude::{HeDockState, HeTabViewer};
+use helium_framework::widgets::widget;
+use rizlium_editor::extensions::command_panel::command_panel;
+use rizlium_editor::extensions::ExtensionsPlugin;
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
-use rizlium_editor::hotkeys::HotkeyPlugin;
 use rizlium_editor::notification::NotificationPlugin;
 use rizlium_editor::settings_module::SettingsPlugin;
-use rizlium_editor::tab_system::{FocusedTab, TabPlugin, TabRegistry};
-use rizlium_editor::widgets::{widget, LayoutPresetEdit};
+use helium_framework::tab_system::{FocusedTab, TabPlugin, TabRegistry};
 use rizlium_editor::{
     ActionPlugin, EventCollectorResource, FilePlugin, RizTabViewer, WindowUpdateControlPlugin,
 };
@@ -18,10 +19,9 @@ use bevy::prelude::*;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
 use egui::{Align2, FontData, FontDefinitions, FontFamily, Layout};
-use egui_dock::DockArea;
+use egui_dock::{DockArea, DockState};
 use rizlium_editor::{
-    ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
-    RizDockState, RizTabPresets,
+    ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles, RizTabPresets,
 };
 use rizlium_render::{GameChart, RizliumRenderingPlugin};
 use tracing_subscriber::layer::SubscriberExt;
@@ -49,12 +49,10 @@ fn main() {
                 init_with_chart: None,
                 manual_time_control: false,
             },
+            helium_framework::HeliumFramework,
             NotificationPlugin,
             CountFpsPlugin,
             WindowUpdateControlPlugin,
-            ActionPlugin,
-            HotkeyPlugin,
-            TabPlugin,
             FilePlugin,
             SettingsPlugin,
             ExtensionsPlugin,
@@ -62,11 +60,11 @@ fn main() {
         ))
         .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
-        .init_resource::<RizDockState>()
+        .insert_resource(HeDockState(DockState::new(vec!["game.view".into()])))
         .add_event::<DragWindowRequested>()
         .insert_resource(EventCollectorResource(collector))
         .add_systems(Startup, (setup_persistent, setup_font))
-        // .add_systems(Update, egui_render)
+        .add_systems(Update, egui_render)
         .run();
 }
 
@@ -147,22 +145,11 @@ fn egui_render(world: &mut World) {
                 });
             });
         });
-        widget::<CommandPanelImpl>(world, ui);
+        widget(world, ui, command_panel);
     });
-    let before = editor_state.editing_presets;
-    egui::Window::new("Presets")
-        .collapsible(false)
-        .open(&mut editor_state.editing_presets)
-        .anchor(Align2::CENTER_CENTER, [0.; 2])
-        .show(ctx, |ui| {
-            widget::<LayoutPresetEdit>(world, ui);
-        });
-    if before != editor_state.editing_presets {
-        commands.persist_resource::<RizTabPresets>();
-    }
     world.resource_scope(|world: &mut World, mut registry: Mut<'_, TabRegistry>| {
-        world.resource_scope(|world: &mut World, mut state: Mut<'_, RizDockState>| {
-            if state.state.main_surface().is_empty() {
+        world.resource_scope(|world: &mut World, mut state: Mut<'_, HeDockState>| {
+            if state.0.main_surface().is_empty() {
                 egui::CentralPanel::default().show(ctx, |ui| {
                     ui_when_no_dock(
                         ui,
@@ -171,15 +158,15 @@ fn egui_render(world: &mut World) {
                     );
                 });
             }
-            DockArea::new(&mut state.state).show(
+            DockArea::new(&mut state.0).show(
                 ctx,
-                &mut RizTabViewer {
+                &mut HeTabViewer {
                     registry: &mut registry,
                     world,
                 },
             );
             world.resource_mut::<FocusedTab>().0 =
-                state.state.find_active_focused().unzip().1.cloned(); // todo: move this into proper file
+                state.0.find_active_focused().unzip().1.cloned(); // todo: move this into proper file
         });
     });
     editor_state.is_editing_text = ctx.output(|out| out.mutable_text_under_cursor);

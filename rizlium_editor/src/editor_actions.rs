@@ -8,12 +8,11 @@ use bevy::reflect::{TypeInfo, Typed};
 use bevy::utils::HashMap;
 use bevy_persistent::Persistent;
 use egui::mutex::Mutex;
+use helium_framework::utils::identifier::Identifier;
 use rizlium_render::{LoadChartEvent, ShowLines, TimeControlEvent};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use snafu::Snafu;
-
-use crate::utils::dot_path::DotPath;
 use crate::{files::open_dialog, files::PendingDialog, RecentFiles};
 
 pub struct BoxedStorage {
@@ -38,7 +37,7 @@ impl BoxedStorage {
     }
 }
 
-pub type ActionId = DotPath;
+pub type ActionId = Identifier;
 
 pub trait ActionArgument: Reflect + Typed {}
 

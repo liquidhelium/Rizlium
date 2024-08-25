@@ -13,12 +13,12 @@ use egui::{Align, Button, CentralPanel, Layout, ScrollArea, SidePanel, Ui};
 use indexmap::IndexMap;
 use rust_i18n::t;
 
-use crate::{tab_system::TabRegistrationExt, utils::dot_path::DotPath};
+use helium_framework::{prelude::*, utils::identifier::Identifier};
 
 pub trait SettingsRegistrationExt {
     fn register_settings_module(
         &mut self,
-        id: impl Into<DotPath>,
+        id: impl Into<Identifier>,
         module: impl SettingsModule,
     ) -> &mut Self;
 }
@@ -26,7 +26,7 @@ pub trait SettingsRegistrationExt {
 impl SettingsRegistrationExt for App {
     fn register_settings_module(
         &mut self,
-        id: impl Into<DotPath>,
+        id: impl Into<Identifier>,
         module: impl SettingsModule,
     ) -> &mut Self {
         let v = Box::new(SettingsModuleDyn::from_module(module, self.world_mut()));
@@ -87,7 +87,7 @@ fn settings_tab(In(mut ui): In<Ui>, world: &mut World, mut opened_tab: Local<usi
 }
 
 #[derive(Resource, Default, Deref)]
-pub struct SettingsModuleRegistry(IndexMap<DotPath, Box<dyn ModuleRunner>>);
+pub struct SettingsModuleRegistry(IndexMap<Identifier, Box<dyn ModuleRunner>>);
 
 pub struct SettingsModuleDyn<Storage: Send + Sync + 'static> {
     storage: Option<Storage>,
