@@ -333,6 +333,7 @@ fn select_tool(
     }
     for event in mouse_events.read() {
         if event.event.event_type.is_click() {
+            debug!("{event:?}");
             if let Some(entity) = event.casted_entity {
                 let Some((_, line)) = lines.iter().find(|e| e.0 == entity) else {
                     continue;

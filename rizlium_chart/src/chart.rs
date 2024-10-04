@@ -5,10 +5,11 @@ mod note;
 mod theme;
 mod time;
 
+use std::{cell::OnceCell, sync::OnceLock};
+
 pub use color::*;
 pub use easing::*;
 pub use line::*;
-use log::warn;
 pub use note::*;
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;
@@ -17,6 +18,7 @@ use serde::Serialize;
 use snafu::{OptionExt, Whatever};
 pub use theme::*;
 pub use time::*;
+use tracing::warn;
 
 /// Rizlium谱面格式.
 #[derive(Debug, Clone)]
@@ -127,10 +129,14 @@ impl ChartCache {
                     (0., 0., 0.0f32),
                     |(last_start, last_real, last_value), keypoint| {
                         if keypoint.ease_type != EasingId::Start {
-                            warn!(
-                                "non-constant speed {:?} is not supported (yet).",
-                                keypoint.ease_type
-                            );
+                            static ONCE: OnceLock<()> = OnceLock::new();
+                            if ONCE.set(()).is_ok() {
+                                warn!(
+                                    "non-constant speed {:?} is not supported (yet).",
+                                    keypoint.ease_type
+                                )
+                            }
+
                             keypoint.ease_type = EasingId::Linear;
                         }
                         let this_real = self.beat_remap.value_padding(keypoint.time).unwrap();
@@ -293,8 +299,6 @@ impl ChartAndCache<'_, '_> {
         } else {
             let canvas = self.cache.canvas_y_by_real.get(this.relevant.canvas)?;
             if canvas.keypoint_at(this.time) != canvas.keypoint_at(next.time) {
-                use log::info;
-                info!("return true");
                 Some(true)
             } else {
                 Some(false)

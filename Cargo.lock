@@ -5553,7 +5553,6 @@ name = "rizlium_chart"
 version = "0.1.0"
 dependencies = [
  "enum_dispatch",
- "log",
  "num_enum",
  "replace_with",
  "serde",
@@ -5561,6 +5560,7 @@ dependencies = [
  "simple-easing",
  "snafu",
  "strum",
+ "tracing",
 ]
 
 [[package]]

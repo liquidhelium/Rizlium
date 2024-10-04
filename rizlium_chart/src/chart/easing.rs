@@ -1,6 +1,6 @@
 use std::{mem::swap, ops::ControlFlow};
 
-use log::{error, warn};
+use tracing::{error, warn};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use simple_easing::*;
 
