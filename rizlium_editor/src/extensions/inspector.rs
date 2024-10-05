@@ -27,15 +27,17 @@ pub struct Inspector;
 
 impl Plugin for Inspector {
     fn build(&self, app: &mut App) {
-        app.register_tab("inspector", t!("inspector.tab"), bevy_inspector, || true)
+        app.register_tab("inspector", t!("inspector.tab"), logs, resource_exists::<GameChart>)
             .init_resource::<SelectedItem>();
     }
 }
 
-fn logs(In(ui): In<&mut Ui>, chart: Res<GameChart>, selected: Res<SelectedItem>) {
+fn logs(In(mut ui): In<Ui>, chart: Res<GameChart>, selected: Res<SelectedItem>) {
     let Some(ref item) = selected.item else {
+        ui.weak(t!("tab.logs.select_to_inspect"));
         return;
     };
+    let ui = &mut ui;
     match item {
         ChartItem::LinePoint(l) => show_ui(ui, l.clone(), &chart, |ui, line_point| {
             ui.columns(2, |columns| {

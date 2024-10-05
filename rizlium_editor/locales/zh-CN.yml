@@ -25,3 +25,4 @@ edit.spline.tab: 曲线
 settings.tab: 设置
 edit.world_view.tab: 世界
 edit.world_view.to_select.desc: 切换到选择工具
+tab.logs.select_to_inspect: 选择一个对象来查看
