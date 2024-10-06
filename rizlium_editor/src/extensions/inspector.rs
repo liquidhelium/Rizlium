@@ -68,5 +68,5 @@ fn show_ui<P: ChartPath>(
 }
 
 fn bevy_inspector(In(mut ui): In<Ui>, world: &mut World) {
-    bevy_inspector_egui::bevy_inspector::ui_for_world(world, &mut ui);
+    // bevy_inspector_egui::bevy_inspector::ui_for_world(world, &mut ui);
 }
