@@ -210,16 +210,18 @@ fn pencil_tool(
     if !history.has_preedit() {
         *current_edit = None;
     }
+    // discard key was pressed, so just discard the preedit
     if !discard_events.is_empty() {
         discard_events.clear();
         *current_edit = None;
-        history.discard_last_preedit(&mut chart).unwrap();
+        history.discard_preedit(&mut chart).unwrap();
         history.submit_preedit();
     }
     for event in mouse_events.read() {
         if let Some(data) = current_edit.as_ref() {
             let event = &event.event;
             if matches!(event.event_type, MouseEventType::Click(_)) {
+                history.submit_preedit_squash();
                 // 已经编辑时, 点击可进行下一个的编辑
                 history
                     .push_preedit(

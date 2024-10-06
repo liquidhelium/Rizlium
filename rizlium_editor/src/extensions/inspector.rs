@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use egui::{Label, Ui};
+use egui::{Label, ScrollArea, Ui};
 use rizlium_chart::{
     chart::Chart,
     editing::{
@@ -11,6 +11,8 @@ use rizlium_render::GameChart;
 use rust_i18n::t;
 
 use helium_framework::prelude::*;
+
+use super::editing::ChartEditHistory;
 
 #[derive(Resource, Default)]
 pub struct SelectedItem {
@@ -27,8 +29,19 @@ pub struct Inspector;
 
 impl Plugin for Inspector {
     fn build(&self, app: &mut App) {
-        app.register_tab("inspector", t!("inspector.tab"), logs, resource_exists::<GameChart>)
-            .init_resource::<SelectedItem>();
+        app.register_tab(
+            "inspector",
+            t!("inspector.tab"),
+            logs,
+            resource_exists::<GameChart>,
+        )
+        .init_resource::<SelectedItem>();
+        app.register_tab(
+            "debugger",
+            t!("debugger.tab"),
+            debug_window,
+            resource_exists::<ChartEditHistory>,
+        );
     }
 }
 
@@ -69,4 +82,18 @@ fn show_ui<P: ChartPath>(
 
 fn bevy_inspector(In(mut ui): In<Ui>, world: &mut World) {
     // bevy_inspector_egui::bevy_inspector::ui_for_world(world, &mut ui);
+}
+
+fn debug_window(In(mut ui): In<Ui>, history: Res<ChartEditHistory>) {
+    ScrollArea::vertical()
+        .auto_shrink(false)
+        .show(&mut ui, |ui| {
+            for it in history.history_descriptions() {
+                ui.label(it.clone());
+            }
+            ui.heading("Preedits");
+            for ed in history.preedit_datas() {
+                ui.label(format!("{:#?}", ed.inverse()));
+            }
+        });
 }

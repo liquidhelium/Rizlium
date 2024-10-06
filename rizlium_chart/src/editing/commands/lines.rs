@@ -9,6 +9,7 @@ use crate::{
 };
 
 use super::ChartCommand;
+#[derive(Debug)]
 pub struct InsertLine {
     pub line: Line,
     pub at: Option<usize>,
@@ -30,6 +31,7 @@ impl ChartCommand for InsertLine {
     }
 }
 
+#[derive(Debug)]
 pub struct RemoveLine {
     pub line_path: LinePath,
 }
@@ -48,6 +50,7 @@ impl ChartCommand for RemoveLine {
     }
 }
 
+#[derive(Debug)]
 pub struct EditPoint {
     pub line_path: LinePath,
     pub point_idx: usize,
@@ -128,6 +131,7 @@ impl ChartCommand for EditPoint {
     }
 }
 
+#[derive(Debug)]
 pub struct InsertPoint {
     pub line_path: LinePath,
     pub point_idx: Option<usize>,
@@ -173,6 +177,7 @@ impl ChartCommand for InsertPoint {
     }
 }
 
+#[derive(Debug)]
 pub struct RemovePoint {
     pub line_path: LinePath,
     pub point_idx: usize,

@@ -44,9 +44,19 @@ pub struct EditHistory {
     redo_cache: Vec<ChartCommands>,
 }
 
-struct PreeditData {
+pub struct PreeditData {
     inverse: ChartCommands,
     description: Cow<'static, str>,
+}
+
+impl PreeditData {
+    pub fn inverse(&self) -> &ChartCommands {
+        &self.inverse
+    }
+    
+    pub fn description(&self) -> &str {
+        &self.description
+    }
 }
 
 impl EditHistory {
@@ -104,8 +114,9 @@ impl EditHistory {
         Ok(())
     }
     pub fn discard_preedit(&mut self, chart: &mut Chart) -> Result<()> {
-        self.preedit_data.drain(..).try_for_each(|data| {
-            data.inverse.apply(chart)?;
+        self.preedit_data.drain(..).rev().try_for_each(|data| {
+            
+            dbg!(data.inverse).apply(chart)?;
             Ok(())
         })?;
         Ok(())
@@ -120,8 +131,25 @@ impl EditHistory {
         self.history_descriptions.append(&mut v2);
         self.redo_cache.clear();
     }
+    /// Like `submit_preedit`, but also squash preedits into a single command.
+    pub fn submit_preedit_squash(&mut self) {
+        let v1: Vec<_> = self
+            .preedit_data
+            .drain(..)
+            .map(|data| data.inverse)
+            .collect();
+        let squashed_command = commands::CommandSequence { commands: v1 };
+        let desc = squashed_command.description();
+        self.inverse_history.push(squashed_command.into());
+        self.history_descriptions.push(desc);
+        self.redo_cache.clear();
+    }
     pub fn history_descriptions(&self) -> &[Cow<'static, str>] {
         self.history_descriptions.as_slice()
+    }
+
+    pub fn preedit_datas(&self) -> &[PreeditData] {
+        self.preedit_data.as_slice()
     }
 
     pub fn gen_redo_descriptions(&self) -> impl ExactSizeIterator<Item = Cow<'static, str>> + '_ {

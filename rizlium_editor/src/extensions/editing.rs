@@ -2,7 +2,7 @@ use helium_framework::{menu::{Button, MenuExt}, prelude::*};
 
 use self::{note::note_editor_vertical, tool_config_window::tool_config};
 use bevy::prelude::*;
-use egui::{emath::RectTransform, vec2, Color32, Sense, Stroke, Ui};
+use egui::{emath::RectTransform, vec2, Color32, Sense, Stroke, Ui, UiBuilder};
 use rizlium_chart::{chart::Spline, editing::EditHistory};
 use rizlium_render::{GameChart, GameTime};
 use rust_i18n::t;
@@ -140,8 +140,9 @@ pub fn spline_edit(
             ))
             .changed();
     });
-    let (res, spline_view) = ui
-        .allocate_ui_at_rect(ui.available_rect_before_wrap(), |ui| {
+    let (res, spline_view) = {
+        let max_rect = ui.available_rect_before_wrap();
+        ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui| {
             let spline = &chart.canvases[*current].speed;
             let spline_view =
                 SplineView::new(ui, spline, *visible_rect, spline::Orientation::Horizontal);
@@ -185,6 +186,7 @@ pub fn spline_edit(
 
             (response, spline_view)
         })
+    }
         .inner;
 
     if res.dragged() {

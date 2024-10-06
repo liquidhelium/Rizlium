@@ -1,4 +1,4 @@
-use std::{any::type_name, borrow::Cow};
+use std::{any::type_name, borrow::Cow, fmt::Debug};
 
 use super::Result;
 use crate::prelude::Chart;
@@ -9,6 +9,7 @@ mod lines;
 pub use lines::*;
 
 #[enum_dispatch(ChartCommand)]
+#[derive(Debug)]
 pub enum ChartCommands {
     ChangeNoteTime,
     InsertNote,
@@ -23,7 +24,7 @@ pub enum ChartCommands {
 }
 
 #[enum_dispatch]
-pub trait ChartCommand {
+pub trait ChartCommand: Debug {
     fn apply(self, chart: &mut Chart) -> Result<ChartCommands>;
     fn validate(&self, chart: &Chart) -> Result<()>;
     fn description(&self) -> Cow<'static, str> {
@@ -31,8 +32,9 @@ pub trait ChartCommand {
     }
 }
 
+#[derive(Debug)]
 pub struct CommandSequence {
-    commands: Vec<ChartCommands>,
+    pub commands: Vec<ChartCommands>,
 }
 
 impl ChartCommand for CommandSequence {
@@ -55,6 +57,7 @@ impl ChartCommand for CommandSequence {
     }
 }
 
+#[derive(Debug)]
 pub struct Nop;
 
 impl ChartCommand for Nop {
