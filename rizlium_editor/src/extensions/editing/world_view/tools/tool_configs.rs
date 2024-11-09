@@ -2,13 +2,21 @@ use bevy::prelude::*;
 use rizlium_chart::chart::EasingId;
 use std::marker::PhantomData;
 
-use egui::{Slider, Ui};
+use egui::{Slider, Ui, UiBuilder};
 use rizlium_render::GameChart;
 
 use crate::widgets::enum_selector;
 
 pub(crate) fn show_window<T: ToolConfig>(ui: &mut Ui, world: &mut World) {
-    let child = ui.child_ui(ui.max_rect(), *ui.layout(), None);
+    let child = {
+        let max_rect = ui.available_rect_before_wrap();
+        let layout = *ui.layout();
+        ui.new_child(
+            UiBuilder::new()
+                .max_rect(max_rect)
+                .layout(layout)
+        )
+    };
     world.resource_scope(|world, mut stroage: Mut<'_, ToolConfigStorage<T>>| {
         stroage.0.run(child, world);
     });

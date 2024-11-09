@@ -56,6 +56,7 @@ rust-i18n = "3"
 helium_framework = { git = "https://github.com/liquidhelium/helium_framework", features = [
     "serde",
 ] }
+bevy_prototype_lyon = { git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium" }
 [dev-dependencies]
 serde_json = "*"
 

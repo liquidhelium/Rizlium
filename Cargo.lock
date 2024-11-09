@@ -5638,6 +5638,7 @@ dependencies = [
  "bevy-persistent",
  "bevy_egui 0.30.0",
  "bevy_mod_raycast",
+ "bevy_prototype_lyon",
  "dirs",
  "egui 0.29.1",
  "egui-notify",

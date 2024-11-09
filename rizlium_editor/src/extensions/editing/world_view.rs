@@ -3,12 +3,22 @@ use std::ops::ControlFlow;
 use bevy::{
     math::vec2,
     prelude::*,
-    render::render_resource::{
-        Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+    render::{
+        render_resource::{
+            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+        },
+        view::RenderLayers,
     },
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
+use bevy_prototype_lyon::{
+    draw::Stroke,
+    entity::{Path, ShapeBundle},
+    prelude::GeometryBuilder,
+    shapes::Circle as Circle0,
+};
 use egui::{InputState, PointerButton, Response, Sense, Ui};
+use rizlium_render::{ChartLine, GameChart, GameChartCache, GameTime};
 use rust_i18n::t;
 use tools::Tool;
 
@@ -33,8 +43,7 @@ impl Plugin for WorldViewPlugin {
             PreStartup,
             setup_world_cam.after(bevy_egui::EguiStartupSet::InitContexts),
         )
-        .add_systems(Last, bug_detect)
-        .add_plugins((RaycastPlugin, ToolsPlugin))
+        .add_plugins((RaycastPlugin, ToolsPlugin, PointIndicatorPlugin))
         .register_tab(
             "edit.world_view",
             t!("edit.world_view.tab"),
@@ -84,15 +93,20 @@ fn get_image() -> Image {
     }
 }
 
-fn get_camera(handle: Handle<Image>) -> Camera2dBundle {
-    // todo: use a shader to shadow places which are not in GameView
-    Camera2dBundle {
-        camera: Camera {
-            target: bevy::render::camera::RenderTarget::Image(handle),
+fn get_camera(handle: Handle<Image>) -> impl Bundle {
+    let layers = RenderLayers::default().with(114);
+    (
+        // todo: use a shader to shadow places which are not in GameView
+        Camera2dBundle {
+            camera: Camera {
+                target: bevy::render::camera::RenderTarget::Image(handle),
+                ..default()
+            },
+
             ..default()
         },
-        ..default()
-    }
+        layers
+    )
 }
 
 #[derive(Deref, DerefMut)]
@@ -244,25 +258,114 @@ fn get_event_type(
     }
 }
 
-fn bug_detect(mut ev: EventReader<AssetEvent<Mesh>>) {
-    ev.read().for_each(|ev| {
-        if is_index(get_id(ev), 5) {
-            debug!("{:?}", ev);
-        }
-    })
+// 长类型让我抓狂
+macro_rules! chart_update {
+    () => {
+        resource_exists::<GameChart>.and_then(
+            resource_exists_and_changed::<GameChart>.or_else(resource_changed::<GameTime>),
+        )
+    };
 }
 
-fn get_id(ev: &AssetEvent<Mesh>) -> &AssetId<Mesh> {
-    use AssetEvent::*;
-    match ev {
-        Added { id }
-        | Modified { id }
-        | Removed { id }
-        | Unused { id }
-        | LoadedWithDependencies { id } => id,
+struct PointIndicatorPlugin;
+
+impl Plugin for PointIndicatorPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            PreUpdate,
+            add_points_indicator.run_if(resource_exists_and_changed::<GameChart>),
+        )
+        .add_systems(
+            Update,
+            (update_shape, associate_segment).run_if(chart_update!()),
+        );
     }
 }
 
-fn is_index(id: &AssetId<Mesh>, index: u64) -> bool {
-    matches!(*id, AssetId::Index { index: idx,marker: _ } if idx.to_bits() & u32::MAX as u64 == index)
+#[derive(Component, Default)]
+struct PointIndicator;
+
+#[derive(Component, Default)]
+struct PointIndicatorId {
+    line_idx: usize,
+    keypoint_idx: usize,
+}
+
+#[derive(Bundle, Default)]
+pub struct PointIndicatorBundle {
+    layer: RenderLayers,
+    line: PointIndicator,
+    shape: ShapeBundle,
+    stroke: Stroke,
+}
+
+fn add_points_indicator(
+    mut commands: Commands,
+    chart: Res<GameChart>,
+    indicators: Query<&PointIndicator>,
+) {
+    let segment_count = chart.segment_count();
+    let now_count = indicators.iter().count();
+    let delta = segment_count - now_count;
+    debug!("attempting to add {delta} indicators");
+    for _ in now_count..segment_count {
+        commands.spawn(PointIndicatorBundle {
+            shape: ShapeBundle {
+                path: GeometryBuilder::new()
+                    .add(&Circle0 {
+                        radius: 10.,
+                        center: [0., 0.].into(),
+                    })
+                    .build(),
+                transform: Transform::from_translation(Vec3 {
+                    x: 0.,
+                    y: 0.,
+                    z: 20.,
+                }),
+                ..default()
+            },
+            stroke: Stroke::new(Color::BLACK, 10.),
+            layer: RenderLayers::from_layers(&[114]),
+            ..Default::default()
+        });
+    }
+}
+
+fn associate_segment(
+    mut commands: Commands,
+    chart: Res<GameChart>,
+    lines: Query<Entity, With<PointIndicator>>,
+) {
+    debug!("running system assocate_segment");
+    // return_nothing_change!(chart);
+    for (entity, (line_idx, keypoint_idx)) in lines.iter().zip(chart.iter_segment()) {
+        commands.entity(entity).insert(PointIndicatorId {
+            line_idx,
+            keypoint_idx,
+        });
+    }
+}
+
+fn update_shape(
+    chart: Res<GameChart>,
+    cache: Res<GameChartCache>,
+    time: Res<GameTime>,
+    mut lines: Query<(&mut Stroke, &PointIndicatorId, &mut Transform)>,
+) {
+    lines
+        .par_iter_mut()
+        // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
+        .for_each(|(_, id, mut transform)| {
+            let line_idx = id.line_idx;
+            let keypoint_idx = id.keypoint_idx;
+            let Some(pos1) =
+                chart
+                    .with_cache(&cache)
+                    .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
+            else {
+                return;
+            };
+            let pos1: Vec2 = pos1.into();
+            transform.translation = pos1.extend(transform.translation.z);
+        });
 }
