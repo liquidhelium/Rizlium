@@ -12,7 +12,7 @@ use rust_i18n::t;
 
 use helium_framework::prelude::*;
 
-use super::editing::ChartEditHistory;
+use super::editing::{world_view::cam_response::WorldMouseEvent, ChartEditHistory};
 
 #[derive(Resource, Default)]
 pub struct SelectedItem {
@@ -84,10 +84,12 @@ fn bevy_inspector(In(mut ui): In<Ui>, world: &mut World) {
     // bevy_inspector_egui::bevy_inspector::ui_for_world(world, &mut ui);
 }
 
-fn debug_window(In(mut ui): In<Ui>, history: Res<ChartEditHistory>) {
+fn debug_window(In(mut ui): In<Ui>, history: Res<ChartEditHistory>,mut event: EventReader<WorldMouseEvent>) {
     ScrollArea::vertical()
         .auto_shrink(false)
         .show(&mut ui, |ui| {
+            ui.heading("cast_result");
+            ui.label(format!("{:?}", event.read().next()));
             for it in history.history_descriptions() {
                 ui.label(it.clone());
             }

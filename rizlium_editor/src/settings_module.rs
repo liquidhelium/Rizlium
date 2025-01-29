@@ -91,8 +91,8 @@ pub struct SettingsModuleRegistry(IndexMap<Identifier, Box<dyn ModuleRunner>>);
 
 pub struct SettingsModuleDyn<Storage: Send + Sync + 'static> {
     storage: Option<Storage>,
-    ui_system: Box<dyn ReadOnlySystem<In = (Ui, Option<Storage>), Out = Option<Storage>>>,
-    apply_edit_system: Box<dyn System<In = Storage, Out = ()>>,
+    ui_system: Box<dyn ReadOnlySystem<In = In<(Ui, Option<Storage>)>, Out = Option<Storage>>>,
+    apply_edit_system: Box<dyn System<In = In<Storage>, Out = ()>>,
     name: Cow<'static, str>,
 }
 
@@ -148,23 +148,23 @@ pub trait SettingsModule {
         world: &mut World,
     ) -> Box<
         dyn ReadOnlySystem<
-            In = (Ui, Option<Self::SettingsTempStorage>),
+            In = In<(Ui, Option<Self::SettingsTempStorage>)>,
             Out = Option<Self::SettingsTempStorage>,
         >,
     >;
     fn apply_edit_system(
         &self,
         world: &mut World,
-    ) -> Box<dyn System<In = Self::SettingsTempStorage, Out = ()>>;
+    ) -> Box<dyn System<In = In<Self::SettingsTempStorage>, Out = ()>>;
     fn name(&self) -> Cow<'static, str>;
 }
 
 pub struct SettingsModuleStruct<Storage, Q, R, M2, M3>
 where
-    Q: IntoSystem<(Ui, Option<Storage>), Option<Storage>, M2> + Clone,
+    Q: IntoSystem<In<(Ui, Option<Storage>)>, Option<Storage>, M2> + Clone,
     Q::System: ReadOnlySystem,
-    R: IntoSystem<Storage, (), M3> + Clone,
-    Storage: Send + Sync,
+    R: IntoSystem<In<Storage>, (), M3> + Clone,
+    Storage: Send + Sync + 'static,
 {
     ui_system: Q,
     apply_edit_system: R,
@@ -174,9 +174,9 @@ where
 
 impl<Storage, Q, R, M2, M3> SettingsModuleStruct<Storage, Q, R, M2, M3>
 where
-    Q: IntoSystem<(Ui, Option<Storage>), Option<Storage>, M2> + Clone,
+    Q: IntoSystem<In<(Ui, Option<Storage>)>, Option<Storage>, M2> + Clone,
     Q::System: ReadOnlySystem,
-    R: IntoSystem<Storage, (), M3> + Clone,
+    R: IntoSystem<In<Storage>, (), M3> + Clone,
     Storage: Send + Sync,
 {
     pub fn new(ui_system: Q, apply_edit_system: R, name: impl Into<Cow<'static, str>>) -> Self {
@@ -191,9 +191,9 @@ where
 
 impl<Storage, Q, R, M2, M3> SettingsModule for SettingsModuleStruct<Storage, Q, R, M2, M3>
 where
-    Q: IntoSystem<(Ui, Option<Storage>), Option<Storage>, M2> + Clone,
+    Q: IntoSystem<In<(Ui, Option<Storage>)>, Option<Storage>, M2> + Clone,
     Q::System: ReadOnlySystem,
-    R: IntoSystem<Storage, (), M3> + Clone,
+    R: IntoSystem<In<Storage>, (), M3> + Clone,
     Storage: Send + Sync + 'static,
 {
     type SettingsTempStorage = Storage;
@@ -202,7 +202,7 @@ where
         world: &mut World,
     ) -> std::boxed::Box<
         (dyn bevy::prelude::ReadOnlySystem<
-            In = (egui::Ui, std::option::Option<Storage>),
+            In = In<(egui::Ui, std::option::Option<Storage>)>,
             Out = std::option::Option<Storage>,
         > + 'static),
     > {
@@ -213,7 +213,7 @@ where
     fn apply_edit_system(
         &self,
         world: &mut World,
-    ) -> Box<dyn System<Out = (), In = Self::SettingsTempStorage>> {
+    ) -> Box<dyn System<Out = (), In = In<Self::SettingsTempStorage>>> {
         let mut system = IntoSystem::into_system(self.apply_edit_system.clone());
         system.initialize(world);
         Box::new(system)

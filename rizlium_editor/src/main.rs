@@ -1,17 +1,15 @@
 use bevy::log::{Level, LogPlugin};
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use helium_framework::menu::EditorMenuEntrys;
-use helium_framework::prelude::{HeDockState, HeTabViewer};
+use helium_framework::prelude::{HeDockState, HeTabViewer, ActionPlugin};
+use helium_framework::tab_system::{FocusedTab, TabPlugin, TabRegistry};
 use helium_framework::widgets::widget;
 use rizlium_editor::extensions::command_panel::command_panel;
 use rizlium_editor::extensions::ExtensionsPlugin;
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
 use rizlium_editor::notification::NotificationPlugin;
 use rizlium_editor::settings_module::SettingsPlugin;
-use helium_framework::tab_system::{FocusedTab, TabPlugin, TabRegistry};
-use rizlium_editor::{
-    ActionPlugin, EventCollectorResource, FilePlugin, RizTabViewer, WindowUpdateControlPlugin,
-};
+use rizlium_editor::{EventCollectorResource, FilePlugin, RizTabViewer, WindowUpdateControlPlugin};
 
 use bevy::window::PrimaryWindow;
 
@@ -21,7 +19,8 @@ use bevy_persistent::prelude::*;
 use egui::{Align2, FontData, FontDefinitions, FontFamily, Layout};
 use egui_dock::{DockArea, DockState};
 use rizlium_editor::{
-    ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles, RizTabPresets,
+    ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
+    RizTabPresets,
 };
 use rizlium_render::{GameChart, RizliumRenderingPlugin};
 use tracing_subscriber::layer::SubscriberExt;
@@ -30,7 +29,7 @@ use tracing_subscriber::EnvFilter;
 
 fn main() {
     let collector = egui_tracing::EventCollector::default().with_level(Level::DEBUG);
-    let default_filter = { format!("{},{}", Level::DEBUG, "wgpu=error,naga=warn") };
+    let default_filter = { format!("{},{}", Level::DEBUG, "wgpu=error,naga=warn,offset_allocator=warn") };
     let filter_layer = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new(&default_filter))
         .unwrap();
@@ -58,7 +57,6 @@ fn main() {
             ExtensionsPlugin,
             ExtraWindowControlPlugin,
         ))
-        .insert_resource(Msaa::Sample4)
         .init_resource::<EditorState>()
         .insert_resource(HeDockState(DockState::new(vec!["game.view".into()])))
         .add_event::<DragWindowRequested>()
@@ -90,7 +88,7 @@ fn setup_persistent(mut commands: Commands) {
             .build()
             .expect("failed to setup recent files"),
     );
-    commands.spawn(Camera2dBundle::default());
+    // commands.spawn((Camera2d, Msaa::Sample4));
 }
 
 fn setup_font(mut context: Query<&mut EguiContext>) {
@@ -98,7 +96,7 @@ fn setup_font(mut context: Query<&mut EguiContext>) {
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert(
             "SourceHanSansSC".to_owned(),
-            FontData::from_static(include_bytes!("../assets/SourceHanSansSC.otf")),
+            FontData::from_static(include_bytes!("../assets/SourceHanSansSC.otf")).into(),
         ); // .ttf and .otf supported
         fonts
             .families
@@ -165,8 +163,8 @@ fn egui_render(world: &mut World) {
                     world,
                 },
             );
-            world.resource_mut::<FocusedTab>().0 =
-                state.0.find_active_focused().unzip().1.cloned(); // todo: move this into proper file
+            world.resource_mut::<FocusedTab>().0 = state.0.find_active_focused().unzip().1.cloned();
+            // todo: move this into proper file
         });
     });
     editor_state.is_editing_text = ctx.output(|out| out.mutable_text_under_cursor);

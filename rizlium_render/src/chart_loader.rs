@@ -139,8 +139,7 @@ fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
             .context(ReadingFileFailedSnafu)?;
         let music = bevy_kira_audio::AudioSource {
             sound: StaticSoundData::from_cursor(
-                Cursor::new(sound_data),
-                StaticSoundSettings::default(),
+                Cursor::new(sound_data)
             )
             .context(MusicConvertingFailedSnafu)?,
         };

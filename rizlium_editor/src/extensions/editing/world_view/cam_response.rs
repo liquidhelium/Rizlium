@@ -1,5 +1,7 @@
-use bevy::{color::palettes::css::WHITE, math::Ray3d, prelude::*, render::view::RenderLayers};
-use bevy_mod_raycast::immediate::{Raycast, RaycastSettings};
+use bevy::{
+    color::palettes::css::WHITE, math::Ray3d, picking::mesh_picking::ray_cast::RayCastSettings,
+    prelude::*, render::view::RenderLayers,
+};
 use rizlium_render::ChartLine;
 use strum::EnumIs;
 
@@ -56,15 +58,15 @@ pub enum ClickEventType {
     Triple,
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct CamResponse(Option<MouseEvent>);
 
 fn to_ray(pixel: Vec2, cam: &Camera, trans: &GlobalTransform) -> Option<Ray3d> {
-    cam.viewport_to_world(trans, pixel).map(Ray3d::from)
+    cam.viewport_to_world(trans, pixel).map(Ray3d::from).ok()
 }
 
 fn ray_cast(
-    mut raycast: Raycast,
+    mut raycast: bevy::picking::prelude::MeshRayCast,
     camera: Query<(&Camera, &GlobalTransform, Option<&RenderLayers>), With<WorldCam>>,
     mut meshes: Query<(Entity, Option<&RenderLayers>, &mut CamResponse)>,
     mut screen_mouse_events: EventReader<ScreenMouseEvent>,
@@ -82,7 +84,7 @@ fn ray_cast(
                 owned_event.pos = ray.origin;
                 ray
             },
-            &RaycastSettings::default()
+            &RayCastSettings::default()
                 .always_early_exit()
                 .with_filter(&|entity| {
                     meshes.get(entity).is_ok_and(|(_, layers, _)| {
@@ -91,7 +93,7 @@ fn ray_cast(
                         let cam_layers = cam_layers.unwrap_or(&default_layer);
                         layers.intersects(cam_layers)
                     })
-                })
+                }),
         ) else {
             world_mouse_events.send(WorldMouseEvent {
                 event: owned_event.clone(),
@@ -103,7 +105,7 @@ fn ray_cast(
             event: owned_event.clone(),
             casted_entity: Some(*cast_entity),
         });
-        owned_event.pos = cast_data.position();
+        owned_event.pos = cast_data.point;
         meshes.par_iter_mut().for_each(|(entity, _, mut response)| {
             if entity == *cast_entity {
                 response.0 = Some(owned_event.clone());

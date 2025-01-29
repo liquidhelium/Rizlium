@@ -33,7 +33,7 @@ use self::{
 
 use super::tool_select_bar;
 
-pub(super) mod cam_response;
+pub mod cam_response;
 pub(super) mod tools;
 pub struct WorldViewPlugin;
 
@@ -97,15 +97,12 @@ fn get_camera(handle: Handle<Image>) -> impl Bundle {
     let layers = RenderLayers::default().with(114);
     (
         // todo: use a shader to shadow places which are not in GameView
-        Camera2dBundle {
-            camera: Camera {
-                target: bevy::render::camera::RenderTarget::Image(handle),
-                ..default()
-            },
-
+        Camera2d,
+        Camera {
+            target: bevy::render::camera::RenderTarget::Image(handle),
             ..default()
         },
-        layers
+        layers,
     )
 }
 
@@ -273,12 +270,10 @@ impl Plugin for PointIndicatorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            add_points_indicator.run_if(resource_exists_and_changed::<GameChart>),
+            (add_points_indicator, associate_segment)
+                .run_if(resource_exists_and_changed::<GameChart>),
         )
-        .add_systems(
-            Update,
-            (update_shape, associate_segment).run_if(chart_update!()),
-        );
+        .add_systems(Update, (update_shape).run_if(chart_update!()));
     }
 }
 
@@ -297,6 +292,7 @@ pub struct PointIndicatorBundle {
     line: PointIndicator,
     shape: ShapeBundle,
     stroke: Stroke,
+    cam_response: cam_response::CamResponse,
 }
 
 fn add_points_indicator(

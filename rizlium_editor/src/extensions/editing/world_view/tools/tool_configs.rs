@@ -23,7 +23,7 @@ pub(crate) fn show_window<T: ToolConfig>(ui: &mut Ui, world: &mut World) {
 }
 
 #[derive(Resource)]
-pub struct ToolConfigStorage<T: ToolConfig>(Box<dyn System<In = Ui, Out = ()>>, PhantomData<T>);
+pub struct ToolConfigStorage<T: ToolConfig>(Box<dyn System<In = In<Ui>, Out = ()>>, PhantomData<T>);
 
 impl<T: ToolConfig> ToolConfigStorage<T> {
     pub(crate) fn init_with(mut self, world: &mut World) -> Self {
@@ -55,11 +55,11 @@ impl ToolConfigExt for App {
 }
 
 pub trait ToolConfig: Send + Sync + 'static {
-    fn config_system() -> impl System<In = Ui, Out = ()>;
+    fn config_system() -> impl System<In = In<Ui>, Out = ()>;
 }
 
 impl ToolConfig for PencilToolConfig {
-    fn config_system() -> impl System<In = Ui, Out = ()> {
+    fn config_system() -> impl System<In = In<Ui>, Out = ()> {
         IntoSystem::into_system(Self::system)
     }
 }

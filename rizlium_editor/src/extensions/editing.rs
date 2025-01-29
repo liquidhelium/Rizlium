@@ -14,7 +14,7 @@ mod timeline;
 mod tool_config_window;
 mod tool_select_bar;
 mod undo_redo;
-mod world_view;
+pub mod world_view;
 
 pub struct Editing;
 

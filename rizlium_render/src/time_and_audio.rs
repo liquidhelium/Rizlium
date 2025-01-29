@@ -83,7 +83,7 @@ pub enum TimeControlEvent {
 }
 
 fn update_timemgr(mut time: ResMut<TimeManager>, real_time: Res<Time>) {
-    time.update(real_time.elapsed_seconds());
+    time.update(real_time.elapsed_secs());
 }
 
 fn dispatch_events(
@@ -108,9 +108,7 @@ fn dispatch_events(
             TimeControlEvent::Seek(pos) => {
                 let pos = pos.clamp(0., audio_data.sound.duration().as_secs_f32() - 0.01);
                 time.seek(pos);
-                if let Some(e) = audio.seek_to(pos.into()) {
-                    warn!("error when seeking: {}", e)
-                }
+                audio.seek_to(pos.into());
             }
             TimeControlEvent::Toggle => time.toggle_paused(),
             TimeControlEvent::SetPaused(paused) => time.set_paused(*paused),
@@ -119,10 +117,7 @@ fn dispatch_events(
                     0.01 - time.current(),
                     audio_data.sound.duration().as_secs_f32() - 0.01 - time.current(),
                 );
-                time.advance(duration);
-                if let Some(e) = audio.seek_by(duration.into()) {
-                    warn!("error when seeking: {}", e)
-                }
+                time.advance(duration);audio.seek_by(duration.into());
             }
         }
     }
@@ -151,9 +146,9 @@ fn sync_audio(
 
 fn init_time_manager(mut commands: Commands, time: Res<Time>) {
     commands.insert_resource(TimeManager {
-        start_time: time.elapsed_seconds(),
-        paused_since: Some(time.elapsed_seconds()),
-        now: time.elapsed_seconds(),
+        start_time: time.elapsed_secs(),
+        paused_since: Some(time.elapsed_secs()),
+        now: time.elapsed_secs(),
     });
 }
 fn game_time(cache: Res<GameChartCache>, time: Res<TimeManager>, mut game_time: ResMut<GameTime>) {

@@ -12,6 +12,7 @@ use rizlium_chart::{
 };
 use rizlium_render::{ChartLineId, GameChart};
 
+use self::tool_configs::{PencilToolConfig, ToolConfigExt};
 use crate::{
     extensions::{
         editing::ChartEditHistory,
@@ -20,11 +21,10 @@ use crate::{
     utils::WorldToGame,
 };
 use helium_framework::prelude::*;
-use self::tool_configs::{PencilToolConfig, ToolConfigExt};
 
 use super::{
     cam_response::{DragEventType, MouseEvent, MouseEventType, ScreenMouseEvent, WorldMouseEvent},
-    edit_view_or_tool_focused, WorldCam,
+    edit_view_or_tool_focused, PointIndicatorId, WorldCam,
 };
 
 pub fn is_tool(tool: Tool) -> impl Condition<()> {
@@ -198,6 +198,7 @@ fn pencil_tool(
     mut history: ResMut<ChartEditHistory>,
     to_game: WorldToGame,
     mut current_edit: Local<Option<PencilToolEditData>>,
+    mut entities: Query<(Entity, &PointIndicatorId)>,
 ) {
     if *tool != Tool::Pencil || !to_game.avalible() {
         mouse_events.clear();
@@ -293,6 +294,16 @@ fn pencil_tool(
                 line_idx: chart.lines.len() - 1,
                 point_idx: 1,
             })
+        } else if matches!(event.event.event_type, MouseEventType::Click(_)) {
+            if let Some(entity) = event.casted_entity {
+                if let Some(entity) = entities.iter().find(|e| e.0 == entity).map(|e| e.1) {
+                    debug!("clicking on points");
+                    *current_edit = Some(PencilToolEditData {
+                        line_idx: entity.line_idx,
+                        point_idx: entity.keypoint_idx,
+                    });
+                }
+            }
         }
     }
 }

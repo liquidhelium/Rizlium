@@ -102,19 +102,17 @@ mod rings;
 fn spawn_game_camera(mut commands: Commands) {
     commands
         .spawn((
-            Camera2dBundle {
-                projection: OrthographicProjection {
-                    viewport_origin: [0.5, masks::RING_OFFSET].into(),
-                    scaling_mode: bevy::render::camera::ScalingMode::Fixed {
-                        width: 900.,
-                        height: 1600.,
-                    },
-                    ..default()
+            Camera2d,
+            OrthographicProjection {
+                viewport_origin: [0.5, masks::RING_OFFSET].into(),
+                scaling_mode: bevy::render::camera::ScalingMode::Fixed {
+                    width: 900.,
+                    height: 1600.,
                 },
-                transform: Transform {
-                    translation: [0., 0., 999.0].into(),
-                    ..default()
-                },
+                ..OrthographicProjection::default_2d()
+            },
+            Transform {
+                translation: [0., 0., 999.0].into(),
                 ..default()
             },
             RenderLayers::layer(MASK_LAYER).with(0),
