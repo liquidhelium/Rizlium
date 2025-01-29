@@ -9,7 +9,6 @@ use bevy::{
     winit::WinitSettings,
 };
 use egui::{Color32, Rect, RichText, Ui};
-use egui_dock::DockState;
 use egui_tracing::EventCollector;
 use rizlium_render::GameTime;
 i18n!();

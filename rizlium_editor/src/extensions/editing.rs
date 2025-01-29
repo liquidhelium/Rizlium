@@ -126,7 +126,7 @@ pub fn spline_edit(
     chart: Res<GameChart>,
     mut current: Local<usize>,
     mut visible_rect: Local<Option<egui::Rect>>,
-    mut external: Local<Spline<f32>>,
+    external: Local<Spline<f32>>,
 ) {
     let ui = &mut ui;
     let mut show_first = false;

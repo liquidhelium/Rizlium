@@ -8,13 +8,8 @@ mod inspector;
 use std::borrow::Cow;
 
 use bevy::{
-    asset::{AssetId, Assets},
     ecs::world::World,
     prelude::{App, Deref, DerefMut, Plugin, Resource},
-    render::{
-        mesh::{Mesh, PrimitiveTopology},
-        render_asset::RenderAssetUsages,
-    },
 };
 use snafu::Snafu;
 

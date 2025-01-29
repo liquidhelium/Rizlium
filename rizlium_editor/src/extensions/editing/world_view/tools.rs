@@ -109,10 +109,7 @@ fn discard_preedit(mut ev: EventWriter<DiscardPreeditEvent>) {
 
 impl Tool {
     pub fn config_ui(&self, ui: &mut Ui, world: &mut World) {
-        match self {
-            Self::Pencil => tool_configs::show_window::<tool_configs::PencilToolConfig>(ui, world),
-            _ => (),
-        }
+        if self == &Self::Pencil { tool_configs::show_window::<tool_configs::PencilToolConfig>(ui, world) }
     }
 }
 
@@ -198,7 +195,7 @@ fn pencil_tool(
     mut history: ResMut<ChartEditHistory>,
     to_game: WorldToGame,
     mut current_edit: Local<Option<PencilToolEditData>>,
-    mut entities: Query<(Entity, &PointIndicatorId)>,
+    entities: Query<(Entity, &PointIndicatorId)>,
 ) {
     if *tool != Tool::Pencil || !to_game.avalible() {
         mouse_events.clear();

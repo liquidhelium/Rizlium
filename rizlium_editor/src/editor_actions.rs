@@ -1,18 +1,11 @@
-use std::any::type_name;
-use std::sync::Arc;
 
 use bevy::ecs::system::{SystemBuffer, SystemMeta, SystemParam};
 use bevy::ecs::world::CommandQueue;
 use bevy::prelude::*;
-use bevy::reflect::{TypeInfo, Typed};
-use bevy::utils::HashMap;
 use bevy_persistent::Persistent;
-use egui::mutex::Mutex;
-use helium_framework::utils::identifier::Identifier;
 use rizlium_render::{LoadChartEvent, ShowLines, TimeControlEvent};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use snafu::Snafu;
 use crate::{files::open_dialog, files::PendingDialog, RecentFiles};
 
 #[derive(SystemParam, Deref, DerefMut)]

@@ -1,22 +1,22 @@
 use bevy::log::{Level, LogPlugin};
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use helium_framework::menu::EditorMenuEntrys;
-use helium_framework::prelude::{HeDockState, HeTabViewer, ActionPlugin};
-use helium_framework::tab_system::{FocusedTab, TabPlugin, TabRegistry};
+use helium_framework::prelude::{HeDockState, HeTabViewer};
+use helium_framework::tab_system::{FocusedTab, TabRegistry};
 use helium_framework::widgets::widget;
 use rizlium_editor::extensions::command_panel::command_panel;
 use rizlium_editor::extensions::ExtensionsPlugin;
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
 use rizlium_editor::notification::NotificationPlugin;
 use rizlium_editor::settings_module::SettingsPlugin;
-use rizlium_editor::{EventCollectorResource, FilePlugin, RizTabViewer, WindowUpdateControlPlugin};
+use rizlium_editor::{EventCollectorResource, FilePlugin, WindowUpdateControlPlugin};
 
 use bevy::window::PrimaryWindow;
 
 use bevy::prelude::*;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
-use egui::{Align2, FontData, FontDefinitions, FontFamily, Layout};
+use egui::{FontData, FontDefinitions, FontFamily, Layout};
 use egui_dock::{DockArea, DockState};
 use rizlium_editor::{
     ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,

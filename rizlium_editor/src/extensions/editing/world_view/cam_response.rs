@@ -1,5 +1,5 @@
 use bevy::{
-    color::palettes::css::WHITE, math::Ray3d, picking::mesh_picking::ray_cast::RayCastSettings,
+    math::Ray3d, picking::mesh_picking::ray_cast::RayCastSettings,
     prelude::*, render::view::RenderLayers,
 };
 use rizlium_render::ChartLine;
@@ -62,7 +62,7 @@ pub enum ClickEventType {
 pub struct CamResponse(Option<MouseEvent>);
 
 fn to_ray(pixel: Vec2, cam: &Camera, trans: &GlobalTransform) -> Option<Ray3d> {
-    cam.viewport_to_world(trans, pixel).map(Ray3d::from).ok()
+    cam.viewport_to_world(trans, pixel).ok()
 }
 
 fn ray_cast(

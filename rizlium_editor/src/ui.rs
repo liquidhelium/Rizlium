@@ -16,7 +16,7 @@ pub struct RizTabViewer<'a> {
     pub registry: &'a mut TabRegistry,
 }
 
-impl<'a> TabViewer for RizTabViewer<'a> {
+impl TabViewer for RizTabViewer<'_> {
     type Tab = TabId;
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         self.registry

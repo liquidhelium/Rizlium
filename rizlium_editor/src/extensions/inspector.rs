@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use egui::{Label, ScrollArea, Ui};
+use egui::{ScrollArea, Ui};
 use rizlium_chart::{
     chart::Chart,
     editing::{
@@ -51,19 +51,16 @@ fn logs(In(mut ui): In<Ui>, chart: Res<GameChart>, selected: Res<SelectedItem>) 
         return;
     };
     let ui = &mut ui;
-    match item {
-        ChartItem::LinePoint(l) => show_ui(ui, l.clone(), &chart, |ui, line_point| {
-            ui.columns(2, |columns| {
-                columns[0].label("easing:");
-                columns[1].label(format!("{:?}", line_point.ease_type));
-                columns[0].label("time:");
-                columns[1].label(line_point.time.to_string());
-                columns[0].label("canvas:");
-                columns[1].label(line_point.relevant.canvas.to_string());
-            });
-        }),
-        _ => (),
-    }
+    if let ChartItem::LinePoint(l) = item { show_ui(ui, *l, &chart, |ui, line_point| {
+        ui.columns(2, |columns| {
+            columns[0].label("easing:");
+            columns[1].label(format!("{:?}", line_point.ease_type));
+            columns[0].label("time:");
+            columns[1].label(line_point.time.to_string());
+            columns[0].label("canvas:");
+            columns[1].label(line_point.relevant.canvas.to_string());
+        });
+    }) }
 }
 
 fn show_ui<P: ChartPath>(
@@ -80,7 +77,7 @@ fn show_ui<P: ChartPath>(
     };
 }
 
-fn bevy_inspector(In(mut ui): In<Ui>, world: &mut World) {
+fn bevy_inspector(In(ui): In<Ui>, world: &mut World) {
     // bevy_inspector_egui::bevy_inspector::ui_for_world(world, &mut ui);
 }
 
