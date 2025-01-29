@@ -55,10 +55,10 @@ smallvec = { version = "1", features = ["serde"] }
 strum = { version = "0.26", features = ["derive"] }
 serde_json = "*"
 rust-i18n = "3"
-helium_framework = { path = "../../helium_framework", features = [
+helium_framework = { git = "https://github.com/liquidhelium/helium_framework", features = [
     "serde",
 ] }
-bevy_prototype_lyon = { path = "../../bevy_prototype_lyon_rizlium" }
+bevy_prototype_lyon = { git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium" }
 [dev-dependencies]
 serde_json = "*"
 

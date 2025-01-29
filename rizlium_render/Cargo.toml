@@ -30,7 +30,7 @@ bevy = { version = "0.15.1", default-features = false, features = [
 ] }
 bevy_kira_audio = { version = "0.22" }
 kira = "0.9"
-bevy_prototype_lyon = { path = "../../bevy_prototype_lyon_rizlium" }
+bevy_prototype_lyon = { git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium" }
 rizlium_chart = { path = "../rizlium_chart" }
 zip = "*"
 serde = { version = "*", features = ["derive"] }
