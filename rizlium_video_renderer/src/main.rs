@@ -198,8 +198,8 @@ fn setup_game_view(
     let image_handle = images.add(image);
     let handle = textured.add(VideoTexture(image_handle.clone()));
     commands.insert_resource(VideoTextureStorage(handle));
-    commands.insert_resource(GameView(image_handle));
-    time.set_paused(false);
+    // commands.insert_resource(GameView(image_handle));
+    // time.set_paused(false);
 }
 
 #[derive(Resource)]

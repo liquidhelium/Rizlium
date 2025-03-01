@@ -3,7 +3,7 @@ members = [
     "rizlium_chart",
     "rizlium_render",
     "rizlium_editor",
-    "rizlium_video_renderer",
+    # "rizlium_video_renderer",
 ]
 repository = "https://github.com/liquidhelium/Rizlium"
 resolver = "2"
