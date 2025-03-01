@@ -6782,7 +6782,7 @@ dependencies = [
 
 [[package]]
 name = "rizlium_editor"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "async-fs",
  "bevy 0.15.1",
