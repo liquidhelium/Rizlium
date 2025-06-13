@@ -1,4 +1,4 @@
-use egui::{scroll_area::ScrollAreaOutput, Color32, FontId, NumExt, Ui};
+use egui::{scroll_area::ScrollAreaOutput, Color32, FontId, NumExt, Ui, UiBuilder};
 use rizlium_chart::prelude::*;
 
 use super::timeline::timeline_vertical;
@@ -25,7 +25,7 @@ pub fn note_editor_vertical(
     let max_y = max_time * *scale;
     egui::ScrollArea::both()
         .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
-        .id_source("note_editor_inner_v")
+        .id_salt("note_editor_inner_v")
         .auto_shrink([false; 2])
         .stick_to_bottom(true)
         .show_cols_with_viewport(ui, row_width, lanes.len(), |ui, range, view| {
@@ -98,7 +98,7 @@ impl ScrollAreaExt for egui::ScrollArea {
 
             let rect = egui::Rect::from_x_y_ranges(x_min..=x_max, ui.max_rect().y_range());
 
-            ui.allocate_ui_at_rect(rect, |viewport_ui| {
+            ui.allocate_new_ui(UiBuilder::new().max_rect(rect), |viewport_ui| {
                 viewport_ui
                     .horizontal_top(|viewport_ui| {
                         viewport_ui.skip_ahead_auto_ids(min_col); // Make sure we get consistent IDs.

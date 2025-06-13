@@ -8,9 +8,9 @@ use rizlium_render::{GameChart, GameTime};
 use rust_i18n::t;
 use spline::SplineView;
 
-mod note;
+pub mod note;
 mod spline;
-mod timeline;
+pub mod timeline;
 mod tool_config_window;
 mod tool_select_bar;
 mod undo_redo;

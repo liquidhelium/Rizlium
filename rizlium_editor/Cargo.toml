@@ -44,7 +44,7 @@ bevy_mod_raycast = { version = "0.18.0", features = ["2d"] }
 bevy-persistent = { version = "0.7.0", features = ["json", "toml"] }
 serde = { version = "*", features = ["derive"] }
 dirs = "*"
-rfd = "*"
+rfd = {version = "*",default-features=false, features = ["async-std","gtk3"]}
 # Needed to poll Task
 futures-lite = "2"
 async-fs = "*"
