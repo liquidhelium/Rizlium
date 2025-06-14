@@ -48,22 +48,22 @@ impl Plugin for ToolsPlugin {
                 Update,
                 (view_tool, pencil_tool, select_tool).run_if(tab_opened("edit.world_view")),
             );
-        app.register_action(
+        app.reflect_system(
             "edit.world_view.temp_toggle_view",
             t!("edit.world_view.temp_toggle_view"),
             temp_toggle_view,
         );
-        app.register_action(
+        app.reflect_system(
             "edit.world_view.to_pencil",
             t!("edit.world_view.to_pencil.desc"),
             switch_tool(Tool::Pencil),
         );
-        app.register_action(
+        app.reflect_system(
             "edit.world_view.to_select",
             t!("edit.world_view.to_select.desc"),
             switch_tool(Tool::Select),
         );
-        app.register_action(
+        app.reflect_system(
             "edit.discard_preedit",
             t!("edit.discard_preedit"),
             discard_preedit,

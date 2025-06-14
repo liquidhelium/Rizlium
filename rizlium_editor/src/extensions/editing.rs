@@ -42,8 +42,8 @@ impl Plugin for Editing {
         app.add_plugins(world_view::WorldViewPlugin)
             .init_resource::<ChartEditHistory>();
 
-        app.register_action("edit.undo", t!("edit.undo.desc"), undo_redo::undo);
-        app.register_action("edit.redo", t!("edit.redo.desc"), undo_redo::redo);
+        app.reflect_system("edit.undo", t!("edit.undo.desc"), undo_redo::undo);
+        app.reflect_system("edit.redo", t!("edit.redo.desc"), undo_redo::redo);
         use KeyCode::*;
         app.register_hotkey("edit.undo", [Hotkey::new_global([ControlLeft, KeyZ])])
             .register_hotkey("edit.redo", [Hotkey::new_global([ControlLeft, KeyY])]);
@@ -78,14 +78,13 @@ impl Plugin for Editing {
 pub struct ChartEditHistory(EditHistory);
 
 fn note_window(
-    In(mut ui): In<Ui>,
+    InMut(ui): InMut<Ui>,
     chart: Res<GameChart>,
     mut focused: Local<usize>,
     mut scale: Local<f32>,
     mut row_width: Local<f32>,
     time: Res<GameTime>,
 ) {
-    let ui = &mut ui;
     if *scale == 0. {
         *scale = 200.;
     }
@@ -122,13 +121,12 @@ fn note_window(
 }
 
 pub fn spline_edit(
-    In(mut ui): In<Ui>,
+    InMut(ui): InMut<Ui>,
     chart: Res<GameChart>,
     mut current: Local<usize>,
     mut visible_rect: Local<Option<egui::Rect>>,
     external: Local<Spline<f32>>,
 ) {
-    let ui = &mut ui;
     let mut show_first = false;
     ui.scope(|ui| {
         ui.style_mut().spacing.slider_width = 500.;

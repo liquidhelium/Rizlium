@@ -22,22 +22,22 @@ impl Plugin for Game {
     fn build(&self, app: &mut App) {
         use time_systems::*;
         use KeyCode::*;
-        app.register_action("game.load_chart", "Load chart file", load_chart)
-            .register_action("game.save_chart", "Save current chart to file", save_chart)
-            .register_action(
+        app.reflect_system("game.load_chart", "Load chart file", load_chart)
+            .reflect_system("game.save_chart", "Save current chart to file", save_chart)
+            .reflect_system(
                 "game.open_dialog",
                 "Open a dialog to pick chart file and load it",
                 open_dialog_and_load_chart,
             )
-            .register_action("game.time.advance", "Advance game time", advance_time)
-            .register_action("game.time.rewind", "Rewind game time", rewind_time)
-            .register_action(
+            .reflect_system("game.time.advance", "Advance game time", advance_time)
+            .reflect_system("game.time.rewind", "Rewind game time", rewind_time)
+            .reflect_system(
                 "game.time.toggle_pause",
                 "Pause or resume game",
                 toggle_pause,
             )
-            .register_action("game.time.control", "Control game time", time_control)
-            .register_action(
+            .reflect_system("game.time.control", "Control game time", time_control)
+            .reflect_system(
                 "game.time.enable_scroll_time",
                 "Enable scrolling to change time",
                 toggle_enable_scroll_time,
@@ -166,7 +166,7 @@ fn keep_ratio(ui: &mut Ui, ratio: f32, mut add_fn: impl FnMut(&mut Ui, egui::Vec
 }
 
 pub fn game_view_tab(
-    In(mut ui): In<Ui>,
+    InMut(mut ui): InMut<Ui>,
     gameview: Res<GameView>,
     textures: Res<EguiUserTextures>,
     time: Res<TimeManager>,

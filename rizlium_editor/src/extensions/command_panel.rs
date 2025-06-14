@@ -8,7 +8,7 @@ pub struct CommandPanel;
 impl Plugin for CommandPanel {
     fn build(&self, app: &mut App) {
         use bevy::input::keyboard::KeyCode::*;
-        app.register_action(
+        app.reflect_system(
             "command_panel.toggle_open",
             "Open or close the command panel",
             toggle_open_command_panel,
@@ -38,7 +38,7 @@ fn toggle_open_command_panel(mut state: ResMut<CommandPanelState>) {
 pub fn command_panel(
     In(ui): In<&mut egui::Ui>,
     mut state: ResMut<CommandPanelState>,
-    action_storage: Res<ActionRegistry>,
+    action_storage: Res<RSystemRegistry>,
     hotkeys: Res<HotkeyRegistry>,
     mut action: Actions,
 ) {
@@ -73,9 +73,9 @@ pub fn command_panel(
                                 let mut button = egui::Button::new(
                                     id.to_string()
                                         + " "
-                                        + action.input_type_info().type_path_table().short_path()
+                                        + &action.input
                                         + "\n"
-                                        + action.get_description(),
+                                        + action.description.as_str(),
                                 );
                                 if let Some(hotkey) = hotkeys.get(id) {
                                     if !hotkey.is_empty() {

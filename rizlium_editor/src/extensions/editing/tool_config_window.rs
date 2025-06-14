@@ -5,10 +5,10 @@ use crate::widgets::enum_selector;
 
 use super::world_view::tools::Tool;
 
-pub fn tool_config(In(mut ui): In<Ui>, world: &mut World) {
+pub fn tool_config(InMut(ui): InMut<Ui>, world: &mut World) {
     ui.horizontal_wrapped(|ui| {
         ui.label("Current tool:");
         enum_selector(&mut *world.resource_mut::<Tool>(), ui);
     });
-    world.resource_scope(|world, tool: Mut<'_, Tool>| tool.config_ui(&mut ui, world));
+    world.resource_scope(|world, tool: Mut<'_, Tool>| tool.config_ui(ui, world));
 }

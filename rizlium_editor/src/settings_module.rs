@@ -3,7 +3,7 @@ use std::{borrow::Cow, marker::PhantomData};
 use bevy::{
     app::{App, Plugin},
     ecs::{
-        system::{In, IntoSystem, Local, ReadOnlySystem, Resource, System},
+        system::{In, InMut, IntoSystem, Local, ReadOnlySystem, Resource, System},
         world::{Mut, World},
     },
     log::error,
@@ -49,8 +49,8 @@ impl Plugin for SettingsPlugin {
     }
 }
 
-fn settings_tab(In(mut ui): In<Ui>, world: &mut World, mut opened_tab: Local<usize>) {
-    let ui = &mut ui;
+fn settings_tab(InMut( ui): InMut<Ui>, world: &mut World, mut opened_tab: Local<usize>) {
+
     world.resource_scope(
         |world: &mut World, mut registry: Mut<SettingsModuleRegistry>| {
             ui.heading("Settings");

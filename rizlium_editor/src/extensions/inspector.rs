@@ -45,7 +45,7 @@ impl Plugin for Inspector {
     }
 }
 
-fn logs(In(mut ui): In<Ui>, chart: Res<GameChart>, selected: Res<SelectedItem>) {
+fn logs(InMut(mut ui): InMut<Ui>, chart: Res<GameChart>, selected: Res<SelectedItem>) {
     let Some(ref item) = selected.item else {
         ui.weak(t!("tab.logs.select_to_inspect"));
         return;
@@ -77,11 +77,11 @@ fn show_ui<P: ChartPath>(
     };
 }
 
-fn bevy_inspector(In(ui): In<Ui>, world: &mut World) {
+fn bevy_inspector(InMut(ui): InMut<Ui>, world: &mut World) {
     // bevy_inspector_egui::bevy_inspector::ui_for_world(world, &mut ui);
 }
 
-fn debug_window(In(mut ui): In<Ui>, history: Res<ChartEditHistory>,mut event: EventReader<WorldMouseEvent>) {
+fn debug_window(InMut(mut ui): InMut<Ui>, history: Res<ChartEditHistory>, mut event: EventReader<WorldMouseEvent>) {
     ScrollArea::vertical()
         .auto_shrink(false)
         .show(&mut ui, |ui| {

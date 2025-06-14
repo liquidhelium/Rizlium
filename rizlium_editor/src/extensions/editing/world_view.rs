@@ -116,7 +116,7 @@ impl Default for Scale {
 }
 
 fn world_tab(
-    In(mut ui): In<Ui>,
+    InMut(ui): InMut<Ui>,
     mut images: ResMut<Assets<Image>>,
     large_view: Res<WorldView>,
     textures: Res<EguiUserTextures>,
@@ -126,7 +126,6 @@ fn world_tab(
     mut event_writer: EventWriter<ScreenMouseEvent>,
     mut tool: ResMut<Tool>,
 ) {
-    let ui = &mut ui;
     let (mut projection, mut transform) = camera.single_mut();
     egui::TopBottomPanel::top("view_control").show_inside(ui, |ui| {
         ui.horizontal_centered(|ui| {
