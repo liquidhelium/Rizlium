@@ -1,4 +1,7 @@
-use helium_framework::{menu::{Button, MenuExt}, prelude::*};
+use helium_framework::{
+    menu::{Button, MenuExt},
+    prelude::*,
+};
 
 use self::{note::note_editor_vertical, tool_config_window::tool_config};
 use bevy::prelude::*;
@@ -160,7 +163,7 @@ pub fn spline_edit(
                 0.,
                 Color32::from_white_alpha(20),
                 Stroke::new(1., Color32::BLACK),
-                egui::StrokeKind::Middle
+                egui::StrokeKind::Middle,
             );
             let mut alpha = 20;
             let inner_interact = ui.interact(
@@ -186,7 +189,7 @@ pub fn spline_edit(
             (response, spline_view)
         })
     }
-        .inner;
+    .inner;
 
     if res.dragged() {
         let scale = spline_view.view2visible().scale();

@@ -1,6 +1,6 @@
 use bevy::{
-    math::Ray3d, picking::mesh_picking::ray_cast::MeshRayCastSettings,
-    prelude::*, render::view::RenderLayers,
+    math::Ray3d, picking::mesh_picking::ray_cast::MeshRayCastSettings, prelude::*,
+    render::view::RenderLayers,
 };
 use rizlium_render::ChartLine;
 use strum::EnumIs;
@@ -71,7 +71,7 @@ fn ray_cast(
     mut meshes: Query<(Entity, Option<&RenderLayers>, &mut CamResponse)>,
     mut screen_mouse_events: EventReader<ScreenMouseEvent>,
     mut world_mouse_events: EventWriter<WorldMouseEvent>,
-) -> Result<()>{
+) -> Result<()> {
     let (cam, trans, cam_layers) = camera.single()?;
     screen_mouse_events.read().for_each(|ev| {
         let mut owned_event;

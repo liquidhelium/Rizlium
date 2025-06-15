@@ -9,7 +9,7 @@ use rizlium_editor::extensions::ExtensionsPlugin;
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
 use rizlium_editor::notification::NotificationPlugin;
 use rizlium_editor::settings_module::SettingsPlugin;
-use rizlium_editor::{ FilePlugin, WindowUpdateControlPlugin};
+use rizlium_editor::{FilePlugin, WindowUpdateControlPlugin};
 
 use bevy::window::PrimaryWindow;
 

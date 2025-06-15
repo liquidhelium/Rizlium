@@ -21,9 +21,8 @@ pub use time_and_audio::TimeManager;
 #[macro_export]
 macro_rules! chart_update {
     () => {
-        resource_exists::<GameChart>.and(
-            resource_exists_and_changed::<GameChart>.or(resource_changed::<GameTime>),
-        )
+        resource_exists::<GameChart>
+            .and(resource_exists_and_changed::<GameChart>.or(resource_changed::<GameTime>))
     };
 }
 

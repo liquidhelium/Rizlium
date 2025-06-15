@@ -44,7 +44,6 @@ fn spawn_particle_system(
 ) {
     timer.0.tick(time.delta());
     if timer.0.just_finished() {
-        commands.spawn(ParticleEffect::new(BUILTIN_HIT_PARTICLE),
-);
+        commands.spawn(ParticleEffect::new(BUILTIN_HIT_PARTICLE));
     }
 }

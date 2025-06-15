@@ -7,7 +7,6 @@ pub mod widgets;
 use helium_framework::prelude::{TabId, TabRegistry};
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Resource, Serialize, Deserialize, Default, DerefMut, Deref)]
 pub struct RizTabPresets(Vec<(String, DockState<TabId>)>);
 

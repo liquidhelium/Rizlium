@@ -117,7 +117,8 @@ fn dispatch_events(
                     0.01 - time.current(),
                     audio_data.sound.duration().as_secs_f32() - 0.01 - time.current(),
                 );
-                time.advance(duration);audio.seek_by(duration.into());
+                time.advance(duration);
+                audio.seek_by(duration.into());
             }
         }
     }

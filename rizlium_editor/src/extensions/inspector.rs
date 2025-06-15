@@ -51,16 +51,18 @@ fn logs(InMut(mut ui): InMut<Ui>, chart: Res<GameChart>, selected: Res<SelectedI
         return;
     };
     let ui = &mut ui;
-    if let ChartItem::LinePoint(l) = item { show_ui(ui, *l, &chart, |ui, line_point| {
-        ui.columns(2, |columns| {
-            columns[0].label("easing:");
-            columns[1].label(format!("{:?}", line_point.ease_type));
-            columns[0].label("time:");
-            columns[1].label(line_point.time.to_string());
-            columns[0].label("canvas:");
-            columns[1].label(line_point.relevant.canvas.to_string());
-        });
-    }) }
+    if let ChartItem::LinePoint(l) = item {
+        show_ui(ui, *l, &chart, |ui, line_point| {
+            ui.columns(2, |columns| {
+                columns[0].label("easing:");
+                columns[1].label(format!("{:?}", line_point.ease_type));
+                columns[0].label("time:");
+                columns[1].label(line_point.time.to_string());
+                columns[0].label("canvas:");
+                columns[1].label(line_point.relevant.canvas.to_string());
+            });
+        })
+    }
 }
 
 fn show_ui<P: ChartPath>(
@@ -81,18 +83,20 @@ fn bevy_inspector(InMut(ui): InMut<Ui>, world: &mut World) {
     // bevy_inspector_egui::bevy_inspector::ui_for_world(world, &mut ui);
 }
 
-fn debug_window(InMut(ui): InMut<Ui>, history: Res<ChartEditHistory>, mut event: EventReader<WorldMouseEvent>) {
-    ScrollArea::vertical()
-        .auto_shrink(false)
-        .show(ui, |ui| {
-            ui.heading("cast_result");
-            ui.label(format!("{:?}", event.read().next()));
-            for it in history.history_descriptions() {
-                ui.label(it.clone());
-            }
-            ui.heading("Preedits");
-            for ed in history.preedit_datas() {
-                ui.label(format!("{:#?}", ed.inverse()));
-            }
-        });
+fn debug_window(
+    InMut(ui): InMut<Ui>,
+    history: Res<ChartEditHistory>,
+    mut event: EventReader<WorldMouseEvent>,
+) {
+    ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+        ui.heading("cast_result");
+        ui.label(format!("{:?}", event.read().next()));
+        for it in history.history_descriptions() {
+            ui.label(it.clone());
+        }
+        ui.heading("Preedits");
+        for ed in history.preedit_datas() {
+            ui.label(format!("{:#?}", ed.inverse()));
+        }
+    });
 }

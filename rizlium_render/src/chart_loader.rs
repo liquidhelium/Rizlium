@@ -7,10 +7,7 @@ use bevy::{
     prelude::{ResMut, *},
     tasks::{IoTaskPool, Task},
 };
-use bevy_kira_audio::{
-    prelude::StaticSoundData,
-    AudioSource,
-};
+use bevy_kira_audio::{prelude::StaticSoundData, AudioSource};
 use rizlium_chart::prelude::{Chart, RizlineChart};
 use serde::Deserialize;
 use snafu::{ResultExt, Snafu};
@@ -138,10 +135,8 @@ fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
             .read_to_end(&mut sound_data)
             .context(ReadingFileFailedSnafu)?;
         let music = bevy_kira_audio::AudioSource {
-            sound: StaticSoundData::from_cursor(
-                Cursor::new(sound_data)
-            )
-            .context(MusicConvertingFailedSnafu)?,
+            sound: StaticSoundData::from_cursor(Cursor::new(sound_data))
+                .context(MusicConvertingFailedSnafu)?,
         };
         Ok(BundledGameChart {
             music,

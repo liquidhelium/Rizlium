@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 
-
-use helium_framework::{menu::{Custom, MenuExt}, widgets::{dock_button, widget}};
+use helium_framework::{
+    menu::{Custom, MenuExt},
+    widgets::{dock_button, widget},
+};
 pub struct Docking;
 
 impl Plugin for Docking {
@@ -11,7 +13,7 @@ impl Plugin for Docking {
                 sub.add(
                     "dock_buttons",
                     "_buttons".into(),
-                    Custom(Box::new(|u, w, _| widget(w,u, dock_button))),
+                    Custom(Box::new(|u, w, _| widget(w, u, dock_button))),
                     0,
                 )
             });

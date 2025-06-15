@@ -53,7 +53,7 @@ impl PreeditData {
     pub fn inverse(&self) -> &ChartCommands {
         &self.inverse
     }
-    
+
     pub fn description(&self) -> &str {
         &self.description
     }
@@ -115,7 +115,6 @@ impl EditHistory {
     }
     pub fn discard_preedit(&mut self, chart: &mut Chart) -> Result<()> {
         self.preedit_data.drain(..).rev().try_for_each(|data| {
-            
             dbg!(data.inverse).apply(chart)?;
             Ok(())
         })?;

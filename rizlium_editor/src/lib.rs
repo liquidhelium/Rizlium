@@ -127,16 +127,14 @@ pub struct WindowUpdateControlPlugin;
 
 impl Plugin for WindowUpdateControlPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, change_render_type)
-            .add_systems(
-                PostUpdate,
-                update_type_changing.run_if(resource_changed::<GameTime>),
-            )
-            .insert_resource(WinitSettings::desktop_app());
+        app.add_systems(Startup, change_render_type).add_systems(
+            PostUpdate,
+            update_type_changing.run_if(resource_changed::<GameTime>),
+        );
     }
 }
 
-fn change_render_type(mut window: Query<&mut Window, With<PrimaryWindow>>)  -> Result<()>{
+fn change_render_type(mut window: Query<&mut Window, With<PrimaryWindow>>) -> Result<()> {
     window
         .single_mut()
         .map(|mut a| a.present_mode = PresentMode::AutoNoVsync)?;

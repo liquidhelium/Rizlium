@@ -3,12 +3,12 @@ use crate::VIEW_RECT;
 use crate::chart::{self, Spline};
 use crate::parse::EmptyBPMSnafu;
 use chart::{ChartCache, LinePointData};
-use tracing::info;
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
 use snafu::{ensure, OptionExt};
+use tracing::info;
 
 use super::{ConvertError, ConvertResult, HoldNoEndSnafu};
 

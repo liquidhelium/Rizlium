@@ -37,7 +37,7 @@ fn dispatch_events(
     mut windows: Query<Entity, With<Window>>,
     winit_windows: NonSendMut<WinitWindows>,
     mut events: ExtraWindowEvents,
-) -> Result<()>{
+) -> Result<()> {
     if events.all_empty() {
         return Ok(());
     }

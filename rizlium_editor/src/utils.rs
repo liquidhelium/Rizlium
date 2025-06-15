@@ -4,7 +4,6 @@ use bevy::ecs::{
 };
 use rizlium_render::{GameChartCache, GameTime};
 
-
 #[derive(SystemParam)]
 pub struct WorldToGame<'w> {
     pub cache: Option<Res<'w, GameChartCache>>,

@@ -1,8 +1,8 @@
 use std::{mem::swap, ops::ControlFlow};
 
-use tracing::{error, warn};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use simple_easing::*;
+use tracing::{error, warn};
 
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;

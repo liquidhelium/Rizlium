@@ -13,10 +13,7 @@ use bevy::{
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use bevy_prototype_lyon::{
-    draw::Stroke,
-    entity::ShapeBundle,
-    prelude::GeometryBuilder,
-    shapes::Circle as Circle0,
+    draw::Stroke, entity::ShapeBundle, prelude::GeometryBuilder, shapes::Circle as Circle0,
 };
 use egui::{InputState, PointerButton, Response, Sense, Ui};
 use rizlium_render::{GameChart, GameChartCache, GameTime};
@@ -127,7 +124,7 @@ fn world_tab(
     mut center: Local<Vec3>,
     mut event_writer: EventWriter<ScreenMouseEvent>,
     mut tool: ResMut<Tool>,
-){
+) {
     let (mut projection, mut transform) = camera.single_mut().unwrap();
     let Projection::Orthographic(projection) = &mut *projection else {
         panic!("WorldCam projection is not Orthographic");
@@ -262,9 +259,8 @@ fn get_event_type(
 // 长类型让我抓狂
 macro_rules! chart_update {
     () => {
-        resource_exists::<GameChart>.and(
-            resource_exists_and_changed::<GameChart>.or(resource_changed::<GameTime>),
-        )
+        resource_exists::<GameChart>
+            .and(resource_exists_and_changed::<GameChart>.or(resource_changed::<GameTime>))
     };
 }
 

@@ -1,4 +1,4 @@
-
+use crate::{files::open_dialog, files::PendingDialog, RecentFiles};
 use bevy::ecs::system::{SystemBuffer, SystemMeta, SystemParam};
 use bevy::ecs::world::CommandQueue;
 use bevy::prelude::*;
@@ -6,7 +6,6 @@ use bevy_persistent::Persistent;
 use rizlium_render::{LoadChartEvent, ShowLines, TimeControlEvent};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use crate::{files::open_dialog, files::PendingDialog, RecentFiles};
 
 #[derive(SystemParam, Deref, DerefMut)]
 pub struct EditorCommands<'s> {

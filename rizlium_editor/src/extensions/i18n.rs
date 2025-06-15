@@ -2,8 +2,10 @@ use std::borrow::{Borrow, Cow};
 
 use bevy::{
     app::{Plugin, Update},
-    ecs::{resource::Resource, system::{In, Res, ResMut}},
-    
+    ecs::{
+        resource::Resource,
+        system::{In, Res, ResMut},
+    },
 };
 use bevy_persistent::{Persistent, StorageFormat};
 use egui::Ui;

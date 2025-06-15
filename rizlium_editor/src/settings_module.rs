@@ -10,7 +10,9 @@ use bevy::{
     log::error,
     prelude::Deref,
 };
-use egui::{epaint::text::layout, Align, Button, CentralPanel, Layout, ScrollArea, SidePanel, Ui, UiBuilder};
+use egui::{
+    epaint::text::layout, Align, Button, CentralPanel, Layout, ScrollArea, SidePanel, Ui, UiBuilder,
+};
 use indexmap::IndexMap;
 use rust_i18n::t;
 

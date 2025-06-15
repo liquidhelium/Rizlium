@@ -76,8 +76,7 @@ impl Plugin for ToolsPlugin {
             "edit.world_view.temp_toggle_view",
             [Hotkey::new_advanced(
                 [KeyCode::AltLeft],
-                is_tool(Tool::Pencil)
-                    .or(previous_tool(Tool::Pencil).and(is_tool(Tool::View))),
+                is_tool(Tool::Pencil).or(previous_tool(Tool::Pencil).and(is_tool(Tool::View))),
                 TriggerType::PressAndRelease,
             )],
         );
@@ -109,7 +108,9 @@ fn discard_preedit(mut ev: EventWriter<DiscardPreeditEvent>) {
 
 impl Tool {
     pub fn config_ui(&self, ui: &mut Ui, world: &mut World) {
-        if self == &Self::Pencil { tool_configs::show_window::<tool_configs::PencilToolConfig>(ui, world) }
+        if self == &Self::Pencil {
+            tool_configs::show_window::<tool_configs::PencilToolConfig>(ui, world)
+        }
     }
 }
 
@@ -136,7 +137,7 @@ fn view_tool(
     mut camera: Query<(&mut Projection, &mut Transform), With<WorldCam>>,
     mut mouse_wheel: EventReader<MouseWheel>,
     tool: Res<Tool>,
-) -> Result<()>{
+) -> Result<()> {
     if *tool != Tool::View {
         mouse_wheel.clear();
         events.clear();

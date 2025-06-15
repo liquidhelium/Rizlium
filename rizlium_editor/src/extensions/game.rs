@@ -12,10 +12,12 @@ use rizlium_render::{
 };
 use rust_i18n::t;
 
-use crate::{
-    open_dialog, save_chart, widgets::recent_file_buttons, PendingDialog
+use crate::{open_dialog, save_chart, widgets::recent_file_buttons, PendingDialog};
+use helium_framework::{
+    menu::{self, Custom, MenuExt},
+    prelude::*,
+    widgets::widget,
 };
-use helium_framework::{menu::{self, Custom, MenuExt}, prelude::*, widgets::widget};
 pub struct Game;
 
 impl Plugin for Game {
@@ -85,7 +87,9 @@ impl Plugin for Game {
                         ctx.add(
                             "recent_files_inner",
                             "_".into(),
-                            Custom(Box::new(|ui, world, _| widget(world, ui, recent_file_buttons))),
+                            Custom(Box::new(|ui, world, _| {
+                                widget(world, ui, recent_file_buttons)
+                            })),
                             0,
                         );
                     })
