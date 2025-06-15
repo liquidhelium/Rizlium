@@ -3,14 +3,14 @@ use std::{borrow::Cow, marker::PhantomData};
 use bevy::{
     app::{App, Plugin},
     ecs::{
-        system::{In, InMut, IntoSystem, Local, ReadOnlySystem, System},
         resource::Resource,
+        system::{In, InMut, IntoSystem, Local, ReadOnlySystem, System},
         world::{Mut, World},
     },
     log::error,
     prelude::Deref,
 };
-use egui::{Align, Button, CentralPanel, Layout, ScrollArea, SidePanel, Ui};
+use egui::{epaint::text::layout, Align, Button, CentralPanel, Layout, ScrollArea, SidePanel, Ui, UiBuilder};
 use indexmap::IndexMap;
 use rust_i18n::t;
 
@@ -50,8 +50,7 @@ impl Plugin for SettingsPlugin {
     }
 }
 
-fn settings_tab(InMut( ui): InMut<Ui>, world: &mut World, mut opened_tab: Local<usize>) {
-
+fn settings_tab(InMut(ui): InMut<Ui>, world: &mut World, mut opened_tab: Local<usize>) {
     world.resource_scope(
         |world: &mut World, mut registry: Mut<SettingsModuleRegistry>| {
             ui.heading("Settings");
@@ -116,7 +115,14 @@ impl<Storage: Send + Sync + 'static> ModuleRunner for SettingsModuleDyn<Storage>
         }
     }
     fn run_ui_system(&mut self, ui: &mut Ui, world: &World) {
-        let child = ui.child_ui(ui.max_rect(), *ui.layout(), None);
+        let child = {
+            ui.new_child(
+                UiBuilder::new()
+                    .max_rect(ui.max_rect())
+                    .layout(*ui.layout())
+                    .ui_stack_info(None.unwrap_or_default()),
+            )
+        };
         self.storage = self
             .ui_system
             .run_readonly((child, self.storage.take()), world);

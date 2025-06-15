@@ -1,7 +1,5 @@
-use std::borrow::Borrow;
 
 use bevy::ecs::component::Tick;
-use bevy::math::vec3a;
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
 use rizlium_chart::chart::{EasingId, KeyPoint, LinePointData, Tween};
 

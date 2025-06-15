@@ -136,10 +136,11 @@ impl Plugin for WindowUpdateControlPlugin {
     }
 }
 
-fn change_render_type(mut window: Query<&mut Window, With<PrimaryWindow>>) {
+fn change_render_type(mut window: Query<&mut Window, With<PrimaryWindow>>)  -> Result<()>{
     window
         .single_mut()
-        .map(|mut a| a.present_mode = PresentMode::AutoNoVsync);
+        .map(|mut a| a.present_mode = PresentMode::AutoNoVsync)?;
+    Ok(())
 }
 
 fn update_type_changing(mut event: EventWriter<RequestRedraw>) {

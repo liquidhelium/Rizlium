@@ -23,7 +23,6 @@ use rizlium_editor::{
     RizTabPresets,
 };
 use rizlium_render::{GameChart, RizliumRenderingPlugin};
-use tracing_subscriber::field::debug;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;

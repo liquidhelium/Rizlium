@@ -107,7 +107,7 @@ fn load_chart(
     mut load: EventWriter<LoadChartEvent>,
     _to_recent_file: (), /* todo */
 ) {
-    load.send(LoadChartEvent(path.0));
+    load.write(LoadChartEvent(path.0));
 }
 
 fn open_dialog_and_load_chart(mut dialog: ResMut<PendingDialog>) {
@@ -128,7 +128,7 @@ fn scroll_time(
 ) {
     if state.0 {
         for i in wheel.read() {
-            time.send(TimeControlEvent::Advance(i.y * 0.01));
+            time.write(TimeControlEvent::Advance(i.y * 0.01));
         }
     }
 }
@@ -138,16 +138,16 @@ mod time_systems {
     use bevy::ecs::{event::EventWriter, system::In};
     use rizlium_render::TimeControlEvent::{self, *};
     pub fn advance_time(mut ev: EventWriter<TimeControlEvent>) {
-        ev.send(Advance(SINGLE_TIME));
+        ev.write(Advance(SINGLE_TIME));
     }
     pub fn rewind_time(mut ev: EventWriter<TimeControlEvent>) {
-        ev.send(Advance(-SINGLE_TIME));
+        ev.write(Advance(-SINGLE_TIME));
     }
     pub fn toggle_pause(mut ev: EventWriter<TimeControlEvent>) {
-        ev.send(Toggle);
+        ev.write(Toggle);
     }
     pub fn time_control(In(event): In<TimeControlEvent>, mut ev: EventWriter<TimeControlEvent>) {
-        ev.send(event);
+        ev.write(event);
     }
 }
 
@@ -200,7 +200,7 @@ pub fn game_view_tab(
                     .add(Button::new("⏪").frame(false).min_size([30.; 2].into()))
                     .clicked()
                 {
-                    ev.send(Advance(-1.));
+                    ev.write(Advance(-1.));
                 }
                 let pause_play_icon = if time.paused() { "▶" } else { "⏸" };
                 if ui
@@ -211,13 +211,13 @@ pub fn game_view_tab(
                     )
                     .clicked()
                 {
-                    ev.send(Toggle);
+                    ev.write(Toggle);
                 }
                 if ui
                     .add(Button::new("⏩").frame(false).min_size([30.; 2].into()))
                     .clicked()
                 {
-                    ev.send(Advance(1.));
+                    ev.write(Advance(1.));
                 }
             },
         );

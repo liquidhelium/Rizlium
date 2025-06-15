@@ -3,7 +3,7 @@ use crate::VIEW_RECT;
 use crate::chart::{self, Spline};
 use crate::parse::EmptyBPMSnafu;
 use chart::{ChartCache, LinePointData};
-use tracing::{info, warn};
+use tracing::info;
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;
 #[cfg(feature = "serialize")]

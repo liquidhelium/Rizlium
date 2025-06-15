@@ -81,10 +81,10 @@ fn bevy_inspector(InMut(ui): InMut<Ui>, world: &mut World) {
     // bevy_inspector_egui::bevy_inspector::ui_for_world(world, &mut ui);
 }
 
-fn debug_window(InMut(mut ui): InMut<Ui>, history: Res<ChartEditHistory>, mut event: EventReader<WorldMouseEvent>) {
+fn debug_window(InMut(ui): InMut<Ui>, history: Res<ChartEditHistory>, mut event: EventReader<WorldMouseEvent>) {
     ScrollArea::vertical()
         .auto_shrink(false)
-        .show(&mut ui, |ui| {
+        .show(ui, |ui| {
             ui.heading("cast_result");
             ui.label(format!("{:?}", event.read().next()));
             for it in history.history_descriptions() {

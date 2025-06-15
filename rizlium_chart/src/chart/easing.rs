@@ -176,7 +176,7 @@ impl<T: Tween, R> Spline<T, R> {
     /// assert!(matches!(spline.pair(1.0), (Some(_), Some(_))));
     /// assert!(matches!(spline.pair(2.2), (Some(_), None)));
     /// ```
-    pub fn pair(&self, time: f32) -> Pair<T, R> {
+    pub fn pair(&self, time: f32) -> Pair<'_, T, R> {
         match self.keypoint_at(time) {
             Ok(index) => (self.points.get(index), self.points.get(index + 1)),
             Err(index) => {

@@ -127,7 +127,7 @@ fn bind_gameview(
         return;
     };
 
-    let Ok(mut game_camera) = game_cameras.get_single_mut() else {
+    let Ok(mut game_camera) = game_cameras.single_mut() else {
         warn!("No game camera found.");
         return;
     };

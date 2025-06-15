@@ -140,8 +140,8 @@ fn sync_audio(
     } else {
         commands.insert_resource(CurrentGameAudio(new_current));
     }
-    time_control.send(TimeControlEvent::Pause);
-    time_control.send(TimeControlEvent::Seek(0.01));
+    time_control.write(TimeControlEvent::Pause);
+    time_control.write(TimeControlEvent::Seek(0.01));
 }
 
 fn init_time_manager(mut commands: Commands, time: Res<Time>) {

@@ -5,7 +5,7 @@ mod note;
 mod theme;
 mod time;
 
-use std::{cell::OnceCell, sync::OnceLock};
+use std::sync::OnceLock;
 
 pub use color::*;
 pub use easing::*;

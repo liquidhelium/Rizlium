@@ -8,7 +8,7 @@ use bevy::{
     tasks::{IoTaskPool, Task},
 };
 use bevy_kira_audio::{
-    prelude::{StaticSoundData, StaticSoundSettings},
+    prelude::StaticSoundData,
     AudioSource,
 };
 use rizlium_chart::prelude::{Chart, RizlineChart};
@@ -190,14 +190,14 @@ fn unpack_chart(
     pending_chart.0 = None;
     match chart {
         Err(err) => {
-            ev.send(ChartLoadingEvent::err(err));
+            ev.write(ChartLoadingEvent::err(err));
         }
         Ok(bundle) => {
             commands.insert_resource(GameChart::new(bundle.chart));
             let audio_handle = audio_sources.add(bundle.music);
             commands.insert_resource(GameAudioSource(audio_handle));
             info!("completed loading chart");
-            ev.send(ChartLoadingEvent::Success(bundle.path));
+            ev.write(ChartLoadingEvent::Success(bundle.path));
         }
     }
 }
