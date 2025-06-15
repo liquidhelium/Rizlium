@@ -72,11 +72,14 @@ pub(crate) const TOP_MASK_HEIGHT: f32 = 0.2;
 
 pub(crate) fn update_mask_bottom(
     mut mask_bottom: Query<(&mut Fill, &mut Path), With<MaskBottom>>,
-    cams: Query<&OrthographicProjection, With<GameCamera>>,
+    cams: Query<&Projection, With<GameCamera>>,
     chart: Option<Res<GameChart>>,
     time: Res<GameTime>,
-) {
-    let game = cams.single();
+) -> Result<()> {
+    let game = cams.single()?;
+    let Projection::Orthographic(game) = game else {
+        return Err("GameCamera must use OrthographicProjection".into());
+    };
     let area = game.area;
     let gradient_height = game.area.height() * GRADIENT_NORMALIZED_HEIGHT;
     let gradient_rect = Rect {
@@ -99,7 +102,7 @@ pub(crate) fn update_mask_bottom(
             y: area.min.y - area.height(),
         },
     };
-    let (mut fill, mut path) = mask_bottom.single_mut();
+    let (mut fill, mut path) = mask_bottom.single_mut()?;
     fill.brush = {
         let gradient: Gradient = {
             let mut linear =
@@ -121,15 +124,19 @@ pub(crate) fn update_mask_bottom(
         .add(&Rectangle::new(mask_non_transparent_rect))
         .add(&Rectangle::new(gradient_rect))
         .build();
+    Ok(())
 }
 
 pub(crate) fn update_mask_top(
     mut mask_top: Query<(&mut Fill, &mut Path), With<MaskTop>>,
-    cams: Query<&OrthographicProjection, With<GameCamera>>,
+    cams: Query<&Projection, With<GameCamera>>,
     chart: Option<Res<GameChart>>,
     time: Res<GameTime>,
-) {
-    let game = cams.single();
+) -> Result<()> {
+    let game = cams.single()?;
+    let Projection::Orthographic(game) = game else {
+        return Err("GameCamera must use OrthographicProjection".into());
+    };
     let area = game.area;
     let gradient_height = game.area.height() * GRADIENT_NORMALIZED_HEIGHT;
     let mask_height = game.area.height() * TOP_MASK_HEIGHT;
@@ -153,7 +160,7 @@ pub(crate) fn update_mask_top(
             y: area.max.y - mask_height + gradient_height,
         },
     };
-    let (mut fill, mut path) = mask_top.single_mut();
+    let (mut fill, mut path) = mask_top.single_mut()?;
     fill.brush = {
         let gradient: Gradient = {
             let mut linear = LinearGradient::new_empty(
@@ -177,4 +184,5 @@ pub(crate) fn update_mask_top(
         .add(&Rectangle::new(mask_non_transparent_rect))
         .add(&Rectangle::new(gradient_rect))
         .build();
+    Ok(())
 }

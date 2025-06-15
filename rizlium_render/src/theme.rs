@@ -10,7 +10,7 @@ impl Plugin for BackgroundThemePlugin {
             Update,
             change_bg.run_if(
                 resource_exists::<GameChart>
-                    .and_then(resource_changed::<GameChart>.or_else(resource_changed::<GameTime>)),
+                    .and(resource_changed::<GameChart>.or(resource_changed::<GameTime>)),
             ),
         );
     }
@@ -22,6 +22,8 @@ fn change_bg(
     mut cam: Query<&mut Camera, With<GameCamera>>,
 ) {
     let theme = chart.theme_at(**time).unwrap();
-    cam.single_mut().clear_color =
-        ClearColorConfig::Custom(colorrgba_to_color(theme.this.color.background));
+    if let Ok(mut camera) = cam.single_mut() {
+        camera.clear_color =
+            ClearColorConfig::Custom(colorrgba_to_color(theme.this.color.background));
+    }
 }

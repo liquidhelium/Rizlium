@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 # Todo: split x11, wayland and webgl2
-bevy = { version = "0.15.1", default-features = false, features = [
+bevy = { version = "0.16", default-features = false, features = [
     # "animation",
     "bevy_asset",
     # "bevy_scene",
@@ -28,7 +28,7 @@ bevy = { version = "0.15.1", default-features = false, features = [
     "wayland",
     "multi_threaded",
 ] }
-bevy_kira_audio = { version = "0.22" }
+bevy_kira_audio = { version = "0.23" }
 kira = "0.9"
 bevy_prototype_lyon = { git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium" }
 rizlium_chart = { path = "../rizlium_chart" }
@@ -39,8 +39,8 @@ serde_json = "*"
 async-fs = "*"
 futures-lite = "*"
 snafu = "0.8"
-bevy_hanabi = "*"
-bevy_common_assets = {version = "0.12.0", features = ["json"]}
+bevy_hanabi = "0.16"
+bevy_common_assets = {version = "0.13", features = ["json"]}
 
 [features]
 trace = ["bevy/trace_tracy"]

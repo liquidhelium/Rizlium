@@ -1,8 +1,7 @@
 use bevy::{
     app::{Plugin, Update},
     ecs::{
-        query::With,
-        system::{Query, ResMut, Resource},
+        query::With, resource::Resource, system::{Query, ResMut}
     },
     prelude::{Deref, DerefMut},
     window::PrimaryWindow,

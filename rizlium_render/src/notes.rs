@@ -1,3 +1,4 @@
+use bevy::ecs::query::QueryParIter;
 use bevy::prelude::*;
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 

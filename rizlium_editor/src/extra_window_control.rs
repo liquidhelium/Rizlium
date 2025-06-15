@@ -37,12 +37,12 @@ fn dispatch_events(
     mut windows: Query<Entity, With<Window>>,
     winit_windows: NonSendMut<WinitWindows>,
     mut events: ExtraWindowEvents,
-) {
+) -> Result<()>{
     if events.all_empty() {
-        return;
+        return Ok(());
     }
 
-    let entity = windows.single_mut();
+    let entity = windows.single_mut()?;
     let winit_windows = winit_windows
         .get_window(entity)
         .expect("invalid window entity used");
@@ -56,6 +56,7 @@ fn dispatch_events(
     if events.minimize() {
         winit_windows.set_minimized(true);
     }
+    Ok(())
 }
 
 pub struct ExtraWindowControlPlugin;

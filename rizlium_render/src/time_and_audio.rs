@@ -52,9 +52,9 @@ impl Plugin for TimeAndAudioPlugin {
                         sync_audio.run_if(resource_exists_and_changed::<GameAudioSource>),
                         align_or_restart_audio.run_if(resource_exists::<CurrentGameAudio>),
                         game_time.run_if(
-                            resource_exists::<GameChartCache>.and_then(
+                            resource_exists::<GameChartCache>.and(
                                 resource_changed::<GameChartCache>
-                                    .or_else(resource_exists_and_changed::<TimeManager>),
+                                    .or(resource_exists_and_changed::<TimeManager>),
                             ),
                         ),
                     ),

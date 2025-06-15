@@ -21,8 +21,8 @@ pub use time_and_audio::TimeManager;
 #[macro_export]
 macro_rules! chart_update {
     () => {
-        resource_exists::<GameChart>.and_then(
-            resource_exists_and_changed::<GameChart>.or_else(resource_changed::<GameTime>),
+        resource_exists::<GameChart>.and(
+            resource_exists_and_changed::<GameChart>.or(resource_changed::<GameTime>),
         )
     };
 }
@@ -66,9 +66,6 @@ pub struct RizliumRenderingPlugin {
 }
 
 impl Plugin for RizliumRenderingPlugin {
-    fn is_unique(&self) -> bool {
-        true
-    }
     fn build(&self, app: &mut App) {
         let app = app
             .add_plugins((
@@ -103,19 +100,19 @@ fn spawn_game_camera(mut commands: Commands) {
     commands
         .spawn((
             Camera2d,
-            OrthographicProjection {
+            Projection::Orthographic(OrthographicProjection {
                 viewport_origin: [0.5, masks::RING_OFFSET].into(),
                 scaling_mode: bevy::render::camera::ScalingMode::Fixed {
                     width: 900.,
                     height: 1600.,
                 },
                 ..OrthographicProjection::default_2d()
-            },
+            }),
             Transform {
                 translation: [0., 0., 999.0].into(),
                 ..default()
             },
-            RenderLayers::layer(MASK_LAYER).with(0),
+            RenderLayers::from_layers(&[MASK_LAYER, 0]),
         ))
         .insert(GameCamera);
 }
@@ -130,9 +127,13 @@ fn bind_gameview(
         return;
     };
 
-    let mut game_camera = game_cameras.single_mut();
+    let Ok(mut game_camera) = game_cameras.get_single_mut() else {
+        warn!("No game camera found.");
+        return;
+    };
+    use bevy::render::camera::ImageRenderTarget;
     if !matches!(game_camera.target, RenderTarget::Image(_)) {
-        game_camera.target = RenderTarget::Image(gameview.0.clone());
+        game_camera.target = RenderTarget::Image(ImageRenderTarget::from(gameview.0.clone()));
     }
 }
 

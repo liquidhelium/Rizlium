@@ -2,7 +2,8 @@ use std::borrow::{Borrow, Cow};
 
 use bevy::{
     app::{Plugin, Update},
-    ecs::system::{In, Res, ResMut, Resource},
+    ecs::{resource::Resource, system::{In, Res, ResMut}},
+    
 };
 use bevy_persistent::{Persistent, StorageFormat};
 use egui::Ui;

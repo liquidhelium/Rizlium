@@ -55,7 +55,7 @@ impl Plugin for Editing {
                     Button::new_conditioned(
                         "edit.undo",
                         resource_exists::<GameChart>
-                            .and_then(|history: Res<ChartEditHistory>| history.can_undo()),
+                            .and(|history: Res<ChartEditHistory>| history.can_undo()),
                     ),
                     0,
                 );
@@ -65,7 +65,7 @@ impl Plugin for Editing {
                     Button::new_conditioned(
                         "edit.redo",
                         resource_exists::<GameChart>
-                            .and_then(|history: Res<ChartEditHistory>| history.can_redo()),
+                            .and(|history: Res<ChartEditHistory>| history.can_redo()),
                     ),
                     1,
                 );
@@ -160,6 +160,7 @@ pub fn spline_edit(
                 0.,
                 Color32::from_white_alpha(20),
                 Stroke::new(1., Color32::BLACK),
+                egui::StrokeKind::Middle
             );
             let mut alpha = 20;
             let inner_interact = ui.interact(

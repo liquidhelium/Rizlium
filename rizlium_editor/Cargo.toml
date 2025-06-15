@@ -7,15 +7,15 @@ edition = "2021"
 
 [dependencies]
 rizlium_render = { path = "../rizlium_render" }
-bevy_egui = "0.32.0"
-egui = "0.30.0"
-egui_dock = { version = "0.15.0", features = ["serde"] }
-egui_tracing = "0.2"
-egui-notify = "0.18.0"
+bevy_egui = "0.34"
+egui = "0.31"
+egui_dock = { version = "0.16", features = ["serde"] }
+# egui_tracing = "0.2"
+egui-notify = "0.19"
 tracing-subscriber = "*"
-bevy-inspector-egui = "*"
+bevy-inspector-egui = "0.31"
 # Todo: split x11, wayland and webgl2
-bevy = { version = "0.15.1", default-features = false, features = [
+bevy = { version = "0.16", default-features = false, features = [
     # "animation",
     "bevy_asset",
     # "bevy_scene",
@@ -40,8 +40,7 @@ bevy = { version = "0.15.1", default-features = false, features = [
     "bevy_mesh_picking_backend"
 ] }
 rizlium_chart = { path = "../rizlium_chart" }
-bevy_mod_raycast = { version = "0.18.0", features = ["2d"] }
-bevy-persistent = { version = "0.7.0", features = ["json", "toml"] }
+bevy-persistent = { version = "0.8", features = ["json", "toml"] }
 serde = { version = "*", features = ["derive"] }
 dirs = "*"
 rfd = {version = "*",default-features=false, features = ["async-std","gtk3"]}

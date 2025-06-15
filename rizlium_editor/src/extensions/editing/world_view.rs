@@ -1,3 +1,4 @@
+use core::panic;
 use std::ops::ControlFlow;
 
 use bevy::{
@@ -54,7 +55,7 @@ impl Plugin for WorldViewPlugin {
 }
 
 pub fn edit_view_or_tool_focused() -> impl Condition<()> {
-    tab_focused("edit.world_view").or_else(tab_focused("edit.tool_config"))
+    tab_focused("edit.world_view").or(tab_focused("edit.tool_config"))
 }
 
 #[derive(Deref, Resource)]
@@ -99,7 +100,7 @@ fn get_camera(handle: Handle<Image>) -> impl Bundle {
         // todo: use a shader to shadow places which are not in GameView
         Camera2d,
         Camera {
-            target: bevy::render::camera::RenderTarget::Image(handle),
+            target: bevy::render::camera::RenderTarget::Image(handle.into()),
             ..default()
         },
         layers,
@@ -115,18 +116,22 @@ impl Default for Scale {
     }
 }
 
+// todo: change helium_framework to accept tab with output
 fn world_tab(
     InMut(ui): InMut<Ui>,
     mut images: ResMut<Assets<Image>>,
     large_view: Res<WorldView>,
     textures: Res<EguiUserTextures>,
-    mut camera: Query<(&mut OrthographicProjection, &mut Transform), With<WorldCam>>,
+    mut camera: Query<(&mut Projection, &mut Transform), With<WorldCam>>,
     mut scale: Local<Scale>,
     mut center: Local<Vec3>,
     mut event_writer: EventWriter<ScreenMouseEvent>,
     mut tool: ResMut<Tool>,
-) {
-    let (mut projection, mut transform) = camera.single_mut();
+){
+    let (mut projection, mut transform) = camera.single_mut().unwrap();
+    let Projection::Orthographic(projection) = &mut *projection else {
+        panic!("WorldCam projection is not Orthographic");
+    };
     egui::TopBottomPanel::top("view_control").show_inside(ui, |ui| {
         ui.horizontal_centered(|ui| {
             **scale = 1. / projection.scale;
@@ -175,7 +180,7 @@ fn world_tab(
             if let Some(pos) = input.pointer.hover_pos() {
                 let releative_pos = pos - rect.left_top();
                 let releative_pos = egui_to_glam(releative_pos);
-                event_writer.send(ScreenMouseEvent(MouseEvent {
+                event_writer.write(ScreenMouseEvent(MouseEvent {
                     event_type: get_event_type(
                         &response,
                         if response.dragged() {
@@ -239,7 +244,7 @@ fn get_event_type(
         MouseEventType::Click(ClickEventType::Triple)
     } else if iter_pointer(|b| input.pointer.button_double_clicked(b)).is_some() {
         MouseEventType::Click(ClickEventType::Double)
-    } else if response.clicked {
+    } else if response.clicked() {
         MouseEventType::Click(ClickEventType::Single)
     } else if response.drag_started() {
         MouseEventType::Drag(DragEventType::DragStarted)
@@ -257,8 +262,8 @@ fn get_event_type(
 // 长类型让我抓狂
 macro_rules! chart_update {
     () => {
-        resource_exists::<GameChart>.and_then(
-            resource_exists_and_changed::<GameChart>.or_else(resource_changed::<GameTime>),
+        resource_exists::<GameChart>.and(
+            resource_exists_and_changed::<GameChart>.or(resource_changed::<GameTime>),
         )
     };
 }

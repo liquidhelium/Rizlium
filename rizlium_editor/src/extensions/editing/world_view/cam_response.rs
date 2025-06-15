@@ -1,5 +1,5 @@
 use bevy::{
-    math::Ray3d, picking::mesh_picking::ray_cast::RayCastSettings,
+    math::Ray3d, picking::mesh_picking::ray_cast::MeshRayCastSettings,
     prelude::*, render::view::RenderLayers,
 };
 use rizlium_render::ChartLine;
@@ -71,8 +71,8 @@ fn ray_cast(
     mut meshes: Query<(Entity, Option<&RenderLayers>, &mut CamResponse)>,
     mut screen_mouse_events: EventReader<ScreenMouseEvent>,
     mut world_mouse_events: EventWriter<WorldMouseEvent>,
-) {
-    let (cam, trans, cam_layers) = camera.single();
+) -> Result<()>{
+    let (cam, trans, cam_layers) = camera.single()?;
     screen_mouse_events.read().for_each(|ev| {
         let mut owned_event;
         let [(cast_entity, cast_data)] = raycast.cast_ray(
@@ -84,7 +84,7 @@ fn ray_cast(
                 owned_event.pos = ray.origin;
                 ray
             },
-            &RayCastSettings::default()
+            &MeshRayCastSettings::default()
                 .always_early_exit()
                 .with_filter(&|entity| {
                     meshes.get(entity).is_ok_and(|(_, layers, _)| {
@@ -95,13 +95,13 @@ fn ray_cast(
                     })
                 }),
         ) else {
-            world_mouse_events.send(WorldMouseEvent {
+            world_mouse_events.write(WorldMouseEvent {
                 event: owned_event.clone(),
                 casted_entity: None,
             });
             return;
         };
-        world_mouse_events.send(WorldMouseEvent {
+        world_mouse_events.write(WorldMouseEvent {
             event: owned_event.clone(),
             casted_entity: Some(*cast_entity),
         });
@@ -113,7 +113,8 @@ fn ray_cast(
                 response.0 = None;
             }
         });
-    })
+    });
+    Ok(())
 }
 
 fn add_pick_to_lines(mut commands: Commands, lines: Query<Entity, Added<ChartLine>>) {

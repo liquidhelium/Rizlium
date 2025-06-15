@@ -41,8 +41,8 @@ inherits = "release"
 lto = "thin"
 
 
-[profile.release]
-strip = true
+# [profile.release]
+# strip = true
 
 [profile.release.package."*"]
 codegen-backend = "cranelift"

@@ -3,7 +3,8 @@ use std::{borrow::Cow, marker::PhantomData};
 use bevy::{
     app::{App, Plugin},
     ecs::{
-        system::{In, InMut, IntoSystem, Local, ReadOnlySystem, Resource, System},
+        system::{In, InMut, IntoSystem, Local, ReadOnlySystem, System},
+        resource::Resource,
         world::{Mut, World},
     },
     log::error,

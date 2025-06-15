@@ -28,11 +28,11 @@ use super::{
 };
 
 pub fn is_tool(tool: Tool) -> impl Condition<()> {
-    edit_view_or_tool_focused().and_then(resource_exists_and_equals(tool))
+    edit_view_or_tool_focused().and(resource_exists_and_equals(tool))
 }
 
 pub fn previous_tool(tool: Tool) -> impl Condition<()> {
-    resource_exists_and_equals(OriginalTool(Some(tool))).and_then(|| true)
+    resource_exists_and_equals(OriginalTool(Some(tool))).and(|| true)
 }
 
 /// Control the switching of tools and some individual tools.
@@ -77,7 +77,7 @@ impl Plugin for ToolsPlugin {
             [Hotkey::new_advanced(
                 [KeyCode::AltLeft],
                 is_tool(Tool::Pencil)
-                    .or_else(previous_tool(Tool::Pencil).and_then(is_tool(Tool::View))),
+                    .or(previous_tool(Tool::Pencil).and(is_tool(Tool::View))),
                 TriggerType::PressAndRelease,
             )],
         );
@@ -133,17 +133,20 @@ const fn switch_tool(tool: Tool) -> impl FnMut(ResMut<Tool>) {
 
 fn view_tool(
     mut events: EventReader<ScreenMouseEvent>,
-    mut camera: Query<(&mut OrthographicProjection, &mut Transform), With<WorldCam>>,
+    mut camera: Query<(&mut Projection, &mut Transform), With<WorldCam>>,
     mut mouse_wheel: EventReader<MouseWheel>,
     tool: Res<Tool>,
-) {
+) -> Result<()>{
     if *tool != Tool::View {
         mouse_wheel.clear();
         events.clear();
-        return;
+        return Ok(());
     }
-    let (mut projection, mut transform) = camera.single_mut();
-    let mut scale = 1. / projection.scale;
+    let (mut projection, mut transform) = camera.single_mut()?;
+    let Projection::Orthographic(projection) = &mut *projection else {
+        return Ok(());
+    };
+    let mut scale: f32 = 1. / projection.scale;
     if !events.is_empty() {
         mouse_wheel.read().for_each(|event| {
             //取对进行更丝滑的过渡
@@ -164,6 +167,7 @@ fn view_tool(
             transform.translation -= scaled_vec.extend(0.)
         }
     });
+    Ok(())
 }
 
 fn temp_toggle_view(

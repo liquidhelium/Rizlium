@@ -3,13 +3,13 @@
 use std::time::Duration;
 
 use bevy::{
-    core::FrameCount,
+    diagnostic::FrameCount,
     prelude::*,
     window::{PresentMode, PrimaryWindow, RequestRedraw},
     winit::WinitSettings,
 };
-use egui::{Color32, Rect, RichText, Ui};
-use egui_tracing::EventCollector;
+use egui::{Color32, Rect, RichText, Ui, UiBuilder};
+// use egui_tracing::EventCollector;
 use rizlium_render::GameTime;
 i18n!();
 
@@ -36,8 +36,8 @@ pub struct DebugResources {
     pub show_cursor: bool,
 }
 
-#[derive(Resource)]
-pub struct EventCollectorResource(pub EventCollector);
+// #[derive(Resource)]
+// pub struct EventCollectorResource(pub EventCollector);
 
 pub struct CountFpsPlugin;
 
@@ -74,13 +74,13 @@ fn compute_fps(
 
 pub fn ui_when_no_dock(ui: &mut Ui, recents: &RecentFiles, commands: &mut ManualEditorCommands) {
     let main_rect = ui.available_rect_before_wrap().shrink(50.);
-    ui.allocate_ui_at_rect(main_rect, |ui| {
+    ui.allocate_new_ui(UiBuilder::new().max_rect(main_rect), |ui: &mut Ui| {
         let center_rect = if main_rect.width() >= 500. {
             Rect::from_center_size(main_rect.center(), [500., main_rect.height()].into())
         } else {
             main_rect
         };
-        ui.allocate_ui_at_rect(center_rect, |ui| {
+        ui.allocate_new_ui(UiBuilder::new().max_rect(center_rect), |ui: &mut Ui| {
             ui.label(RichText::new("Rizlium").size(50.).color(Color32::WHITE));
             ui.weak(
                 RichText::new("Just an editor")
@@ -88,7 +88,8 @@ pub fn ui_when_no_dock(ui: &mut Ui, recents: &RecentFiles, commands: &mut Manual
                     .color(Color32::GRAY),
             );
             let center_rect = ui.available_rect_before_wrap();
-            ui.allocate_ui_at_rect(left_half(&center_rect), |ui| {
+            let max_rect = left_half(&center_rect);
+            ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui: &mut Ui| {
                 ui.heading("Open");
                 for recent in recents.iter().rev() {
                     if ui.link(recent).clicked() {
@@ -99,7 +100,8 @@ pub fn ui_when_no_dock(ui: &mut Ui, recents: &RecentFiles, commands: &mut Manual
                 ui.label("a?");
                 ui.label("a?");
             });
-            ui.allocate_ui_at_rect(right_half(&center_rect), |ui| {
+            let max_rect = right_half(&center_rect);
+            ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui: &mut Ui| {
                 ui.label(do114514::<100>());
             });
         });
@@ -135,9 +137,11 @@ impl Plugin for WindowUpdateControlPlugin {
 }
 
 fn change_render_type(mut window: Query<&mut Window, With<PrimaryWindow>>) {
-    window.single_mut().present_mode = PresentMode::AutoNoVsync;
+    window
+        .single_mut()
+        .map(|mut a| a.present_mode = PresentMode::AutoNoVsync);
 }
 
 fn update_type_changing(mut event: EventWriter<RequestRedraw>) {
-    event.send(RequestRedraw);
+    event.write(RequestRedraw);
 }
