@@ -103,10 +103,10 @@ jobs:
             sudo apt-get install librust-atk-dev
             sudo apt-get install libgtk-3-dev
 
-        - os: windows-2019
-          dist-args: --artifacts=local --target=x86_64-pc-windows-msvc
-          install-dist: irm  https://github.com/axodotdev/cargo-dist/releases/download/v0.0.7/cargo-dist-installer.ps1 | iex
-          install-extra-deps: ""
+        # - os: windows-2019
+        #   dist-args: --artifacts=local --target=x86_64-pc-windows-msvc
+        #   install-dist: irm  https://github.com/axodotdev/cargo-dist/releases/download/v0.0.7/cargo-dist-installer.ps1 | iex
+        #   install-extra-deps: ""
           
     runs-on: ${{ matrix.os }}
     env:
