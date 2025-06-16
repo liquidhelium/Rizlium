@@ -1,4 +1,3 @@
-use core::time;
 use std::time::Duration;
 
 use bevy::log::{Level, LogPlugin};
@@ -22,7 +21,7 @@ use bevy::prelude::*;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
 use egui::{FontData, FontDefinitions, FontFamily, Layout};
-use egui_dock::{DockArea, DockState};
+use egui_dock::DockArea;
 use rizlium_editor::{
     ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
     RizTabPresets,
@@ -77,7 +76,8 @@ fn main() {
         .add_systems(
             PreUpdate,
             sync_dock_state.run_if(
-                resource_changed::<Persistent<RizliumDockState>>.or(resource_changed::<RizliumDockStateMirror>),
+                resource_changed::<Persistent<RizliumDockState>>
+                    .or(resource_changed::<RizliumDockStateMirror>),
             ),
         )
         .add_systems(Update, egui_render)
@@ -85,7 +85,8 @@ fn main() {
         .add_systems(
             PostUpdate,
             sync_dock_state.run_if(
-                resource_changed::<Persistent<RizliumDockState>>.or(resource_changed::<RizliumDockStateMirror>),
+                resource_changed::<Persistent<RizliumDockState>>
+                    .or(resource_changed::<RizliumDockStateMirror>),
             ),
         )
         .run();

@@ -1,4 +1,3 @@
-
 use bevy::{asset::uuid::Uuid, prelude::*};
 
 use bevy_persistent::Persistent;
@@ -12,7 +11,9 @@ use helium_framework::{
 use rust_i18n::t;
 
 use crate::{
-    settings_module::{SettingsModuleStruct, SettingsRegistrationExt}, widgets::dock_button, RizTabPresets, RizliumDockStateMirror
+    settings_module::{SettingsModuleStruct, SettingsRegistrationExt},
+    widgets::dock_button,
+    RizTabPresets, RizliumDockStateMirror,
 };
 pub struct Docking;
 

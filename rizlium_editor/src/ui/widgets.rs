@@ -1,7 +1,7 @@
-mod recent_file_buttons;
 mod dock_buttons;
-pub use recent_file_buttons::recent_file_buttons;
+mod recent_file_buttons;
 pub use dock_buttons::dock_button;
+pub use recent_file_buttons::recent_file_buttons;
 
 use bevy::{
     ecs::system::{SystemParam, SystemState},

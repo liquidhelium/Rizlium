@@ -2,8 +2,6 @@ use bevy::prelude::*;
 use bevy_persistent::Persistent;
 use helium_framework::prelude::TabRegistry;
 
-
-
 pub fn dock_button(
     In(ui): In<&'static mut egui::Ui>,
     mut state: ResMut<Persistent<crate::RizliumDockState>>,

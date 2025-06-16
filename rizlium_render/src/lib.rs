@@ -6,7 +6,6 @@ use bevy::{
 use bevy_hanabi::HanabiPlugin;
 use bevy_prototype_lyon::prelude::*;
 use chart_loader::ChartLoadingPlugin;
-use hit_parcticles::HitParticlePlugin;
 use masks::MaskPlugin;
 use notes::ChartNotePlugin;
 use rings::RingPlugin;
