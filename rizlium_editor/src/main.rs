@@ -1,15 +1,20 @@
+use core::time;
+use std::time::Duration;
+
 use bevy::log::{Level, LogPlugin};
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use helium_framework::menu::EditorMenuEntrys;
-use helium_framework::prelude::{HeDockState, HeTabViewer};
+use helium_framework::prelude::HeTabViewer;
 use helium_framework::tab_system::{FocusedTab, TabRegistry};
 use helium_framework::widgets::widget;
 use rizlium_editor::extensions::command_panel::command_panel;
 use rizlium_editor::extensions::ExtensionsPlugin;
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
-use rizlium_editor::notification::NotificationPlugin;
 use rizlium_editor::settings_module::SettingsPlugin;
-use rizlium_editor::{FilePlugin, WindowUpdateControlPlugin};
+use rizlium_editor::{
+    sync_dock_state, FilePlugin, RizliumDockState, RizliumDockStateMirror,
+    WindowUpdateControlPlugin,
+};
 
 use bevy::window::PrimaryWindow;
 
@@ -57,7 +62,6 @@ fn main() {
                 manual_time_control: false,
             },
             helium_framework::HeliumFramework,
-            NotificationPlugin,
             CountFpsPlugin,
             WindowUpdateControlPlugin,
             FilePlugin,
@@ -66,11 +70,24 @@ fn main() {
             ExtraWindowControlPlugin,
         ))
         .init_resource::<EditorState>()
-        .insert_resource(HeDockState(DockState::new(vec!["game.view".into()])))
+        .insert_resource(RizliumDockStateMirror::default())
         .add_event::<DragWindowRequested>()
         // .insert_resource(EventCollectorResource(collector))
         .add_systems(Startup, (setup_persistent, setup_font))
+        .add_systems(
+            PreUpdate,
+            sync_dock_state.run_if(
+                resource_changed::<Persistent<RizliumDockState>>.or(resource_changed::<RizliumDockStateMirror>),
+            ),
+        )
         .add_systems(Update, egui_render)
+        .add_systems(PostUpdate, persist_dock_state)
+        .add_systems(
+            PostUpdate,
+            sync_dock_state.run_if(
+                resource_changed::<Persistent<RizliumDockState>>.or(resource_changed::<RizliumDockStateMirror>),
+            ),
+        )
         .run();
 }
 
@@ -95,6 +112,15 @@ fn setup_persistent(mut commands: Commands) {
             .default(RecentFiles::default())
             .build()
             .expect("failed to setup recent files"),
+    );
+    commands.insert_resource(
+        Persistent::<RizliumDockState>::builder()
+            .format(StorageFormat::Toml)
+            .name("Dock state")
+            .path(config_dir.join("dock-state.toml"))
+            .default(RizliumDockState::default())
+            .build()
+            .expect("failed to setup dock state"),
     );
     // commands.spawn((Camera2d, Msaa::Sample4));
 }
@@ -156,30 +182,48 @@ fn egui_render(world: &mut World) -> Result<()> {
         widget(world, ui, command_panel);
     });
     world.resource_scope(|world: &mut World, mut registry: Mut<'_, TabRegistry>| {
-        world.resource_scope(|world: &mut World, mut state: Mut<'_, HeDockState>| {
-            if state.0.main_surface().is_empty() {
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    ui_when_no_dock(
-                        ui,
-                        world.resource::<Persistent<RecentFiles>>(),
-                        &mut commands,
-                    );
-                });
-            }
-            DockArea::new(&mut state.0).show(
-                ctx,
-                &mut HeTabViewer {
-                    registry: &mut registry,
-                    world,
-                },
-            );
-            world.resource_mut::<FocusedTab>().0 = state.0.find_active_focused().unzip().1.cloned();
-            // todo: move this into proper file
-        });
+        world.resource_scope(
+            |world: &mut World, mut state: Mut<'_, Persistent<RizliumDockState>>| {
+                if state.0.main_surface().is_empty() {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        ui_when_no_dock(
+                            ui,
+                            world.resource::<Persistent<RecentFiles>>(),
+                            &mut commands,
+                        );
+                    });
+                }
+                DockArea::new(&mut state.0).show(
+                    ctx,
+                    &mut HeTabViewer {
+                        registry: &mut registry,
+                        world,
+                    },
+                );
+                world.resource_mut::<FocusedTab>().0 =
+                    state.0.find_active_focused().unzip().1.cloned();
+                // todo: move this into proper file
+            },
+        );
     });
     editor_state.is_editing_text = ctx.output(|out| out.mutable_text_under_cursor);
 
     commands.apply_manual(world);
     world.insert_resource(editor_state);
+    Ok(())
+}
+// persist dock state to disk from time to time
+fn persist_dock_state(
+    state: ResMut<Persistent<RizliumDockState>>,
+    time: Res<Time>,
+    mut timer: Local<Option<Timer>>,
+) -> Result<()> {
+    if timer.is_none() {
+        *timer = Some(Timer::new(Duration::from_secs(1), TimerMode::Repeating));
+    }
+    let timer = timer.as_mut().ok_or("timer is None")?;
+    if timer.tick(time.delta()).just_finished() {
+        state.persist()?;
+    }
     Ok(())
 }

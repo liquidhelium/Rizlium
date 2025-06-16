@@ -195,36 +195,7 @@ pub fn game_view_tab(
     use egui::*;
     // video_control(ui, &mut false, 0.0..=100.0, &mut 50.);
     ui.with_layout(Layout::bottom_up(egui::Align::Center), |ui| {
-        ui.allocate_ui_with_layout(
-            [90., 30.].into(),
-            Layout::left_to_right(egui::Align::Center),
-            |ui| {
-                use rizlium_render::TimeControlEvent::*;
-                if ui
-                    .add(Button::new("⏪").frame(false).min_size([30.; 2].into()))
-                    .clicked()
-                {
-                    ev.write(Advance(-1.));
-                }
-                let pause_play_icon = if time.paused() { "▶" } else { "⏸" };
-                if ui
-                    .add(
-                        Button::new(pause_play_icon)
-                            .frame(false)
-                            .min_size([30.; 2].into()),
-                    )
-                    .clicked()
-                {
-                    ev.write(Toggle);
-                }
-                if ui
-                    .add(Button::new("⏩").frame(false).min_size([30.; 2].into()))
-                    .clicked()
-                {
-                    ev.write(Advance(1.));
-                }
-            },
-        );
+        // here used to be control buttons, but now we just have the game
         keep_ratio(ui, 16. / 9., |ui, size| {
             ui.centered_and_justified(|ui| {
                 ui.add(egui::Image::new((img, size)).fit_to_exact_size(size))

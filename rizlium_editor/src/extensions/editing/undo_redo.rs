@@ -1,7 +1,7 @@
 use bevy::ecs::system::ResMut;
 use rizlium_render::GameChart;
 
-use crate::notification::ToastsStorage;
+use helium_framework::prelude::ToastsStorage;
 
 use super::ChartEditHistory;
 

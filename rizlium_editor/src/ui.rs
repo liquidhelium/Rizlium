@@ -1,30 +1,50 @@
-use bevy::prelude::{Deref, DerefMut, Resource, World};
+use bevy::{
+    asset::uuid::Uuid,
+    ecs::{
+        change_detection::{DetectChanges, DetectChangesMut},
+        system::ResMut,
+    },
+    log::debug,
+    prelude::{Deref, DerefMut, Resource},
+};
 
-use egui::Ui;
-use egui_dock::{DockState, TabViewer};
+use bevy_persistent::Persistent;
+use egui_dock::{DockState, NodeIndex, Tree};
 
 pub mod widgets;
-use helium_framework::prelude::{TabId, TabRegistry};
+use helium_framework::prelude::TabId;
 use serde::{Deserialize, Serialize};
 
-#[derive(Resource, Serialize, Deserialize, Default, DerefMut, Deref)]
-pub struct RizTabPresets(Vec<(String, DockState<TabId>)>);
+#[derive(Resource, Serialize, Deserialize, Default, DerefMut, Deref, Clone)]
+pub struct RizTabPresets(Vec<(Uuid, String, DockState<TabId>)>);
 
-pub struct RizTabViewer<'a> {
-    pub world: &'a mut World,
-    pub registry: &'a mut TabRegistry,
+#[derive(Resource, Deref, DerefMut, Default, Debug)]
+pub struct RizliumDockStateMirror(pub Option<DockState<TabId>>);
+
+pub fn sync_dock_state(
+    mut dock_state: ResMut<Persistent<RizliumDockState>>,
+    mut mirror: ResMut<RizliumDockStateMirror>,
+) {
+    if mirror.is_changed() {
+        if let Some(mirror_state) = &mirror.0 {
+            debug!("Syncing mirror state");
+            dock_state.bypass_change_detection().0 = mirror_state.clone();
+        }
+    } else {
+        mirror.bypass_change_detection().0 = Some(dock_state.0.clone());
+    }
 }
 
-impl TabViewer for RizTabViewer<'_> {
-    type Tab = TabId;
-    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
-        self.registry
-            .get(tab)
-            .map(|t| t.title())
-            .unwrap_or("MISSINGNO".into())
-            .into()
-    }
-    fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
-        self.registry.tab_ui(ui, self.world, tab);
+#[derive(Resource, Debug, Clone, Serialize, Deserialize)]
+pub struct RizliumDockState(pub DockState<TabId>);
+
+impl Default for RizliumDockState {
+    fn default() -> Self {
+        // pretty hacky way to create an empty dock state...
+        // we create a tree with no nodes and then set it as the main surface
+        let mut dock_state = DockState::new(vec![]);
+
+        *dock_state.main_surface_mut() = Tree::default();
+        Self(dock_state)
     }
 }

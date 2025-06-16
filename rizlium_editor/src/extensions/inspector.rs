@@ -12,6 +12,8 @@ use rust_i18n::t;
 
 use helium_framework::prelude::*;
 
+use crate::RizliumDockStateMirror;
+
 use super::editing::{world_view::cam_response::WorldMouseEvent, ChartEditHistory};
 
 #[derive(Resource, Default)]
@@ -85,18 +87,20 @@ fn bevy_inspector(InMut(ui): InMut<Ui>, world: &mut World) {
 
 fn debug_window(
     InMut(ui): InMut<Ui>,
-    history: Res<ChartEditHistory>,
-    mut event: EventReader<WorldMouseEvent>,
+    // history: Res<ChartEditHistory>,
+    // mut event: EventReader<WorldMouseEvent>,
+    mirror: Res<RizliumDockStateMirror>,
 ) {
     ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-        ui.heading("cast_result");
-        ui.label(format!("{:?}", event.read().next()));
-        for it in history.history_descriptions() {
-            ui.label(it.clone());
-        }
-        ui.heading("Preedits");
-        for ed in history.preedit_datas() {
-            ui.label(format!("{:#?}", ed.inverse()));
-        }
+        // ui.heading("cast_result");
+        // ui.label(format!("{:?}", event.read().next()));
+        // for it in history.history_descriptions() {
+        //     ui.label(it.clone());
+        // }
+        // ui.heading("Preedits");
+        // for ed in history.preedit_datas() {
+        //     ui.label(format!("{:#?}", ed.inverse()));
+        // }
+        ui.code_editor(&mut format!("{mirror:?}"))
     });
 }

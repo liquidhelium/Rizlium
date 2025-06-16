@@ -1,5 +1,7 @@
 _version: 1
 settings.language: 语言
+settings.docking: 布局
+settings.docking.save_error: 保存布局失败！
 action.open_chart: 打开
 action.save_chart: 保存
 chart_type.bundled: 已打包谱面
@@ -26,3 +28,4 @@ settings.tab: 设置
 edit.world_view.tab: 世界
 edit.world_view.to_select.desc: 切换到选择工具
 tab.logs.select_to_inspect: 选择一个对象来查看
+debugger.tab: 调试

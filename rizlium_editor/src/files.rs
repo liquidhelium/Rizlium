@@ -8,7 +8,8 @@ use rfd::AsyncFileDialog;
 use rust_i18n::t;
 use serde::{Deserialize, Serialize};
 
-use crate::{notification::ToastsStorage, EditorCommands};
+use crate::EditorCommands;
+use helium_framework::prelude::ToastsStorage;
 use rizlium_render::{ChartLoadingEvent, GameChart};
 
 pub struct FilePlugin;

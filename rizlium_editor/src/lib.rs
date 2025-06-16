@@ -18,7 +18,6 @@ pub use ui::*;
 mod editor_actions;
 pub mod extensions;
 mod files;
-pub mod notification;
 pub mod settings_module;
 pub mod utils;
 pub use editor_actions::*;
