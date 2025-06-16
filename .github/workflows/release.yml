@@ -93,9 +93,10 @@ jobs:
         #   dist-args: --artifacts=local --target=aarch64-apple-darwin
         #   install-dist: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.7/cargo-dist-installer.sh | sh
         #   install-extra-deps: ""
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           dist-args: --artifacts=local --target=x86_64-unknown-linux-gnu
           install-dist: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.7/cargo-dist-installer.sh | sh
+          apt-get-update: sudo apt-get update
           install-extra-deps: | 
             sudo apt install libasound2-dev
             sudo apt install libudev-dev
@@ -116,6 +117,8 @@ jobs:
         run: rustup update nightly --no-self-update && rustup default nightly
       - name: Install cargo-dist
         run: ${{ matrix.install-dist }}
+      - name: apt-get update
+        run: ${{ matrix.apt-get-update }}
       - name: Install extra dependencies
         run: ${{ matrix.install-extra-deps }}
       - name: Run cargo-dist
