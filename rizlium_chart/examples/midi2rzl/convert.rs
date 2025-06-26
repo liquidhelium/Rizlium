@@ -105,6 +105,73 @@ pub fn midi_track_to_line(track: &Track, line_x: f32, ticks_per_beat: u32) -> Op
         line_color: Spline::EMPTY,
     })
 }
+pub fn midi_track_to_lines(
+    track: &Track,
+    ticks_per_beat: u32,
+) -> Vec<Line> {
+    use std::collections::HashMap;
+    let mut current_tick = 0u32;
+    let mut active_notes: HashMap<u8, (u32, u7)> = HashMap::new();
+    let mut lines = Vec::new();
+
+    for event in track.iter() {
+        current_tick += event.delta.as_int();
+        match event.kind {
+            TrackEventKind::Midi {
+                channel: _,
+                message: MidiMessage::NoteOn { key, vel },
+            } if vel.as_int() > 0 => {
+                // NoteOn，记录起始tick
+                active_notes.insert(key.as_int(), (current_tick, key));
+            }
+            m@ TrackEventKind::Midi {
+                channel: _,
+                message: MidiMessage::NoteOff { key, vel },
+            }
+            |m@  TrackEventKind::Midi {
+                channel: _,
+                message: MidiMessage::NoteOn { key, vel },
+            } => if matches!(m, TrackEventKind::Midi { message: MidiMessage::NoteOff { .. },.. }) || vel == 0{
+                // NoteOff 或 NoteOn(vel=0)，结束一条线
+                if let Some((start_tick, note_key)) = active_notes.remove(&key.as_int()) {
+                    let start_beat = tick_to_beat(start_tick, ticks_per_beat);
+                    let end_beat = tick_to_beat(current_tick, ticks_per_beat);
+                    let x = key_to_x_value(note_key);
+
+                    let create_point = |time: f32| KeyPoint {
+                        time,
+                        value: x,
+                        ease_type: EasingId::Start,
+                        relevant: LinePointData {
+                            canvas: 0,
+                            color: ColorRGBA::BLACK,
+                        },
+                    };
+
+                    lines.push(Line {
+                        points: Spline::from_iter(vec![
+                            create_point(start_beat),
+                            create_point(end_beat),
+                        ]),
+                        notes: Vec::new(),
+                        ring_color: Spline::from_iter(vec![
+                            KeyPoint {
+                                time:0.0,
+                                value: ColorRGBA::BLACK,
+                                ease_type:EasingId::Start,
+                                relevant:()
+                            }
+
+                        ]),
+                        line_color: Spline::EMPTY,
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+    lines
+}
 
 pub fn midi_event_to_note(
     event: &TrackEvent,

@@ -8,7 +8,7 @@ use rizlium_chart::chart::{
 };
 use serde_json::to_writer_pretty;
 
-use crate::convert::midi_track_to_line;
+use crate::convert::{midi_track_to_line, midi_track_to_lines};
 
 mod convert;
 
@@ -18,7 +18,7 @@ fn main() {
 
 fn run() -> Result<(), Box<dyn error::Error>> {
     let file =
-        fs::read("/home/helium/code/Rizlium/rizlium_chart/examples/midi2rzl/assets/abyss.mid")?;
+        fs::read("/home/helium/code/Rizlium/rizlium_chart/examples/midi2rzl/assets/test_assets/abyss.mid")?;
     let smf = Smf::parse(&file)?;
     let ticks_per_beat = match smf.header.timing {
         Timing::Metrical(t) => t.as_int() as u32,
@@ -62,13 +62,13 @@ fn run() -> Result<(), Box<dyn error::Error>> {
             }]),
             speed: Spline::from_iter(vec![KeyPoint {
                 time: 0.0,
-                value: 1.0,
-                ease_type: EasingId::Start,
+                value: 1000.0,
+                ease_type: EasingId::QuadOut, // TODO: this is a bug
                 relevant: (),
             }]),
             
         }],
-        lines: smf.tracks.iter().flat_map(|t| midi_track_to_line(t, 0.0,ticks_per_beat)).collect()
+        lines: smf.tracks.iter().flat_map(|t| midi_track_to_lines(t, ticks_per_beat)).collect()
     };
     let file = File::create("1.json")?;
     to_writer_pretty(file, &chart)?;
