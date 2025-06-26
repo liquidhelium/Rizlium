@@ -81,14 +81,14 @@ fn main() {
             ),
         )
         .add_systems(Update, egui_render)
-        .add_systems(PostUpdate, persist_dock_state)
         .add_systems(
             PostUpdate,
             sync_dock_state.run_if(
                 resource_changed::<Persistent<RizliumDockState>>
-                    .or(resource_changed::<RizliumDockStateMirror>),
+                .or(resource_changed::<RizliumDockStateMirror>),
             ),
         )
+        .add_systems(PreUpdate, persist_dock_state)
         .run();
 }
 
@@ -213,17 +213,12 @@ fn egui_render(world: &mut World) -> Result<()> {
     world.insert_resource(editor_state);
     Ok(())
 }
-// persist dock state to disk from time to time
 fn persist_dock_state(
+    mut events: EventReader<bevy::app::AppExit>,
     state: ResMut<Persistent<RizliumDockState>>,
-    time: Res<Time>,
-    mut timer: Local<Option<Timer>>,
 ) -> Result<()> {
-    if timer.is_none() {
-        *timer = Some(Timer::new(Duration::from_secs(1), TimerMode::Repeating));
-    }
-    let timer = timer.as_mut().ok_or("timer is None")?;
-    if timer.tick(time.delta()).just_finished() {
+    if !events.is_empty() {
+        debug!("{events:?}");
         state.persist()?;
     }
     Ok(())

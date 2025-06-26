@@ -7,7 +7,7 @@ use rizlium_chart::{
     prelude::{Spline, Tween},
 };
 
-pub trait TransformHelper {
+pub trait TransformHelper { 
     fn map_x(&self, x: f32) -> f32;
     fn map_y(&self, y: f32) -> f32;
 }

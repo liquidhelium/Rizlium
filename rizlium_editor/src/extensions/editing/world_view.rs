@@ -172,31 +172,30 @@ fn world_tab(
     // tool select
     tool_select_bar::tool_select_bar(ui, area.left_top() + [10., 10.].into(), &mut tool);
     let response = ui.interact(rect, ui.next_auto_id(), Sense::click_and_drag());
-    ui.ctx().input(|input| {
-        if response.contains_pointer() || response.interact_pointer_pos().is_some() {
-            if let Some(pos) = input.pointer.hover_pos() {
-                let releative_pos = pos - rect.left_top();
-                let releative_pos = egui_to_glam(releative_pos);
-                event_writer.write(ScreenMouseEvent(MouseEvent {
-                    event_type: get_event_type(
-                        &response,
-                        if response.dragged() {
-                            input.pointer.delta()
-                        } else {
-                            egui::Vec2::ZERO
-                        },
-                        input,
-                    ),
-                    button: response
-                        .interact_pointer_pos()
-                        .is_some()
-                        .then(|| iter_pointer(|b| input.pointer.button_clicked(b)))
-                        .flatten(),
-                    pos: releative_pos.extend(0.),
-                }));
-            }
+
+    if response.contains_pointer() || response.interact_pointer_pos().is_some() {
+        if let Some(pos) = response.hover_pos() {
+            let releative_pos = pos - rect.left_top();
+            let releative_pos = egui_to_glam(releative_pos);
+            event_writer.write(ScreenMouseEvent(MouseEvent {
+                event_type: get_event_type(
+                    &response,
+                    if response.dragged() {
+                        response.drag_delta()
+                    } else {
+                        egui::Vec2::ZERO
+                    },
+                    
+                ),
+                button: response
+                    .interact_pointer_pos()
+                    .is_some()
+                    .then(|| iter_pointer(|b| response.ctx.input(|input| input.pointer.button_clicked(b))))
+                    .flatten(),
+                pos: releative_pos.extend(0.),
+            }));
         }
-    })
+    }
 }
 
 fn egui_to_glam(vec2: egui::Vec2) -> Vec2 {
@@ -235,11 +234,10 @@ fn iter_pointer(mut check: impl FnMut(PointerButton) -> bool) -> Option<MouseBut
 fn get_event_type(
     response: &Response,
     drag_delta: egui::Vec2,
-    input: &InputState,
 ) -> MouseEventType {
-    if iter_pointer(|b| input.pointer.button_triple_clicked(b)).is_some() {
+    if response.triple_clicked() {
         MouseEventType::Click(ClickEventType::Triple)
-    } else if iter_pointer(|b| input.pointer.button_double_clicked(b)).is_some() {
+    } else if response.double_clicked() {
         MouseEventType::Click(ClickEventType::Double)
     } else if response.clicked() {
         MouseEventType::Click(ClickEventType::Single)

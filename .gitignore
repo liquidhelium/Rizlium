@@ -1,4 +1,6 @@
 target/
 .VSCodeCounter/
 /assets/
+test_assets/
 rustc-ice-2025-06-12T08_45_09-109153.txt
+**/*.tracy

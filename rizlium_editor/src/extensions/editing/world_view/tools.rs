@@ -46,7 +46,7 @@ impl Plugin for ToolsPlugin {
             .init_tool_config::<tool_configs::PencilToolConfig>()
             .add_systems(
                 Update,
-                (view_tool, pencil_tool, select_tool).run_if(tab_opened("edit.world_view")),
+                (view_tool, pencil_tool, select_tool).run_if(crate::ui::tab_opened("edit.world_view")),
             );
         app.reflect_system(
             "edit.world_view.temp_toggle_view",
@@ -103,7 +103,7 @@ pub enum Tool {
 pub struct DiscardPreeditEvent;
 
 fn discard_preedit(mut ev: EventWriter<DiscardPreeditEvent>) {
-    ev.send_default();
+    ev.write_default();
 }
 
 impl Tool {
@@ -278,7 +278,7 @@ fn pencil_tool(
             history
                 .push_preedit(
                     InsertLine {
-                        line: Line::new_from_points(vec![
+                        line: Line::from_iter(vec![
                             get_point(
                                 event.pos,
                                 &pencil_config,

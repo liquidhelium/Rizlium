@@ -250,7 +250,6 @@ impl ChartAndCache<'_, '_> {
         let line = self.chart.lines.get(line_idx)?;
         let index = line.points.keypoint_at(time).ok()?;
         let point1 = &line.points.points()[index];
-        let _point2 = &line.points.points()[index + 1];
         // Safe because `keypoint_at`.
         let pos1 = self
             .pos_for_linepoint_at(line_idx, index, game_time)

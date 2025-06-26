@@ -2,7 +2,7 @@ use crate::VIEW_RECT;
 
 use crate::chart::{self, Spline};
 use crate::parse::EmptyBPMSnafu;
-use chart::{ChartCache, LinePointData};
+use chart::LinePointData;
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;
 #[cfg(feature = "serialize")]
@@ -250,7 +250,7 @@ pub struct CanvasMove {
 }
 
 impl CanvasMove {
-    fn convert(self, _beat_to_time: &Spline<f32>) -> ConvertResult<chart::Canvas> {
+    fn convert(self) -> ConvertResult<chart::Canvas> {
         Ok(chart::Canvas {
             x_pos: self
                 .x_position_key_points
@@ -365,9 +365,6 @@ impl TryInto<chart::Chart> for RizlineChart {
     fn try_into(self) -> ConvertResult<chart::Chart> {
         let [normal, challenge] = self.themes;
         let bpm = convert_bpm_to_timemap(self.bpm, self.bpm_shifts)?;
-        let mut beat_cache = ChartCache::default();
-        beat_cache.update_beat(&bpm);
-        let beat_spline = beat_cache.beat.clone_inverted();
         info!("chart convert started");
         Ok(chart::Chart {
             themes: vec![normal.convert(false), challenge.convert(true)],
@@ -414,7 +411,7 @@ impl TryInto<chart::Chart> for RizlineChart {
             canvases: self
                 .canvas_moves
                 .into_iter()
-                .map(|c| c.convert(&beat_spline))
+                .map(|c| c.convert())
                 .collect::<ConvertResult<_>>()?,
             cam_move: self
                 .camera_move

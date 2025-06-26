@@ -74,25 +74,32 @@ pub struct PendingChart(Option<Task<Result<BundledGameChart, ChartLoadingError>>
 
 #[derive(Snafu, Debug)]
 pub enum ChartLoadingError {
+    #[snafu(display("Failed to read file: {}", source))]
     UnzipFileFailed {
         source: zip::result::ZipError,
     },
+    #[snafu(display("Failed to read file: {}", source))]
     ReadingFileFailed {
         source: std::io::Error,
     },
+    #[snafu(display("No file named {} in the zip archive", file_name))]
     NoFileInZip {
         file_name: Cow<'static, str>,
         source: zip::result::ZipError,
     },
+    #[snafu(display("Chart format is invalid: {}", source))]
     ChartFormatInvalid {
         source: serde_json::Error,
     },
+    #[snafu(display("Chart info format is invalid: {}", source))]
     InfoFormatInvalid {
         source: serde_yaml::Error,
     },
+    #[snafu(display("Failed to convert chart: {}", source))]
     ChartConvertingFailed {
         source: rizlium_chart::parse::ConvertError,
     },
+    #[snafu(display("Failed to convert music: {}", source))]
     MusicConvertingFailed {
         source: kira::sound::FromFileError,
     },

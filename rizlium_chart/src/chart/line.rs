@@ -27,9 +27,9 @@ pub struct LinePointData {
     pub color: ColorRGBA,
 }
 
-impl Line {
-    pub fn new_from_points(points: impl IntoIterator<Item = KeyPoint<f32, LinePointData>>) -> Self {
-        let mut points: Vec<_> = points.into_iter().collect();
+impl FromIterator<KeyPoint<f32, LinePointData>> for Line {
+    fn from_iter<T: IntoIterator<Item = KeyPoint<f32, LinePointData>>>(iter: T) -> Self {
+        let mut points: Vec<_> = iter.into_iter().collect();
         points
             .iter_mut()
             .fold(f32::NEG_INFINITY, |lower_limit, point| {

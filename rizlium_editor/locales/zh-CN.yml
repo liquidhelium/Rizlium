@@ -5,7 +5,7 @@ settings.docking.save_error: 保存布局失败！
 action.open_chart: 打开
 action.save_chart: 保存
 chart_type.bundled: 已打包谱面
-chart.load.fail: '加载谱面失败, 错误: {err}'
+chart.load.fail: '加载谱面失败, 错误: %{err}'
 chart.load.success: 谱面加载完毕
 edit.world_view.temp_toggle_view: 临时从铅笔工具切换到视图工具
 edit.world_view.to_pencil.desc: 切换到铅笔工具
@@ -16,7 +16,7 @@ edit.name: 编辑
 edit.redo.name: 重做
 edit.discard_preedit: 取消预编辑
 tab.not_avalible: 不可用
-tab.non_exist: 选项卡{tab}不存在
+tab.non_exist: 选项卡%{tab}不存在
 file.tab: 文件
 file.recent_files: 近期文件
 game.view.tab: 游戏画面

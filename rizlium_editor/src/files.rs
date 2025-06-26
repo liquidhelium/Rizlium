@@ -65,7 +65,7 @@ fn report_error_or_add_current(
     for event in events.read() {
         match event {
             ChartLoadingEvent::Error(err) => {
-                toasts.error(t!("chart.load.fail", err =>err));
+                toasts.error(t!("chart.load.fail", err = err));
             }
             ChartLoadingEvent::Success(path) => {
                 toasts.success(t!("chart.load.success"));

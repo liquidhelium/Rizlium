@@ -12,6 +12,7 @@
                 "args": [
                     "build",
                     "--package=rizlium_editor",
+                    "--release"
                 ]
             },
             "args": []
