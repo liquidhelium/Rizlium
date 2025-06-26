@@ -1,10 +1,9 @@
 use midly::{
-    num::{u24, u7},
-    MetaMessage, MidiMessage, Track, TrackEvent, TrackEventKind,
+    num::{u24, u7}, MetaMessage, MidiMessage, Smf, Track, TrackEvent, TrackEventKind
 };
 use rizlium_chart::{
     chart::{
-        beat2real, ColorRGBA, EasingId, KeyPoint, Line, LinePointData, Note, NoteKind, Spline,
+        beat2real, Canvas, Chart, ColorRGBA, EasingId, KeyPoint, Line, LinePointData, Note, NoteKind, Spline, ThemeColor, ThemeData
     },
     VIEW_RECT,
 };
@@ -194,4 +193,52 @@ pub fn midi_event_to_note(
 pub fn tick_to_beat(tick: u32, ticks_per_beat: u32) -> f32 {
     assert!(ticks_per_beat != 0);
     tick as f32 / ticks_per_beat as f32
+}
+
+
+pub fn build_chart(smf: &Smf, ticks_per_beat: u32) -> rizlium_chart::chart::Chart {
+    Chart {
+        themes: vec![ThemeData {
+            color: ThemeColor {
+                background: ColorRGBA::WHITE,
+                note: ColorRGBA::WHITE,
+            },
+            is_challenge: false,
+        }],
+        theme_control: Spline::from_iter(vec![KeyPoint {
+            time: 0.0,
+            value: 0,
+            ease_type: EasingId::Start,
+            relevant: (),
+        }]),
+        bpm: events_to_bpm(smf.tracks.iter().flatten(), ticks_per_beat),
+        cam_move: Spline::from_iter(vec![KeyPoint {
+            time: 0.0,
+            value: 0.,
+            ease_type: EasingId::Start,
+            relevant: (),
+        }]),
+        cam_scale: Spline::from_iter(vec![KeyPoint {
+            time: 0.0,
+            value: 1.0,
+            ease_type: EasingId::Start,
+            relevant: (),
+        }]),
+        canvases: vec![Canvas {
+            x_pos: Spline::from_iter(vec![KeyPoint {
+                time: 0.0,
+                value: 0.0,
+                ease_type: EasingId::Start,
+                relevant: (),
+            }]),
+            speed: Spline::from_iter(vec![KeyPoint {
+                time: 0.0,
+                value: 1000.0,
+                ease_type: EasingId::QuadOut, // TODO: this is a bug
+                relevant: (),
+            }]),
+            
+        }],
+        lines: smf.tracks.iter().flat_map(|t| midi_track_to_lines(t, ticks_per_beat)).collect()
+    }
 }
