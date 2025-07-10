@@ -13,7 +13,7 @@
     },
     "cycle_count": 1,
     "starts_active": true,
-    "emit_on_start": true
+    "emit_on_start": false
   },
   "z_layer_2d": 0.0,
   "simulation_space": "Global",
@@ -121,8 +121,8 @@
             {
               "ratio": 0.0,
               "value": [
-                0.5,
-                0.5,
+                1.0,
+                1.0,
                 1.0,
                 1.0
               ]
@@ -130,8 +130,8 @@
             {
               "ratio": 1.0,
               "value": [
-                0.5,
-                0.5,
+                1.0,
+                1.0,
                 1.0,
                 0.0
               ]

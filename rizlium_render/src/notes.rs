@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 
-use crate::{GameChart, GameChartCache, GameTime};
+use crate::{hit_parcticles::HasHit, GameChart, GameChartCache, GameTime};
 
 pub struct ChartNotePlugin;
 
@@ -27,6 +27,7 @@ pub struct ChartNoteBundle {
     shape: ShapeBundle,
     note: ChartNote,
     stroke: Stroke,
+    particle_time: HasHit
 }
 impl Default for ChartNoteBundle {
     fn default() -> Self {
@@ -42,6 +43,7 @@ impl Default for ChartNoteBundle {
             },
             stroke: Stroke::new(Color::BLACK, 8.),
             note: default(),
+            particle_time: HasHit(false),
         }
     }
 }
