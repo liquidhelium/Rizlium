@@ -2,16 +2,16 @@
 You're right, but this is an editor. (?)  
 
 ## TODO list:
- - [ ] ring colors
+ - [x] ring colors
  - [x] fix strange ring y position
  - [x] fix strange ring x position
- - [ ] fix strange line width
+ - [x] fix strange line width
    - 在横线后会出现.
  - [x] top and bottom mask 
  - [x] single notes
  - [ ] note textures
  - [ ] holds
- - [ ] hit particles
+ - [x] hit particles
  - [ ] configurable log / warn / optimizations
  - [x] large game view cam
  - [x] dock window layout saving and loading
