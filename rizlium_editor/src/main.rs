@@ -33,24 +33,24 @@ use tracing_subscriber::EnvFilter;
 
 fn main() {
     // let collector = egui_tracing::EventCollector::default().with_level(Level::DEBUG);
-    let default_filter = {
-        format!(
-            "{},{}",
-            Level::DEBUG,
-            "wgpu=error,naga=warn,offset_allocator=warn"
-        )
-    };
-    let filter_layer = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new(&default_filter))
-        .unwrap();
-    tracing_subscriber::registry()
-        .with(filter_layer)
-        // .with(collector.clone())
-        .with(tracing_subscriber::fmt::Layer::default())
-        .init();
+    // let default_filter = {
+    //     format!(
+    //         "{},{}",
+    //         Level::DEBUG,
+    //         "wgpu=error,naga=warn,offset_allocator=warn"
+    //     )
+    // };
+    // let filter_layer = EnvFilter::try_from_default_env()
+    //     .or_else(|_| EnvFilter::try_new(&default_filter))
+    //     .unwrap();
+    // tracing_subscriber::registry()
+    //     .with(filter_layer)
+    //     // .with(collector.clone())
+    //     .with(tracing_subscriber::fmt::Layer::default())
+    //     .init();
     App::new()
         .add_plugins((
-            DefaultPlugins.build().disable::<LogPlugin>(),
+            DefaultPlugins.build(),
             EguiPlugin {
                 enable_multipass_for_primary_context: false,
             },

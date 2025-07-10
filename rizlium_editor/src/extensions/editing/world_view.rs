@@ -2,14 +2,12 @@ use core::panic;
 use std::ops::ControlFlow;
 
 use bevy::{
-    math::vec2,
-    prelude::*,
-    render::{
+    core_pipeline::{fxaa::Fxaa, oit::OrderIndependentTransparencySettings}, math::vec2, prelude::*, render::{
         render_resource::{
             Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
         },
         view::RenderLayers,
-    },
+    }
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use bevy_prototype_lyon::{
@@ -41,7 +39,7 @@ impl Plugin for WorldViewPlugin {
             PreStartup,
             setup_world_cam.after(bevy_egui::EguiStartupSet::InitContexts),
         )
-        .add_plugins((RaycastPlugin, ToolsPlugin, PointIndicatorPlugin))
+        .add_plugins((RaycastPlugin, ToolsPlugin, ))
         .register_tab(
             "edit.world_view",
             t!("edit.world_view.tab"),
@@ -100,6 +98,9 @@ fn get_camera(handle: Handle<Image>) -> impl Bundle {
             target: bevy::render::camera::RenderTarget::Image(handle.into()),
             ..default()
         },
+        Msaa::Off,
+        OrderIndependentTransparencySettings::default(),
+        Fxaa::default(),
         layers,
     )
 }

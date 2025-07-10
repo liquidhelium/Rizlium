@@ -120,6 +120,18 @@ impl<T: Tween, R> Spline<T, R> {
             (None, None) => None,
         }
     }
+    /// 该 [`Spline`] 在 `time` 时间的值, `time` 在最后出界时返回最后一个值.
+    /// 在最初出界时返回None.
+    pub fn value_before(&self, time: f32) -> Option<T> {
+        match self.pair(time) {
+            (Some(curr), Some(next)) => {
+                let t = invlerp(curr.time, next.time, time);
+                Some(curr.ease_to(next, t))
+            }
+            (Some(last), None) => Some(last.value.clone()),
+            (None, Some(_)) | (None, None) => None,
+        }
+    }
     /// 该 [`Spline`] 在 `time` 时间的值, `time` 出界或此线为空时返回 `None`.
     pub fn value(&self, time: f32) -> Option<T> {
         match self.pair(time) {

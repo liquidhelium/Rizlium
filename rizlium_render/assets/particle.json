@@ -1,124 +1,146 @@
 {
   "name": "2d",
-  "capacities": [
-    4096
-  ],
+  "capacity": 4096,
   "spawner": {
-    "num_particles": {
-      "Single": 30.0
+    "count": {
+      "Uniform": [3.0,5.0]
     },
-    "spawn_time": {
-      "Single": 1.0
+    "spawn_duration": {
+      "Single": 0.0
     },
     "period": {
-      "Single": 1.0
+      "Single": 0.0
     },
+    "cycle_count": 1,
     "starts_active": true,
-    "starts_immediately": true
+    "emit_on_start": true
   },
   "z_layer_2d": 0.0,
   "simulation_space": "Global",
   "simulation_condition": "WhenVisible",
+  "prng_seed": 0,
   "init_modifiers": [
     {
-      "modifier": {
-        "SetPositionCircleModifier": {
-          "center": 3,
-          "axis": 4,
-          "radius": 5,
-          "dimension": "Surface"
-        }
-      },
-      "groups": 1
+      "SetPositionCircleModifier": {
+        "center": 3,
+        "axis": 4,
+        "radius": 5,
+        "dimension": "Surface"
+      }
     },
     {
-      "modifier": {
-        "SetVelocityCircleModifier": {
-          "center": 6,
-          "axis": 7,
-          "speed": 8
-        }
-      },
-      "groups": 1
+      "SetVelocityCircleModifier": {
+        "center": 6,
+        "axis": 7,
+        "speed": 8
+      }
     },
     {
-      "modifier": {
-        "SetAttributeModifier": {
-          "attribute": "age",
-          "value": 1
-        }
-      },
-      "groups": 1
+      "SetAttributeModifier": {
+        "attribute": "age",
+        "value": 1
+      }
     },
     {
-      "modifier": {
-        "SetAttributeModifier": {
-          "attribute": "lifetime",
-          "value": 2
-        }
-      },
-      "groups": 1
+      "SetAttributeModifier": {
+        "attribute": "lifetime",
+        "value": 2
+      }
     }
   ],
   "update_modifiers": [
     {
-      "modifier": {
-        "RadialAccelModifier": {
-          "origin": 13,
-          "accel": 12
-        }
-      },
-      "groups": 4294967295
+      "SetAttributeModifier": {
+        "attribute": "velocity",
+        "value": 19
+      }
     }
   ],
   "render_modifiers": [
     {
-      "modifier": {
-        "SizeOverLifetimeModifier": {
-          "gradient": {
+      "SizeOverLifetimeModifier": {
+        "gradient": {
             "keys": [
-              {
-                "ratio": 0.0,
-                "value": [
-                  0.02,
-                  0.02
-                ]
-              }
+            {
+              "ratio": 0.0,
+              "value": [
+              50.0,
+              50.0,
+              50.0
+              ]
+            },
+            {
+              "ratio": 0.5,
+              "value": [
+              50.0,
+              50.0,
+              50.0
+              ]
+            },
+            {
+              "ratio": 0.625,
+              "value": [
+              46.0,
+              46.0,
+              46.0
+              ]
+            },
+            {
+              "ratio": 0.75,
+              "value": [
+              35.35,
+              35.35,
+              35.35
+              ]
+            },
+            {
+              "ratio": 0.875,
+              "value": [
+              19.1,
+              19.1,
+              19.1
+              ]
+            },
+            {
+              "ratio": 1.0,
+              "value": [
+              0.0,
+              0.0,
+              0.0
+              ]
+            }
             ]
           },
           "screen_space_size": false
-        }
-      },
-      "groups": 4294967295
+      }
     },
     {
-      "modifier": {
-        "ColorOverLifetimeModifier": {
-          "gradient": {
-            "keys": [
-              {
-                "ratio": 0.0,
-                "value": [
-                  0.5,
-                  0.5,
-                  1.0,
-                  1.0
-                ]
-              },
-              {
-                "ratio": 1.0,
-                "value": [
-                  0.5,
-                  0.5,
-                  1.0,
-                  0.0
-                ]
-              }
-            ]
-          }
-        }
-      },
-      "groups": 4294967295
+      "ColorOverLifetimeModifier": {
+        "gradient": {
+          "keys": [
+            {
+              "ratio": 0.0,
+              "value": [
+                0.5,
+                0.5,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "ratio": 1.0,
+              "value": [
+                0.5,
+                0.5,
+                1.0,
+                0.0
+              ]
+            }
+          ]
+        },
+        "blend": "Overwrite",
+        "mask": 15
+      }
     }
   ],
   "motion_integration": "PostUpdate",
@@ -134,7 +156,7 @@
       {
         "Literal": {
           "Scalar": {
-            "Float": 5.0
+            "Float": 0.5
           }
         }
       },
@@ -197,10 +219,54 @@
         }
       },
       {
+        "Attribute": {
+          "attr": "lifetime"
+        }
+      },
+      {
+        "Attribute": {
+          "attr": "age"
+        }
+      },
+      {
+        "Binary": {
+          "op": "Div",
+          "left": 10,
+          "right": 9
+        }
+      },
+      {
         "Literal": {
           "Scalar": {
-            "Float": -1.0
+            "Float": -2.5
           }
+        }
+      },
+      {
+        "Binary": {
+          "op": "Mul",
+          "left": 12,
+          "right": 11
+        }
+      },
+      {
+        "Unary": {
+          "op": "Exp",
+          "expr": 13
+        }
+      },
+      {
+        "Literal": {
+          "Scalar": {
+            "Float": 1000.0
+          }
+        }
+      },
+      {
+        "Binary": {
+          "op": "Mul",
+          "left": 15,
+          "right": 14
         }
       },
       {
@@ -210,15 +276,15 @@
       },
       {
         "Unary": {
-          "op": "Length",
-          "expr": 10
+          "op": "Normalize",
+          "expr": 17
         }
       },
       {
         "Binary": {
           "op": "Mul",
-          "left": 9,
-          "right": 11
+          "left": 18,
+          "right": 16
         }
       },
       {
@@ -231,9 +297,23 @@
             ]
           }
         }
+      },
+      {
+        "Literal": {
+          "Vector": {
+            "Vec3": [
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
       }
     ],
-    "properties": []
+    "properties": [],
+    "texture_layout": {
+      "layout": []
+    }
   },
   "alpha_mode": "Blend"
 }

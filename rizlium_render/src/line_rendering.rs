@@ -65,7 +65,10 @@ impl Default for ChartLineBundle {
             layer: default(),
             line: default(),
             shape: default(),
-            stoke: Stroke::new(Color::NONE, 10.),
+            stoke: Stroke {
+                options: StrokeOptions::default().with_line_width(10.).with_line_cap(LineCap::Round),
+                brush: Brush::Color(Color::NONE),
+            },
             synced_tick: LastSyncTick::ZERO,
         }
     }
@@ -90,7 +93,7 @@ impl Plugin for ChartLinePlugin {
             )
             .add_systems(
                 Update,
-                (change_bounding, update_shape, update_color, update_layer)
+                (change_bounding, update_shape, update_stroke, update_layer)
                     .in_set(LineRenderingSystemSet::Rendering)
                     .run_if(chart_update!()),
             );
@@ -260,7 +263,7 @@ fn update_shape(
 
 const DEBUG_INVISIBLE: Color = Color::LinearRgba(LinearRgba::new(1., 0., 1., 0.2));
 
-fn update_color(
+fn update_stroke(
     chart: Res<GameChart>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
@@ -309,10 +312,10 @@ fn update_color(
             let relative_pos = pos2 - pos1;
             let mut color1 = get_color_of(line, keypoint_idx);
             let mut color2 = get_color_of(line, keypoint_idx + 1);
-            if color1.alpha().approx_eq(&0.) && color2.alpha().approx_eq(&0.) {
-                color1 = DEBUG_INVISIBLE;
-                color2 = DEBUG_INVISIBLE;
-            }
+            // if color1.alpha().approx_eq(&0.) && color2.alpha().approx_eq(&0.) {
+            //     color1 = DEBUG_INVISIBLE;
+            //     color2 = DEBUG_INVISIBLE;
+            // }
             let gradient = LinearGradient {
                 start: Vec2::ZERO,
                 end: relative_pos,

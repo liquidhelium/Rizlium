@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::VisibleEntities};
 use egui::{ScrollArea, Ui};
 use rizlium_chart::{
     chart::Chart,
@@ -7,7 +7,7 @@ use rizlium_chart::{
         NotePath,
     },
 };
-use rizlium_render::GameChart;
+use rizlium_render::{GameCamera, GameChart};
 use rust_i18n::t;
 
 use helium_framework::prelude::*;
@@ -90,17 +90,33 @@ fn debug_window(
     // history: Res<ChartEditHistory>,
     // mut event: EventReader<WorldMouseEvent>,
     mirror: Res<RizliumDockStateMirror>,
+    camera: Query<&VisibleEntities, With<GameCamera>>,
 ) {
-    ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-        // ui.heading("cast_result");
-        // ui.label(format!("{:?}", event.read().next()));
-        // for it in history.history_descriptions() {
-        //     ui.label(it.clone());
-        // }
-        // ui.heading("Preedits");
-        // for ed in history.preedit_datas() {
-        //     ui.label(format!("{:#?}", ed.inverse()));
-        // }
-        ui.code_editor(&mut format!("{mirror:?}"))
-    });
+    ScrollArea::vertical()
+        .auto_shrink(false)
+        .show(ui, |ui| -> Result<()> {
+            // ui.heading("cast_result");
+            // ui.label(format!("{:?}", event.read().next()));
+            // for it in history.history_descriptions() {
+            //     ui.label(it.clone());
+            // }
+            // ui.heading("Preedits");
+            // for ed in history.preedit_datas() {
+            //     ui.label(format!("{:#?}", ed.inverse()));
+            // }
+            let cam = camera.single()?;
+            let sorted_entities: Vec<_> = cam
+                .entities
+                .iter()
+                .map(|e| {
+                    let mut vec = e.1.clone();
+                    vec.sort();
+                    vec
+                })
+                .collect();
+            ui.code_editor(&mut format!("{sorted_entities:?}"));
+            Ok(())
+        })
+        .inner
+        .unwrap();
 }

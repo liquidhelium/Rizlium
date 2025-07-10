@@ -93,6 +93,7 @@ impl Note {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(
@@ -200,7 +201,34 @@ pub struct Line {
 }
 impl Line {
     fn convert(self, line_index: usize) -> ConvertResult<chart::Line> {
-        let line_color: Spline<_> = self.line_color.into_iter().map(Into::into).collect();
+        let line_color: Spline<_> = self
+            .line_color
+            .windows(2)
+            .flat_map(|arr| {
+                let a = &arr[0];
+                let b = &arr[1];
+                vec![
+                    chart::KeyPoint {
+                        time: a.time,
+                        value: a.start_color.into(),
+                        ease_type: chart::EasingId::Linear,
+                        relevant: (),
+                    },
+                    chart::KeyPoint {
+                        time: b.time,
+                        value: a.end_color.into(),
+                        ease_type: chart::EasingId::Linear,
+                        relevant: (),
+                    },
+                ]
+            })
+            .chain(self.judge_ring_color.last().map(|c| chart::KeyPoint {
+                time: c.time,
+                value: c.end_color.into(),
+                ease_type: chart::EasingId::Linear,
+                relevant: (),
+            }))
+            .collect();
         let points = self
             .line_points
             .into_iter()
@@ -222,7 +250,34 @@ impl Line {
         Ok(chart::Line {
             points,
             notes,
-            ring_color: self.judge_ring_color.into_iter().map(Into::into).collect(),
+            ring_color: self
+                .judge_ring_color
+                .windows(2)
+                .flat_map(|arr| {
+                    let a = &arr[0];
+                    let b = &arr[1];
+                    vec![
+                        chart::KeyPoint {
+                            time: a.time,
+                            value: a.start_color.into(),
+                            ease_type: chart::EasingId::Linear,
+                            relevant: (),
+                        },
+                        chart::KeyPoint {
+                            time: b.time,
+                            value: a.end_color.into(),
+                            ease_type: chart::EasingId::Linear,
+                            relevant: (),
+                        },
+                    ]
+                })
+                .chain(self.judge_ring_color.last().map(|c| chart::KeyPoint {
+                    time: c.time,
+                    value: c.end_color.into(),
+                    ease_type: chart::EasingId::Linear,
+                    relevant: (),
+                }))
+                .collect(),
             line_color,
         })
     }
