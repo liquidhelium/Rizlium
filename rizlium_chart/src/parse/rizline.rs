@@ -24,12 +24,12 @@ pub struct Theme {
 
 impl Theme {
     fn convert(self, is_challenge: bool) -> chart::ThemeData {
-        // TODO: index 2 unknown
-        let [bg, note, _] = self.colors_list;
+        let [bg, note, fx] = self.colors_list;
         chart::ThemeData {
             color: chart::ThemeColor {
                 background: bg.into(),
                 note: note.into(),
+                fx: fx.into(),
             },
             is_challenge,
         }

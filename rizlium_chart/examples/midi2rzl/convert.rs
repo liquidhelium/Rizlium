@@ -202,6 +202,7 @@ pub fn build_chart(smf: &Smf, ticks_per_beat: u32) -> rizlium_chart::chart::Char
             color: ThemeColor {
                 background: ColorRGBA::WHITE,
                 note: ColorRGBA::WHITE,
+                fx: ColorRGBA::WHITE,
             },
             is_challenge: false,
         }],

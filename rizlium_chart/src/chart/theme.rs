@@ -29,6 +29,7 @@ pub struct ThemeData {
 pub struct ThemeColor {
     pub background: ColorRGBA,
     pub note: ColorRGBA,
+    pub fx: ColorRGBA,
 }
 impl ThemeColor {
     pub fn color_with_id(&self, id: &str) -> Option<ColorRGBA> {
@@ -45,7 +46,7 @@ pub struct ThemeTransition<'a> {
 
 impl Tween for ThemeColor {
     fn lerp(x1: Self, x2: Self, t: f32) -> Self {
-        tween!((background, note), x1, x2, t)
+        tween!((background, note, fx), x1, x2, t)
     }
 }
 
