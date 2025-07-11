@@ -15,6 +15,8 @@ use bevy::render::primitives::Aabb;
 use bevy_prototype_lyon::prelude::*;
 
 pub const MASK_LAYER: usize = 1;
+pub const MASK_Z: f32 = 10.;
+
 
 pub struct MaskPlugin;
 
@@ -50,7 +52,7 @@ pub(crate) fn init_mask(mut commands: Commands) {
     commands
         .spawn((
             ShapeBundle {
-                transform: Transform::from_xyz(0., 0., 10.),
+                transform: Transform::from_xyz(0., 0., MASK_Z),
                 aabb: Aabb {
                     center: default(),
                     half_extents: Vec3A::MAX,

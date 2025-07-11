@@ -3,6 +3,8 @@ use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 
 use crate::{colorrgba_to_color, GameChart, GameChartCache, GameTime};
 
+pub const RING_Z: f32 = 20.;
+
 pub struct RingPlugin;
 impl Plugin for RingPlugin {
     fn build(&self, app: &mut App) {
@@ -48,7 +50,7 @@ pub fn rings(
             if *vis != Visibility::Visible {
                 *vis = Visibility::Visible;
             }
-            transform.translation = Vec2::from(pos).extend(20.);
+            transform.translation = Vec2::from(pos).extend(RING_Z);
             let Some(line) = chart.lines.get(ring.0) else {
                 return;
             };
@@ -66,7 +68,7 @@ pub fn add_rings(mut commands: Commands, chart: Res<GameChart>, rings: Query<&Ri
             ShapeBundle {
                 path: GeometryBuilder::new()
                     .add(&Circle {
-                        radius: 50.,
+                        radius: 48.,
                         center: [0., 0.].into(),
                     })
                     .build(),
@@ -77,7 +79,7 @@ pub fn add_rings(mut commands: Commands, chart: Res<GameChart>, rings: Query<&Ri
                 }),
                 ..default()
             },
-            Stroke::new(Color::BLACK, 10.),
+            Stroke::new(Color::BLACK, 8.),
             Ring(i),
         ));
     }

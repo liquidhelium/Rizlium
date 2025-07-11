@@ -32,7 +32,7 @@ mod hit_parcticles;
 mod theme;
 mod time_and_audio;
 
-mod notes;
+pub mod notes;
 
 pub use chart::*;
 pub use time_and_audio::*;
@@ -49,7 +49,7 @@ impl Plugin for TypeRegisterPlugin {
     }
 }
 pub(crate) fn colorrgba_to_color(color: ColorRGBA) -> Color {
-    Color::LinearRgba(LinearRgba {
+    Color::Srgba(Srgba {
         red: color.r,
         green: color.g,
         blue: color.b,

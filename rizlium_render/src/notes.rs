@@ -1,7 +1,9 @@
 use bevy::{prelude::*, render::primitives::Aabb};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 
-use crate::{hit_parcticles::HasHit, GameChart, GameChartCache, GameTime};
+use crate::{colorrgba_to_color, hit_parcticles::HasHit, GameChart, GameChartCache, GameTime};
+
+pub const NOTE_Z: f32 = 5.;
 
 pub struct ChartNotePlugin;
 
@@ -21,35 +23,20 @@ impl Plugin for ChartNotePlugin {
     }
 }
 
+#[derive(Resource)]
+pub struct NoteTexture {
+    pub note_frame: Handle<Image>,
+    pub note_bg: Handle<Image>,
+    pub hold_body: Handle<Image>,
+    pub hold_cap: Handle<Image>,
+    pub drag: Handle<Image>,
+}
 // todo: convert to image
 #[derive(Bundle)]
 pub struct ChartNoteBundle {
-    shape: ShapeBundle,
     note: ChartNote,
-    stroke: Stroke,
     particle_time: HasHit,
-}
-impl Default for ChartNoteBundle {
-    fn default() -> Self {
-        Self {
-            shape: ShapeBundle {
-                path: GeometryBuilder::new()
-                    .add(&Circle {
-                        radius: 20.,
-                        center: [0., 0.].into(),
-                    })
-                    .build(),
-                aabb: Aabb {
-                    center: [0., 0., 0.].into(),
-                    half_extents: [20., 20., 0.].into(),
-                },
-                ..default()
-            },
-            stroke: Stroke::new(Color::BLACK, 8.),
-            note: default(),
-            particle_time: HasHit(false),
-        }
-    }
+    sprite: Sprite,
 }
 
 #[derive(Component, Default)]
@@ -61,11 +48,33 @@ pub struct ChartNoteId {
     pub note_idx: usize,
 }
 
-fn add_notes(mut commands: Commands, chart: Res<GameChart>, lines: Query<&ChartNote>) {
+fn add_notes(
+    mut commands: Commands,
+    chart: Res<GameChart>,
+    lines: Query<&ChartNote>,
+    texture: Res<NoteTexture>,
+) {
     // info!("adding note");
     for _ in lines.iter().count()..chart.note_count() {
         // info!("adding note {}", i);
-        commands.spawn(ChartNoteBundle::default());
+        commands
+            .spawn(ChartNoteBundle {
+                sprite: Sprite {
+                    image: texture.note_frame.clone(),
+                    custom_size: Some(Vec2::splat(78.)),
+                    ..default()
+                },
+                note: default(),
+                particle_time: HasHit(false),
+            })
+            .with_child((
+                Sprite {
+                    image: texture.note_bg.clone(),
+                    custom_size: Some(Vec2::splat(64.)),
+                    ..default()
+                },
+                Transform::from_translation(Vec2::ZERO.extend(-1.)),
+            ));
     }
 }
 
@@ -86,9 +95,10 @@ fn update_pos(
     chart: Res<GameChart>,
     cache: Res<GameChartCache>,
     game_time: Res<GameTime>,
-    mut notes: Query<(&mut Transform, &ChartNoteId)>,
+    mut notes: Query<(&mut Transform, &ChartNoteId, &Children)>,
+    mut sprites: Query<&mut Sprite>,
 ) {
-    notes.iter_mut().for_each(|(mut transform, note_id)| {
+    notes.iter_mut().for_each(|(mut transform, note_id, child)| {
         let time;
         {
             let Some(line) = chart.lines.get(note_id.line_idx) else {
@@ -104,6 +114,15 @@ fn update_pos(
             .line_pos_at_clamped(note_id.line_idx, time, **game_time)
             .unwrap()
             .into();
-        *transform = transform.with_translation(pos.extend(0.));
+        *transform = transform.with_translation(pos.extend(NOTE_Z));
+        let Some(e)  = child.iter().next() else{
+            warn!("No child found for note.");
+            return;
+        };
+        let mut sprite = sprites.get_mut(e).unwrap_or_else(|_| {
+            warn!("No sprite found for note.");
+            panic!("No sprite found for note.");
+        });
+        sprite.color = colorrgba_to_color(chart.theme_at(time).unwrap().this.color.note);
     });
 }

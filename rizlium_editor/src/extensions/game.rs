@@ -3,11 +3,11 @@ use bevy::{
     prelude::*,
     render::render_resource::{
         Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-    },
+    }, transform::commands,
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::Ui;
-use rizlium_render::{GameChart, GameTime, GameView, TimeControlEvent, TimeManager};
+use rizlium_render::{notes::NoteTexture, GameChart, GameTime, GameView, TimeControlEvent, TimeManager};
 use rust_i18n::t;
 
 use crate::{open_dialog, save_chart, widgets::recent_file_buttons, LoadChartEvent, PendingDialog};
@@ -97,11 +97,21 @@ impl Plugin for Game {
         // bevy systems
         app.add_systems(
             Startup,
-            setup_game_view.after(bevy_egui::EguiStartupSet::InitContexts),
+            (setup_game_view.after(bevy_egui::EguiStartupSet::InitContexts), load_textures),
         )
         .add_systems(Update, scroll_time)
         .init_resource::<ScrollTimeState>();
     }
+}
+
+fn load_textures(server: Res<AssetServer>,mut commands: Commands) {
+    commands.insert_resource(NoteTexture {
+        note_frame: server.load("note_textures/note_frame.png"),
+        note_bg: server.load("note_textures/note_bg.png"),
+        hold_body: server.load("note_textures/hold_body.png"),
+        hold_cap: server.load("note_textures/hold_cap.png"),
+        drag: server.load("note_textures/drag.png"),
+    });
 }
 
 fn load_chart(
