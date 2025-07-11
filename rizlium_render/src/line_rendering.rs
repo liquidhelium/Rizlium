@@ -66,7 +66,9 @@ impl Default for ChartLineBundle {
             line: default(),
             shape: default(),
             stoke: Stroke {
-                options: StrokeOptions::default().with_line_width(10.).with_line_cap(LineCap::Round),
+                options: StrokeOptions::default()
+                    .with_line_width(10.)
+                    .with_line_cap(LineCap::Round),
                 brush: Brush::Color(Color::NONE),
             },
             synced_tick: LastSyncTick::ZERO,
@@ -117,7 +119,7 @@ fn change_bounding(
     mut lines: Query<(&mut Aabb, &mut Transform, &Stroke, &ChartLineId)>,
 ) {
     lines
-        .par_iter_mut()
+        .iter_mut()
         .for_each(|(mut vis, mut transform, stroke, id)| {
             let line_idx = id.line_idx;
             let keypoint_idx = id.keypoint_idx;
@@ -184,7 +186,7 @@ fn update_shape(
     )>,
 ) {
     lines
-        .par_iter_mut()
+        .iter_mut()
         // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
         .for_each(|(_, mut path, view_vis, id, mut synced, mut vis)| {
             let line_idx = id.line_idx;
@@ -276,7 +278,7 @@ fn update_stroke(
     )>,
 ) {
     lines
-        .par_iter_mut()
+        .iter_mut()
         .for_each(|(mut stroke, _, vis, id, mut synced)| {
             if !vis.get() {
                 return;

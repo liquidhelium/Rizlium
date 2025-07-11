@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::primitives::Aabb};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 
 use crate::{hit_parcticles::HasHit, GameChart, GameChartCache, GameTime};
@@ -14,7 +14,7 @@ impl Plugin for ChartNotePlugin {
         .add_systems(
             Update,
             (
-                update_pos.run_if(chart_update!()),
+                (update_pos).run_if(chart_update!()),
                 assocate_note.run_if(resource_exists_and_changed::<GameChart>),
             ),
         );
@@ -27,7 +27,7 @@ pub struct ChartNoteBundle {
     shape: ShapeBundle,
     note: ChartNote,
     stroke: Stroke,
-    particle_time: HasHit
+    particle_time: HasHit,
 }
 impl Default for ChartNoteBundle {
     fn default() -> Self {
@@ -39,6 +39,10 @@ impl Default for ChartNoteBundle {
                         center: [0., 0.].into(),
                     })
                     .build(),
+                aabb: Aabb {
+                    center: [0., 0., 0.].into(),
+                    half_extents: [20., 20., 0.].into(),
+                },
                 ..default()
             },
             stroke: Stroke::new(Color::BLACK, 8.),
@@ -84,7 +88,7 @@ fn update_pos(
     game_time: Res<GameTime>,
     mut notes: Query<(&mut Transform, &ChartNoteId)>,
 ) {
-    notes.par_iter_mut().for_each(|(mut transform, note_id)| {
+    notes.iter_mut().for_each(|(mut transform, note_id)| {
         let time;
         {
             let Some(line) = chart.lines.get(note_id.line_idx) else {

@@ -46,7 +46,8 @@ impl Plugin for ToolsPlugin {
             .init_tool_config::<tool_configs::PencilToolConfig>()
             .add_systems(
                 Update,
-                (view_tool, pencil_tool, select_tool).run_if(crate::ui::tab_opened("edit.world_view")),
+                (view_tool, pencil_tool, select_tool)
+                    .run_if(crate::ui::tab_opened("edit.world_view")),
             );
         app.reflect_system(
             "edit.world_view.temp_toggle_view",
@@ -279,11 +280,7 @@ fn pencil_tool(
                 .push_preedit(
                     InsertLine {
                         line: Line::from_iter(vec![
-                            get_point(
-                                event.pos,
-                                &pencil_config,
-                                &to_game,
-                            );
+                            get_point(event.pos, &pencil_config, &to_game,);
                             2
                         ]),
                         at: None,

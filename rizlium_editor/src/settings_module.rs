@@ -11,7 +11,7 @@ use bevy::{
     prelude::Deref,
 };
 use egui::{
-    epaint::text::layout, Align, Button, CentralPanel, Layout, ScrollArea, SidePanel, Ui, UiBuilder,
+    Align, Button, CentralPanel, Layout, ScrollArea, SidePanel, Ui, UiBuilder, UiStackInfo,
 };
 use indexmap::IndexMap;
 use rust_i18n::t;
@@ -122,7 +122,7 @@ impl<Storage: Send + Sync + 'static> ModuleRunner for SettingsModuleDyn<Storage>
                 UiBuilder::new()
                     .max_rect(ui.max_rect())
                     .layout(*ui.layout())
-                    .ui_stack_info(None.unwrap_or_default()),
+                    .ui_stack_info(UiStackInfo::default()),
             )
         };
         self.storage = self

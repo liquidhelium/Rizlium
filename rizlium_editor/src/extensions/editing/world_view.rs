@@ -2,12 +2,16 @@ use core::panic;
 use std::ops::ControlFlow;
 
 use bevy::{
-    core_pipeline::{fxaa::Fxaa, oit::OrderIndependentTransparencySettings}, math::vec2, prelude::*, render::{
+    core_pipeline::{fxaa::Fxaa, oit::OrderIndependentTransparencySettings},
+    math::vec2,
+    prelude::*,
+    render::{
+        primitives::Aabb,
         render_resource::{
             Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
         },
         view::RenderLayers,
-    }
+    },
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use bevy_prototype_lyon::{
@@ -39,7 +43,7 @@ impl Plugin for WorldViewPlugin {
             PreStartup,
             setup_world_cam.after(bevy_egui::EguiStartupSet::InitContexts),
         )
-        .add_plugins((RaycastPlugin, ToolsPlugin, ))
+        .add_plugins((RaycastPlugin, ToolsPlugin, PointIndicatorPlugin))
         .register_tab(
             "edit.world_view",
             t!("edit.world_view.tab"),
@@ -186,12 +190,15 @@ fn world_tab(
                     } else {
                         egui::Vec2::ZERO
                     },
-                    
                 ),
                 button: response
                     .interact_pointer_pos()
                     .is_some()
-                    .then(|| iter_pointer(|b| response.ctx.input(|input| input.pointer.button_clicked(b))))
+                    .then(|| {
+                        iter_pointer(|b| {
+                            response.ctx.input(|input| input.pointer.button_clicked(b))
+                        })
+                    })
                     .flatten(),
                 pos: releative_pos.extend(0.),
             }));
@@ -232,10 +239,7 @@ fn iter_pointer(mut check: impl FnMut(PointerButton) -> bool) -> Option<MouseBut
     }
 }
 
-fn get_event_type(
-    response: &Response,
-    drag_delta: egui::Vec2,
-) -> MouseEventType {
+fn get_event_type(response: &Response, drag_delta: egui::Vec2) -> MouseEventType {
     if response.triple_clicked() {
         MouseEventType::Click(ClickEventType::Triple)
     } else if response.double_clicked() {
@@ -269,8 +273,11 @@ impl Plugin for PointIndicatorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            (add_points_indicator, associate_segment)
-                .run_if(resource_exists_and_changed::<GameChart>),
+            add_points_indicator.run_if(resource_exists_and_changed::<GameChart>),
+        )
+        .add_systems(
+            Update,
+            (associate_segment,).run_if(resource_exists_and_changed::<GameChart>),
         )
         .add_systems(Update, (update_shape).run_if(chart_update!()));
     }
@@ -301,8 +308,6 @@ fn add_points_indicator(
 ) {
     let segment_count = chart.segment_count();
     let now_count = indicators.iter().count();
-    let delta = segment_count - now_count;
-    debug!("attempting to add {delta} indicators");
     for _ in now_count..segment_count {
         commands.spawn(PointIndicatorBundle {
             shape: ShapeBundle {
@@ -314,12 +319,16 @@ fn add_points_indicator(
                     .build(),
                 transform: Transform::from_translation(Vec3 {
                     x: 0.,
-                    y: 0.,
+                    y: 100.,
                     z: 20.,
                 }),
+                aabb: Aabb {
+                    center: [0., 0., 0.].into(),
+                    half_extents: [10., 10., 0.].into(),
+                },
                 ..default()
             },
-            stroke: Stroke::new(Color::BLACK, 10.),
+            stroke: Stroke::new(Color::WHITE, 10.),
             layer: RenderLayers::from_layers(&[114]),
             ..Default::default()
         });
@@ -348,7 +357,7 @@ fn update_shape(
     mut lines: Query<(&mut Stroke, &PointIndicatorId, &mut Transform)>,
 ) {
     lines
-        .par_iter_mut()
+        .iter_mut()
         // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
         .for_each(|(_, id, mut transform)| {
             let line_idx = id.line_idx;

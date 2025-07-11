@@ -1,6 +1,3 @@
-use std::time::Duration;
-
-use bevy::log::{Level, LogPlugin};
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use helium_framework::menu::EditorMenuEntrys;
 use helium_framework::prelude::HeTabViewer;
@@ -11,7 +8,7 @@ use rizlium_editor::extensions::ExtensionsPlugin;
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
 use rizlium_editor::settings_module::SettingsPlugin;
 use rizlium_editor::{
-    sync_dock_state, FilePlugin, RizliumDockState, RizliumDockStateMirror,
+    sync_dock_state, ChartLoadingPlugin, FilePlugin, RizliumDockState, RizliumDockStateMirror,
     WindowUpdateControlPlugin,
 };
 
@@ -27,27 +24,8 @@ use rizlium_editor::{
     RizTabPresets,
 };
 use rizlium_render::{GameChart, RizliumRenderingPlugin};
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::EnvFilter;
 
 fn main() {
-    // let collector = egui_tracing::EventCollector::default().with_level(Level::DEBUG);
-    // let default_filter = {
-    //     format!(
-    //         "{},{}",
-    //         Level::DEBUG,
-    //         "wgpu=error,naga=warn,offset_allocator=warn"
-    //     )
-    // };
-    // let filter_layer = EnvFilter::try_from_default_env()
-    //     .or_else(|_| EnvFilter::try_new(&default_filter))
-    //     .unwrap();
-    // tracing_subscriber::registry()
-    //     .with(filter_layer)
-    //     // .with(collector.clone())
-    //     .with(tracing_subscriber::fmt::Layer::default())
-    //     .init();
     App::new()
         .add_plugins((
             DefaultPlugins.build(),
@@ -65,6 +43,7 @@ fn main() {
             WindowUpdateControlPlugin,
             FilePlugin,
             SettingsPlugin,
+            ChartLoadingPlugin,
             ExtensionsPlugin,
             ExtraWindowControlPlugin,
         ))
@@ -85,7 +64,7 @@ fn main() {
             PostUpdate,
             sync_dock_state.run_if(
                 resource_changed::<Persistent<RizliumDockState>>
-                .or(resource_changed::<RizliumDockStateMirror>),
+                    .or(resource_changed::<RizliumDockStateMirror>),
             ),
         )
         .add_systems(PreUpdate, persist_dock_state)

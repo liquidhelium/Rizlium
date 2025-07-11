@@ -2,7 +2,11 @@ use mp3lame_encoder::Id3Tag;
 use rustysynth::{MidiFile, MidiFileSequencer, SoundFont, Synthesizer, SynthesizerSettings};
 use std::{error, fs::File, path::Path, sync::Arc};
 
-pub fn render_midi<P1, P2>(sound_font: P1, midi: P2, sample_rate: u32) -> Result<[Vec<f32>; 2], Box<dyn error::Error>>
+pub fn render_midi<P1, P2>(
+    sound_font: P1,
+    midi: P2,
+    sample_rate: u32,
+) -> Result<[Vec<f32>; 2], Box<dyn error::Error>>
 where
     P1: AsRef<Path>,
     P2: AsRef<Path>,
@@ -33,7 +37,7 @@ where
     Ok([left, right])
 }
 
-pub fn render_mp3(left: Vec<f32>, right: Vec<f32>, sample_rate: u32, id3_tag: Id3Tag) -> Vec<u8>{
+pub fn render_mp3(left: Vec<f32>, right: Vec<f32>, sample_rate: u32, id3_tag: Id3Tag) -> Vec<u8> {
     use mp3lame_encoder::{Builder, DualPcm, FlushNoGap};
 
     let mut mp3_encoder = Builder::new().expect("Create LAME builder");
@@ -56,7 +60,8 @@ pub fn render_mp3(left: Vec<f32>, right: Vec<f32>, sample_rate: u32, id3_tag: Id
         right: right.as_slice(),
     };
 
-    let mut mp3_out_buffer = Vec::with_capacity(mp3lame_encoder::max_required_buffer_size(input.left.len()));
+    let mut mp3_out_buffer =
+        Vec::with_capacity(mp3lame_encoder::max_required_buffer_size(input.left.len()));
     let encoded_size = mp3_encoder
         .encode(input, mp3_out_buffer.spare_capacity_mut())
         .expect("To encode");
@@ -73,7 +78,6 @@ pub fn render_mp3(left: Vec<f32>, right: Vec<f32>, sample_rate: u32, id3_tag: Id
     //At this point your mp3_out_buffer should have full MP3 data, ready to be written on file system or whatever
     mp3_out_buffer
 }
-
 
 /// test render midi to mp3
 #[cfg(test)]

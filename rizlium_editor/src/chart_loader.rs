@@ -13,7 +13,7 @@ use serde::Deserialize;
 use snafu::{ResultExt, Snafu};
 use zip::ZipArchive;
 
-use crate::{GameAudioSource, GameChart};
+use rizlium_render::{GameAudioSource, GameChart};
 
 pub struct ChartLoadingPlugin;
 
@@ -31,6 +31,7 @@ impl Plugin for ChartLoadingPlugin {
             );
     }
 }
+
 #[derive(Deserialize, Default)]
 pub struct ChartInfo {
     pub name: String,
@@ -65,7 +66,6 @@ pub struct BundledGameChart {
     music: AudioSource,
     chart: Chart,
     path: String,
-    // todo: handle chart info
     _info: ChartInfo,
 }
 
@@ -75,34 +75,24 @@ pub struct PendingChart(Option<Task<Result<BundledGameChart, ChartLoadingError>>
 #[derive(Snafu, Debug)]
 pub enum ChartLoadingError {
     #[snafu(display("Failed to read file: {}", source))]
-    UnzipFileFailed {
-        source: zip::result::ZipError,
-    },
+    UnzipFileFailed { source: zip::result::ZipError },
     #[snafu(display("Failed to read file: {}", source))]
-    ReadingFileFailed {
-        source: std::io::Error,
-    },
+    ReadingFileFailed { source: std::io::Error },
     #[snafu(display("No file named {} in the zip archive", file_name))]
     NoFileInZip {
         file_name: Cow<'static, str>,
         source: zip::result::ZipError,
     },
     #[snafu(display("Chart format is invalid: {}", source))]
-    ChartFormatInvalid {
-        source: serde_json::Error,
-    },
+    ChartFormatInvalid { source: serde_json::Error },
     #[snafu(display("Chart info format is invalid: {}", source))]
-    InfoFormatInvalid {
-        source: serde_yaml::Error,
-    },
+    InfoFormatInvalid { source: serde_yaml::Error },
     #[snafu(display("Failed to convert chart: {}", source))]
     ChartConvertingFailed {
         source: rizlium_chart::parse::ConvertError,
     },
     #[snafu(display("Failed to convert music: {}", source))]
-    MusicConvertingFailed {
-        source: kira::sound::FromFileError,
-    },
+    MusicConvertingFailed { source: kira::sound::FromFileError },
 }
 
 fn load_chart(path: String, mut pending: ResMut<PendingChart>) {
@@ -160,7 +150,7 @@ fn dispatch_load_event(
     pending_chart: ResMut<PendingChart>,
 ) {
     if events.len() > 1 {
-        warn!("Mutiple charts are requested, ignoring previous ones.");
+        warn!("Multiple charts are requested, ignoring previous ones.");
     }
 
     {

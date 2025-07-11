@@ -1,10 +1,11 @@
 use bevy::{
-    core_pipeline::{fxaa::{Fxaa, FxaaPlugin}, oit::{OrderIndependentTransparencyPlugin, OrderIndependentTransparencySettings}}, prelude::*, render::{camera::RenderTarget, view::RenderLayers}
+    core_pipeline::{fxaa::Fxaa, oit::OrderIndependentTransparencySettings},
+    prelude::*,
+    render::{camera::RenderTarget, view::RenderLayers},
 };
 
 use bevy_hanabi::HanabiPlugin;
 use bevy_prototype_lyon::prelude::*;
-use chart_loader::ChartLoadingPlugin;
 use masks::MaskPlugin;
 use notes::ChartNotePlugin;
 use rings::RingPlugin;
@@ -27,11 +28,9 @@ macro_rules! chart_update {
 mod chart;
 mod line_rendering;
 pub use line_rendering::{ChartLine, ChartLineId, ShowLines};
-mod chart_loader;
 mod hit_parcticles;
 mod theme;
 mod time_and_audio;
-pub use chart_loader::{ChartLoadingEvent, LoadChartEvent};
 
 mod notes;
 
@@ -77,11 +76,10 @@ impl Plugin for RizliumRenderingPlugin {
                     manual_time_control: self.manual_time_control,
                 },
                 BackgroundThemePlugin,
-                ChartLoadingPlugin,
                 ChartNotePlugin,
                 RingPlugin,
                 MaskPlugin,
-                HitParticlePlugin
+                HitParticlePlugin,
             ))
             .add_systems(Startup, spawn_game_camera)
             .add_systems(PostUpdate, bind_gameview);
@@ -114,7 +112,7 @@ fn spawn_game_camera(mut commands: Commands) {
             OrderIndependentTransparencySettings::default(),
             RenderLayers::from_layers(&[MASK_LAYER, 0]),
             Msaa::Off,
-            Fxaa::default()
+            Fxaa::default(),
         ))
         .insert(GameCamera);
 }

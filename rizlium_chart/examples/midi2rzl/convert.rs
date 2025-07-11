@@ -1,9 +1,11 @@
 use midly::{
-    num::{u24, u7}, MetaMessage, MidiMessage, Smf, Track, TrackEvent, TrackEventKind
+    num::{u24, u7},
+    MetaMessage, MidiMessage, Smf, Track, TrackEvent, TrackEventKind,
 };
 use rizlium_chart::{
     chart::{
-        beat2real, Canvas, Chart, ColorRGBA, EasingId, KeyPoint, Line, LinePointData, Note, NoteKind, Spline, ThemeColor, ThemeData
+        Canvas, Chart, ColorRGBA, EasingId, KeyPoint, Line, LinePointData, Spline, ThemeColor,
+        ThemeData,
     },
     VIEW_RECT,
 };
@@ -78,36 +80,7 @@ fn beat_bpm_to_time_bpm(spline: &Spline<f32>) -> Spline<f32> {
     }
     Spline::from_iter(result)
 }
-pub fn midi_track_to_line(track: &Track, line_x: f32, ticks_per_beat: u32) -> Option<Line> {
-    let mut current_tick = 0;
-    let notes: Vec<_> = track
-        .iter()
-        .flat_map(|ev| midi_event_to_note(ev, &mut current_tick, ticks_per_beat))
-        .collect();
-    let start_time = notes.first()?.time;
-    let end_time = notes.last()?.time;
-    let create_point = |time: f32| -> KeyPoint<f32, LinePointData> {
-        KeyPoint {
-            time,
-            value: line_x,
-            ease_type: EasingId::Start,
-            relevant: LinePointData {
-                canvas: 0,
-                color: ColorRGBA::BLACK,
-            },
-        }
-    };
-    Some(Line {
-        points: Spline::from_iter(vec![create_point(start_time), create_point(end_time)]),
-        notes,
-        ring_color: Spline::EMPTY,
-        line_color: Spline::EMPTY,
-    })
-}
-pub fn midi_track_to_lines(
-    track: &Track,
-    ticks_per_beat: u32,
-) -> Vec<Line> {
+pub fn midi_track_to_lines(track: &Track, ticks_per_beat: u32) -> Vec<Line> {
     use std::collections::HashMap;
     let mut current_tick = 0u32;
     let mut active_notes: HashMap<u8, (u32, u7)> = HashMap::new();
@@ -123,47 +96,53 @@ pub fn midi_track_to_lines(
                 // NoteOn，记录起始tick
                 active_notes.insert(key.as_int(), (current_tick, key));
             }
-            m@ TrackEventKind::Midi {
+            m @ TrackEventKind::Midi {
                 channel: _,
                 message: MidiMessage::NoteOff { key, vel },
             }
-            |m@  TrackEventKind::Midi {
+            | m @ TrackEventKind::Midi {
                 channel: _,
                 message: MidiMessage::NoteOn { key, vel },
-            } => if matches!(m, TrackEventKind::Midi { message: MidiMessage::NoteOff { .. },.. }) || vel == 0{
-                // NoteOff 或 NoteOn(vel=0)，结束一条线
-                if let Some((start_tick, note_key)) = active_notes.remove(&key.as_int()) {
-                    let start_beat = tick_to_beat(start_tick, ticks_per_beat);
-                    let end_beat = tick_to_beat(current_tick, ticks_per_beat);
-                    let x = key_to_x_value(note_key);
+            } => {
+                if matches!(
+                    m,
+                    TrackEventKind::Midi {
+                        message: MidiMessage::NoteOff { .. },
+                        ..
+                    }
+                ) || vel == 0
+                {
+                    // NoteOff 或 NoteOn(vel=0)，结束一条线
+                    if let Some((start_tick, note_key)) = active_notes.remove(&key.as_int()) {
+                        let start_beat = tick_to_beat(start_tick, ticks_per_beat);
+                        let end_beat = tick_to_beat(current_tick, ticks_per_beat);
+                        let x = key_to_x_value(note_key);
 
-                    let create_point = |time: f32| KeyPoint {
-                        time,
-                        value: x,
-                        ease_type: EasingId::Start,
-                        relevant: LinePointData {
-                            canvas: 0,
-                            color: ColorRGBA::BLACK,
-                        },
-                    };
+                        let create_point = |time: f32| KeyPoint {
+                            time,
+                            value: x,
+                            ease_type: EasingId::Start,
+                            relevant: LinePointData {
+                                canvas: 0,
+                                color: ColorRGBA::BLACK,
+                            },
+                        };
 
-                    lines.push(Line {
-                        points: Spline::from_iter(vec![
-                            create_point(start_beat),
-                            create_point(end_beat),
-                        ]),
-                        notes: Vec::new(),
-                        ring_color: Spline::from_iter(vec![
-                            KeyPoint {
-                                time:0.0,
+                        lines.push(Line {
+                            points: Spline::from_iter(vec![
+                                create_point(start_beat),
+                                create_point(end_beat),
+                            ]),
+                            notes: Vec::new(),
+                            ring_color: Spline::from_iter(vec![KeyPoint {
+                                time: 0.0,
                                 value: ColorRGBA::BLACK,
-                                ease_type:EasingId::Start,
-                                relevant:()
-                            }
-
-                        ]),
-                        line_color: Spline::EMPTY,
-                    });
+                                ease_type: EasingId::Start,
+                                relevant: (),
+                            }]),
+                            line_color: Spline::EMPTY,
+                        });
+                    }
                 }
             }
             _ => {}
@@ -172,29 +151,10 @@ pub fn midi_track_to_lines(
     lines
 }
 
-pub fn midi_event_to_note(
-    event: &TrackEvent,
-    current_tick: &mut u32,
-    ticks_per_beat: u32,
-) -> std::option::Option<rizlium_chart::chart::Note> {
-    *current_tick += dbg!(event.delta.as_int());
-    match event.kind {
-        midly::TrackEventKind::Midi {
-            message: MidiMessage::NoteOn { .. },
-            ..
-        } => Some(Note::new(
-            tick_to_beat(*current_tick, ticks_per_beat),
-            NoteKind::Tap,
-        )),
-        _ => None,
-    }
-}
-
 pub fn tick_to_beat(tick: u32, ticks_per_beat: u32) -> f32 {
     assert!(ticks_per_beat != 0);
     tick as f32 / ticks_per_beat as f32
 }
-
 
 pub fn build_chart(smf: &Smf, ticks_per_beat: u32) -> rizlium_chart::chart::Chart {
     Chart {
@@ -238,8 +198,11 @@ pub fn build_chart(smf: &Smf, ticks_per_beat: u32) -> rizlium_chart::chart::Char
                 ease_type: EasingId::QuadOut, // TODO: this is a bug
                 relevant: (),
             }]),
-            
         }],
-        lines: smf.tracks.iter().flat_map(|t| midi_track_to_lines(t, ticks_per_beat)).collect()
+        lines: smf
+            .tracks
+            .iter()
+            .flat_map(|t| midi_track_to_lines(t, ticks_per_beat))
+            .collect(),
     }
 }

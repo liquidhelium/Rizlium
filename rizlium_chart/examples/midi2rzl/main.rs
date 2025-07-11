@@ -1,21 +1,14 @@
 //! Midi to Rizlium Chart zip.
 
-use std::{
-    collections::HashMap,
-    error,
-    ffi::OsStr,
-    fs::{self, File},
-    io,
-    path::PathBuf,
-};
+use std::{collections::HashMap, error, ffi::OsStr, fs, io, path::PathBuf};
 
 use clap::Parser;
 use midly::{Smf, Timing};
 use mp3lame_encoder::Id3Tag;
 
+mod convert;
 mod midi_rendering;
 mod packaging;
-mod convert;
 
 const DEFAULT_BACKGROUND: &[u8] = include_bytes!("assets/background.png");
 
@@ -57,10 +50,12 @@ fn main() {
 }
 
 fn detailed_errmsg(e: Box<dyn error::Error>) {
-    e.downcast_ref::<io::Error>()
-        .map(|_| eprintln!("..when tried to open the file"));
-    e.downcast_ref::<midly::Error>()
-        .map(|_| eprintln!("..when tried to read the midi file."));
+    if e.downcast_ref::<io::Error>().is_some() {
+        eprintln!("..when tried to open the file")
+    }
+    if e.downcast_ref::<midly::Error>().is_some() {
+        eprintln!("..when tried to read the midi file.")
+    }
 }
 
 fn run(args: Args) -> Result<(), Box<dyn error::Error>> {
@@ -93,7 +88,8 @@ fn run(args: Args) -> Result<(), Box<dyn error::Error>> {
     let music = match sound_type {
         SoundType::SoundFont => {
             println!("rendering music...");
-            let [left, right] = midi_rendering::render_midi(&sound_source, &midi_path, sample_rate)?;
+            let [left, right] =
+                midi_rendering::render_midi(&sound_source, &midi_path, sample_rate)?;
             println!("encoding music...");
             midi_rendering::render_mp3(
                 left,
@@ -126,11 +122,13 @@ fn run(args: Args) -> Result<(), Box<dyn error::Error>> {
     }
     // Info
     println!("generating info...");
-    let info = format!(r#"name: {file_name}
+    let info = format!(
+        r#"name: {file_name}
 format: Rizlium
 chart_path: "{file_name}.json"
 music_path: "{file_name}.mp3"
-"#);
+"#
+    );
     let info_bytes = info.into_bytes();
     // 打包 zip
     println!("packing into zip..");

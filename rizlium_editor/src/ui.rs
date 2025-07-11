@@ -1,14 +1,16 @@
 use bevy::{
     asset::uuid::Uuid,
     ecs::{
-        change_detection::{DetectChanges, DetectChangesMut}, schedule::Condition, system::{Res, ResMut}
+        change_detection::{DetectChanges, DetectChangesMut},
+        schedule::Condition,
+        system::{Res, ResMut},
     },
     log::debug,
     prelude::{Deref, DerefMut, Resource},
 };
 
 use bevy_persistent::Persistent;
-use egui_dock::{DockState, NodeIndex, Tree};
+use egui_dock::{DockState, Tree};
 
 pub mod widgets;
 use helium_framework::prelude::TabId;
@@ -49,6 +51,8 @@ impl Default for RizliumDockState {
 }
 pub fn tab_opened(tab: impl Into<TabId>) -> impl Condition<()> {
     let tab = tab.into();
-    (move |res: Option<Res<RizliumDockStateMirror>>| res.is_some_and(|res| res.0.as_ref().is_some_and(|r| r.find_tab(&tab).is_some())))
-        .and(|| true)
+    (move |res: Option<Res<RizliumDockStateMirror>>| {
+        res.is_some_and(|res| res.0.as_ref().is_some_and(|r| r.find_tab(&tab).is_some()))
+    })
+    .and(|| true)
 }

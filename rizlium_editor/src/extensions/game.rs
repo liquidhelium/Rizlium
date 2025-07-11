@@ -7,12 +7,10 @@ use bevy::{
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::Ui;
-use rizlium_render::{
-    GameChart, GameTime, GameView, LoadChartEvent, TimeControlEvent, TimeManager,
-};
+use rizlium_render::{GameChart, GameTime, GameView, TimeControlEvent, TimeManager};
 use rust_i18n::t;
 
-use crate::{open_dialog, save_chart, widgets::recent_file_buttons, PendingDialog};
+use crate::{open_dialog, save_chart, widgets::recent_file_buttons, LoadChartEvent, PendingDialog};
 use helium_framework::{
     menu::{self, Custom, MenuExt},
     prelude::*,

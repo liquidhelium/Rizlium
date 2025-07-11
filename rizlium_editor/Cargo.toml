@@ -49,15 +49,19 @@ futures-lite = "2"
 async-fs = "*"
 indexmap = { version = "*", features = ["serde"] }
 enum_dispatch = "*"
-snafu = "*"
+snafu = "0.8.2"
 smallvec = { version = "1", features = ["serde"] }
 strum = { version = "0.26", features = ["derive"] }
 serde_json = "*"
+serde_yaml = "*"
 rust-i18n = "3"
 helium_framework = { git = "https://github.com/liquidhelium/helium_framework", features = [
     "serde",
 ] }
 bevy_prototype_lyon = { git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium" }
+zip = "0.6.6"
+bevy_kira_audio = "0.23"
+kira = "0.9"
 [dev-dependencies]
 serde_json = "*"
 

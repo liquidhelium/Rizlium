@@ -6,7 +6,6 @@ use bevy::{
     diagnostic::FrameCount,
     prelude::*,
     window::{PresentMode, PrimaryWindow, RequestRedraw},
-    winit::WinitSettings,
 };
 use egui::{Color32, Rect, RichText, Ui, UiBuilder};
 // use egui_tracing::EventCollector;
@@ -15,11 +14,13 @@ i18n!();
 
 use rust_i18n::i18n;
 pub use ui::*;
+mod chart_loader;
 mod editor_actions;
 pub mod extensions;
 mod files;
 pub mod settings_module;
 pub mod utils;
+pub use chart_loader::{ChartLoadingEvent, ChartLoadingPlugin, LoadChartEvent};
 pub use editor_actions::*;
 pub use files::*;
 pub mod extra_window_control;
