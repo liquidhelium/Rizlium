@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{math::f64, prelude::*};
 
 use bevy_kira_audio::{Audio, AudioControl, AudioInstance, AudioSource, AudioTween, PlaybackState};
 use std::ops::Deref;
@@ -20,13 +20,13 @@ impl Deref for GameTime {
     }
 }
 
-const COMPENSATION_RATE: f32 = 0.003;
+const COMPENSATION_RATE: f64 = 0.003;
 
 #[derive(Resource, Debug, Default)]
 pub struct TimeManager {
-    start_time: f32,
-    paused_since: Option<f32>,
-    now: f32,
+    start_time: f64,
+    paused_since: Option<f64>,
+    now: f64,
 }
 
 pub struct TimeAndAudioPlugin {
@@ -83,7 +83,7 @@ pub enum TimeControlEvent {
 }
 
 fn update_timemgr(mut time: ResMut<TimeManager>, real_time: Res<Time>) {
-    time.update(real_time.elapsed_secs());
+    time.update(real_time.elapsed_secs_f64());
 }
 
 fn dispatch_events(
@@ -106,16 +106,16 @@ fn dispatch_events(
             TimeControlEvent::Pause => time.pause(),
             TimeControlEvent::Resume => time.resume(),
             TimeControlEvent::Seek(pos) => {
-                let pos = pos.clamp(0., audio_data.sound.duration().as_secs_f32() - 0.01);
+                let pos = (*pos as f64).clamp(0., audio_data.sound.duration().as_secs_f64() - 0.01);
                 time.seek(pos);
                 audio.seek_to(pos.into());
             }
             TimeControlEvent::Toggle => time.toggle_paused(),
             TimeControlEvent::SetPaused(paused) => time.set_paused(*paused),
             TimeControlEvent::Advance(duration) => {
-                let duration = duration.clamp(
+                let duration = (*duration as f64).clamp(
                     0.01 - time.current(),
-                    audio_data.sound.duration().as_secs_f32() - 0.01 - time.current(),
+                    audio_data.sound.duration().as_secs_f64() - 0.01 - time.current(),
                 );
                 time.advance(duration);
                 audio.seek_by(duration.into());
@@ -132,7 +132,7 @@ fn sync_audio(
     source: Res<GameAudioSource>,
     audio: Res<Audio>,
 ) {
-    let new_current = audio.play(source.0.clone()).looped().handle();
+    let new_current = audio.play(source.0.clone()).looped().paused().handle();
     if let Some(mut game_audio) = game_audio {
         if let Some(current) = game_audios.get_mut(&game_audio.0) {
             current.stop(default());
@@ -142,26 +142,26 @@ fn sync_audio(
         commands.insert_resource(CurrentGameAudio(new_current));
     }
     time_control.write(TimeControlEvent::Pause);
-    time_control.write(TimeControlEvent::Seek(0.01));
+    time_control.write(TimeControlEvent::Seek(0.001));
 }
 
 fn init_time_manager(mut commands: Commands, time: Res<Time>) {
     commands.insert_resource(TimeManager {
-        start_time: time.elapsed_secs(),
-        paused_since: Some(time.elapsed_secs()),
-        now: time.elapsed_secs(),
+        start_time: time.elapsed_secs_f64(),
+        paused_since: Some(time.elapsed_secs_f64()),
+        now: time.elapsed_secs_f64(),
     });
 }
 fn game_time(cache: Res<GameChartCache>, time: Res<TimeManager>, mut game_time: ResMut<GameTime>) {
-    *game_time = GameTime(cache.map_time(time.current()));
+    *game_time = GameTime(cache.map_time(time.current() as f32));
 }
 
 impl TimeManager {
     /// 每帧都要同步此时间
-    pub fn update(&mut self, now: f32) {
+    pub fn update(&mut self, now: f64) {
         self.now = now;
     }
-    pub fn start_time(&self) -> f32 {
+    pub fn start_time(&self) -> f64 {
         self.start_time
     }
     pub fn toggle_paused(&mut self) {
@@ -198,13 +198,13 @@ impl TimeManager {
     pub fn paused(&self) -> bool {
         self.paused_since.is_some()
     }
-    pub fn seek(&mut self, time: f32) {
+    pub fn seek(&mut self, time: f64) {
         self.start_time += self.current() - time;
     }
-    pub fn current(&self) -> f32 {
+    pub fn current(&self) -> f64 {
         self.paused_since.unwrap_or(self.now) - self.start_time
     }
-    pub fn align_to_audio_time(&mut self, audio_time: f32) {
+    pub fn align_to_audio_time(&mut self, audio_time: f64) {
         let current = self.current();
         if (audio_time - current).abs() >= 10. {
             self.seek(audio_time);
@@ -214,7 +214,7 @@ impl TimeManager {
     }
     /// Advance [`TimeManager`] by `duration`.
     /// `duration` can be negative to rewind.
-    fn advance(&mut self, duration: f32) {
+    fn advance(&mut self, duration: f64) {
         self.seek(self.current() + duration);
     }
 }
@@ -242,11 +242,11 @@ fn align_or_restart_audio(
                 info!("Pausing audio");
                 current_audio.pause(AudioTween::default());
             } else {
-                time.align_to_audio_time(position as f32);
+                time.align_to_audio_time(position);
             }
         }
         _ => {
-            current_audio.seek_to(time.current().into());
+            current_audio.seek_to(time.current());
             if !time.paused() {
                 info!("Resuming audio");
                 current_audio.resume(AudioTween::default());

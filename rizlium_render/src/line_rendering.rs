@@ -94,7 +94,7 @@ impl Plugin for ChartLinePlugin {
                 associate_segment.run_if(resource_exists_and_changed::<GameChart>),
             )
             .add_systems(
-                Update,
+                PostUpdate,
                 (change_bounding, update_shape, update_stroke, update_layer)
                     .in_set(LineRenderingSystemSet::Rendering)
                     .run_if(chart_update!()),

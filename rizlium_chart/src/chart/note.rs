@@ -11,6 +11,16 @@ pub enum NoteKind {
     Hold { end: f32 },
     Drag,
 }
+impl PartialEq for NoteKind {
+    fn eq(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (Self::Tap, Self::Tap)
+                | (Self::Drag, Self::Drag)
+                | (Self::Hold { .. }, Self::Hold { .. })
+        )
+    }
+}
 
 /// 单个的Note.
 #[derive(Debug, Clone)]
