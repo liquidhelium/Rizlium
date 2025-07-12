@@ -294,11 +294,11 @@ fn update_stroke(
             ) else {
                 return;
             };
-            if !is_shape_changed(keypoint1, keypoint2)
-                && (synced.color.get() >= chart.last_changed().get())
-            {
-                return;
-            }
+            // if !is_shape_changed(keypoint1, keypoint2)
+            //     && (synced.color.get() >= chart.last_changed().get())
+            // {
+            //     return;
+            // }
             let (Some(pos1), Some(pos2)) = (
                 chart
                     .with_cache(&cache)
@@ -312,8 +312,8 @@ fn update_stroke(
             let pos1: Vec2 = pos1.into();
             let pos2: Vec2 = pos2.into();
             let relative_pos = pos2 - pos1;
-            let mut color1 = get_color_of(line, keypoint_idx);
-            let mut color2 = get_color_of(line, keypoint_idx + 1);
+            let color1 = get_color_of(line, keypoint_idx, **time);
+            let color2 = get_color_of(line, keypoint_idx + 1, **time);
             // if color1.alpha().approx_eq(&0.) && color2.alpha().approx_eq(&0.) {
             //     color1 = DEBUG_INVISIBLE;
             //     color2 = DEBUG_INVISIBLE;
@@ -328,9 +328,10 @@ fn update_stroke(
         });
 }
 
-fn get_color_of(line: &rizlium_chart::prelude::Line, keypoint_idx: usize) -> Color {
-    colorrgba_to_color(
-        line.points
+fn get_color_of(line: &rizlium_chart::prelude::Line, keypoint_idx: usize, time: f32) -> Color {
+    colorrgba_to_color({
+        let point_color = line
+            .points
             .points()
             .get(keypoint_idx)
             .map(|point| point.relevant.color)
@@ -342,8 +343,10 @@ fn get_color_of(line: &rizlium_chart::prelude::Line, keypoint_idx: usize) -> Col
                     b: 0.,
                     a: 1.,
                 }
-            }),
-    )
+            });
+        let line_color = line.line_color.value_padding(time).unwrap_or_default();
+        point_color + line_color
+    })
 }
 
 fn is_shape_changed(

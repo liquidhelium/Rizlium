@@ -55,9 +55,6 @@ pub fn rings(
                 return;
             };
             let mut color = line.ring_color.value_padding(**time).unwrap_or_default();
-            if let Some(line_color) = line.line_color.value(**time) {
-                color = color + line_color;
-            }
             stroke.brush = colorrgba_to_color(color).into();
         });
 }

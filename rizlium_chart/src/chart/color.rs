@@ -28,8 +28,13 @@ impl Add for ColorRGBA {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         // blend: (ONE_MINUS_SRC_ALPHA, SRC_ALPHA)
-        let mut blend = Self::lerp(rhs, self, rhs.a.div(255.));
-        blend.a = self.a;
+        let mut blend = ColorRGBA {
+            r: self.r * (1.0 - rhs.a) + rhs.r * rhs.a,
+            g: self.g * (1.0 - rhs.a) + rhs.g * rhs.a,
+            b: self.b * (1.0 - rhs.a) + rhs.b * rhs.a,
+            a: self.a + rhs.a * (1.0 - self.a),
+        };
+        // blend.a = self.a;
         blend
     }
 }
