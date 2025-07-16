@@ -54,7 +54,7 @@ pub fn rings(
             let Some(line) = chart.lines.get(ring.0) else {
                 return;
             };
-            let mut color = line.ring_color.value_padding(**time).unwrap_or_default();
+            let color = line.ring_color.value_padding(**time).unwrap_or_default();
             stroke.brush = colorrgba_to_color(color).into();
         });
 }
@@ -65,7 +65,7 @@ pub fn add_rings(mut commands: Commands, chart: Res<GameChart>, rings: Query<&Ri
             ShapeBundle {
                 path: GeometryBuilder::new()
                     .add(&Circle {
-                        radius: 48.,
+                        radius: 43.,
                         center: [0., 0.].into(),
                     })
                     .build(),

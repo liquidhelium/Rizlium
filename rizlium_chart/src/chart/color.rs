@@ -32,9 +32,9 @@ impl Add for ColorRGBA {
             r: self.r * (1.0 - rhs.a) + rhs.r * rhs.a,
             g: self.g * (1.0 - rhs.a) + rhs.g * rhs.a,
             b: self.b * (1.0 - rhs.a) + rhs.b * rhs.a,
-            a: self.a + rhs.a * (1.0 - self.a),
+            a: self.a * (1.0 - rhs.a) + rhs.a * rhs.a,
         };
-        // blend.a = self.a;
+        blend.a = self.a;
         blend
     }
 }

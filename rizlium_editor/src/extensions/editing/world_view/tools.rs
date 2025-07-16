@@ -177,7 +177,7 @@ fn temp_toggle_view(
     mut previous: ResMut<OriginalTool>,
     mut now: ResMut<Tool>,
 ) {
-    debug!("{trigger:?}, {previous:?}, {now:?}");
+    // debug!("{trigger:?}, {previous:?}, {now:?}");
     if previous.is_none() && trigger.is_pressed() {
         previous.0 = Some(Tool::Pencil);
         now.set(Tool::View);
