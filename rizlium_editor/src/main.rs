@@ -17,7 +17,7 @@ use bevy::window::PrimaryWindow;
 use bevy::prelude::*;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
-use egui::{FontData, FontDefinitions, FontFamily, Layout};
+use egui::{Color32, FontData, FontDefinitions, FontFamily, Layout, Visuals};
 use egui_dock::DockArea;
 use rizlium_editor::{
     ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
@@ -151,6 +151,26 @@ fn egui_render(world: &mut World) -> Result<()> {
     egui::TopBottomPanel::top("menu").show(ctx, |ui| {
         ui.horizontal(|ui| {
             world.resource_scope(|world: &mut World, mut entries: Mut<EditorMenuEntrys>| {
+                ui.style_mut().visuals = Visuals {
+                    // dark_mode: true,
+                    // extreme_bg_color: rgba(23, 23, 23, 1.0),
+                    widgets: egui::style::Widgets {
+                        inactive: egui::style::WidgetVisuals {
+                            weak_bg_fill: rgba(50, 50, 50, 0.0),
+                            bg_stroke: egui::Stroke::new(0.0, rgba(200, 200, 200, 0.0)),
+
+                            ..Visuals::dark().widgets.inactive
+                        },
+                        hovered: egui::style::WidgetVisuals {
+                            weak_bg_fill: rgba(100, 100, 100, 0.4),
+                            bg_stroke: egui::Stroke::new(1.0, rgba(200, 200, 200, 0.0)),
+
+                            ..Visuals::dark().widgets.hovered
+                        },
+                        ..Default::default()
+                    },
+                    ..Visuals::dark()
+                };
                 entries.foreach_ui(ui, world);
             });
             ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
@@ -191,6 +211,15 @@ fn egui_render(world: &mut World) -> Result<()> {
     commands.apply_manual(world);
     world.insert_resource(editor_state);
     Ok(())
+}
+
+fn rgba(arg_1: i32, arg_2: i32, arg_3: i32, arg_4: f64) -> egui::Color32 {
+    Color32::from_rgba_unmultiplied(
+        arg_1 as u8,
+        arg_2 as u8,
+        arg_3 as u8,
+        (arg_4 * 255.0) as u8,
+    )
 }
 fn persist_dock_state(
     mut events: EventReader<bevy::app::AppExit>,
