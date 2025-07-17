@@ -1,13 +1,14 @@
 #![allow(clippy::too_many_arguments)]
 
-use std::time::Duration;
+use std::{path::PathBuf, time::Duration};
 
 use bevy::{
     diagnostic::FrameCount,
     prelude::*,
     window::{PresentMode, PrimaryWindow, RequestRedraw},
 };
-use egui::{Color32, Rect, RichText, Ui, UiBuilder};
+use bevy_persistent::Persistent;
+use egui::{Color32, Label, Rect, RichText, Ui, UiBuilder, Widget};
 // use egui_tracing::EventCollector;
 use rizlium_render::GameTime;
 i18n!();
@@ -72,7 +73,11 @@ fn compute_fps(
     }
 }
 
-pub fn ui_when_no_dock(ui: &mut Ui, recents: &RecentFiles, commands: &mut ManualEditorCommands) {
+pub fn ui_when_no_dock(
+    In(ui): In<&mut Ui>,
+    recents: Res<Persistent<RecentFiles>>,
+    mut events: EventWriter<LoadChartEvent>,
+) {
     let main_rect = ui.available_rect_before_wrap().shrink(50.);
     ui.allocate_new_ui(UiBuilder::new().max_rect(main_rect), |ui: &mut Ui| {
         let center_rect = if main_rect.width() >= 500. {
@@ -81,24 +86,29 @@ pub fn ui_when_no_dock(ui: &mut Ui, recents: &RecentFiles, commands: &mut Manual
             main_rect
         };
         ui.allocate_new_ui(UiBuilder::new().max_rect(center_rect), |ui: &mut Ui| {
-            ui.label(RichText::new("Rizlium").size(50.).color(Color32::WHITE));
-            ui.weak(
-                RichText::new("Just an editor")
-                    .size(20.)
-                    .color(Color32::GRAY),
-            );
             let center_rect = ui.available_rect_before_wrap();
             let max_rect = left_half(&center_rect);
             ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui: &mut Ui| {
+                ui.heading("Getting Started");
+                ui.label("This is  Rizlium editor, you can load charts and edit them here.");
+
                 ui.heading("Open");
                 for recent in recents.iter().rev() {
-                    if ui.link(recent).clicked() {
-                        commands.load_chart(recent.clone());
-                    }
+                    // vscode like recent file links
+
+                    ui.horizontal(|ui| {
+                        // get recent file name from recent string (os independent)
+                        let path = PathBuf::from(recent);
+                        let name = path.file_name().unwrap_or_default().to_string_lossy();
+                        let path =path.parent().map(|p|p.to_string_lossy()).unwrap_or_default();
+                        if ui.hyperlink(name).clicked() {
+                            events.write(LoadChartEvent(recent.clone()));
+                        }
+                        Label::new(
+                            path
+                        ).truncate().ui(ui);
+                    });
                 }
-                ui.heading("Heading 2");
-                ui.label("a?");
-                ui.label("a?");
             });
             let max_rect = right_half(&center_rect);
             ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui: &mut Ui| {

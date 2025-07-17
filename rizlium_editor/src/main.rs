@@ -8,8 +8,7 @@ use rizlium_editor::extensions::ExtensionsPlugin;
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
 use rizlium_editor::settings_module::SettingsPlugin;
 use rizlium_editor::{
-    sync_dock_state, ChartLoadingPlugin, FilePlugin, RizliumDockState, RizliumDockStateMirror,
-    WindowUpdateControlPlugin,
+    sync_dock_state, ui_when_no_dock, ChartLoadingPlugin, FilePlugin, RizliumDockState, RizliumDockStateMirror, WindowUpdateControlPlugin
 };
 
 use bevy::window::PrimaryWindow;
@@ -20,7 +19,7 @@ use bevy_persistent::prelude::*;
 use egui::{Color32, FontData, FontDefinitions, FontFamily, Layout, Stroke, Visuals};
 use egui_dock::{DockArea, TabInteractionStyle};
 use rizlium_editor::{
-    ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
+ CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
     RizTabPresets,
 };
 use rizlium_render::{GameChart, RizliumRenderingPlugin};
@@ -186,11 +185,7 @@ fn egui_render(world: &mut World) -> Result<()> {
             |world: &mut World, mut state: Mut<'_, Persistent<RizliumDockState>>| {
                 if state.0.main_surface().is_empty() {
                     egui::CentralPanel::default().show(ctx, |ui| {
-                        ui_when_no_dock(
-                            ui,
-                            world.resource::<Persistent<RecentFiles>>(),
-                            &mut commands,
-                        );
+                        widget(world, ui, ui_when_no_dock);
                     });
                 }
                 DockArea::new(&mut state.0)
