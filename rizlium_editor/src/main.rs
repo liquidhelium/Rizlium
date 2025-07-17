@@ -17,8 +17,8 @@ use bevy::window::PrimaryWindow;
 use bevy::prelude::*;
 use bevy_egui::{EguiContext, EguiPlugin};
 use bevy_persistent::prelude::*;
-use egui::{Color32, FontData, FontDefinitions, FontFamily, Layout, Visuals};
-use egui_dock::DockArea;
+use egui::{Color32, FontData, FontDefinitions, FontFamily, Layout, Stroke, Visuals};
+use egui_dock::{DockArea, TabInteractionStyle};
 use rizlium_editor::{
     ui_when_no_dock, CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
     RizTabPresets,
@@ -130,9 +130,11 @@ fn egui_render(world: &mut World) -> Result<()> {
     let mut editor_state = world
         .remove_resource::<EditorState>()
         .expect("EditorState does not exist");
-    // ctx.set_debug_on_hover(editor_state.debug_resources.show_cursor);
     let mut commands = ManualEditorCommands::default();
-    let _window = world.query_filtered::<Entity, With<Window>>().single(world);
+    ctx.all_styles_mut(|style| {
+        style.visuals.widgets.noninteractive.bg_stroke.width = 0.5;
+        style.visuals.window_corner_radius = 0.0.into();
+    });
     // todo: status into extension
     egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
         ui.horizontal_centered(|ui| {
@@ -152,8 +154,6 @@ fn egui_render(world: &mut World) -> Result<()> {
         ui.horizontal(|ui| {
             world.resource_scope(|world: &mut World, mut entries: Mut<EditorMenuEntrys>| {
                 ui.style_mut().visuals = Visuals {
-                    // dark_mode: true,
-                    // extreme_bg_color: rgba(23, 23, 23, 1.0),
                     widgets: egui::style::Widgets {
                         inactive: egui::style::WidgetVisuals {
                             weak_bg_fill: rgba(50, 50, 50, 0.0),
@@ -193,13 +193,50 @@ fn egui_render(world: &mut World) -> Result<()> {
                         );
                     });
                 }
-                DockArea::new(&mut state.0).show(
-                    ctx,
-                    &mut HeTabViewer {
-                        registry: &mut registry,
-                        world,
-                    },
-                );
+                DockArea::new(&mut state.0)
+                    .style(egui_dock::Style {
+                        separator: egui_dock::SeparatorStyle {
+                            width: 0.5,
+                            ..Default::default()
+                        },
+                        main_surface_border_rounding: 0.0.into(),
+                        tab_bar: egui_dock::TabBarStyle {
+                            corner_radius: 0.0.into(),
+                            ..egui_dock::Style::from_egui(&ctx.style()).tab_bar
+                        },
+                        tab: egui_dock::TabStyle {
+                            active: TabInteractionStyle {
+                                outline_color: rgba(0, 0, 0, 0.0),
+                                corner_radius: 0.0.into(),
+                                ..egui_dock::Style::from_egui(&ctx.style()).tab.active
+                            },
+                            focused: TabInteractionStyle {
+                                outline_color: rgba(0, 0, 0, 0.0),
+                                corner_radius: 0.0.into(),
+                                ..egui_dock::Style::from_egui(&ctx.style()).tab.focused
+                            },
+                            hovered: TabInteractionStyle {
+                                outline_color: rgba(0, 0, 0, 0.0),
+                                bg_fill: rgba(37, 37, 37,1.0),
+                                corner_radius: 0.0.into(),
+                                ..egui_dock::Style::from_egui(&ctx.style()).tab.hovered
+                            },
+                            inactive: TabInteractionStyle {
+                                outline_color: rgba(0, 0, 0, 0.0),
+                                corner_radius: 0.0.into(),
+                                ..egui_dock::Style::from_egui(&ctx.style()).tab.inactive
+                            },
+                            ..egui_dock::Style::from_egui(&ctx.style()).tab
+                        },
+                        ..egui_dock::Style::from_egui(&ctx.style())
+                    })
+                    .show(
+                        ctx,
+                        &mut HeTabViewer {
+                            registry: &mut registry,
+                            world,
+                        },
+                    );
                 world.resource_mut::<FocusedTab>().0 =
                     state.0.find_active_focused().unzip().1.cloned();
                 // todo: move this into proper file
@@ -214,12 +251,7 @@ fn egui_render(world: &mut World) -> Result<()> {
 }
 
 fn rgba(arg_1: i32, arg_2: i32, arg_3: i32, arg_4: f64) -> egui::Color32 {
-    Color32::from_rgba_unmultiplied(
-        arg_1 as u8,
-        arg_2 as u8,
-        arg_3 as u8,
-        (arg_4 * 255.0) as u8,
-    )
+    Color32::from_rgba_unmultiplied(arg_1 as u8, arg_2 as u8, arg_3 as u8, (arg_4 * 255.0) as u8)
 }
 fn persist_dock_state(
     mut events: EventReader<bevy::app::AppExit>,
