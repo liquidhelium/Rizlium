@@ -2,24 +2,26 @@ use bevy::{platform::collections::HashMap, prelude::*, render::primitives::Aabb}
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 use rizlium_chart::chart::NoteKind;
 
-use crate::{colorrgba_to_color, hit_parcticles::HasHit, GameChart, GameChartCache, GameTime};
+use crate::{colorrgba_to_color, default_ph, hit_parcticles::HasHit, ChartProvider, GameChartCache, GameTime};
 
 pub const NOTE_Z: f32 = 5.;
 
-pub struct ChartNotePlugin;
+pub struct ChartNotePlugin<P: ChartProvider>(std::marker::PhantomData<P>);
 
-impl Plugin for ChartNotePlugin {
+default_ph!(ChartNotePlugin<P>);
+
+impl<P: ChartProvider> Plugin for ChartNotePlugin<P> {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            (add_notes,).run_if(resource_exists_and_changed::<GameChart>),
+            (add_notes::<P>,).run_if(resource_exists_and_changed::<P>),
         )
-        .add_systems(Update, assocate_note.run_if(resource_exists::<GameChart>))
+        .add_systems(Update, assocate_note::<P>.run_if(resource_exists::<P>))
         .add_systems(
             PostUpdate,
             (
-                (update_note).run_if(chart_update!()),
-                update_note_kind.run_if(resource_exists_and_changed::<GameChart>),
+                (update_note::<P>).run_if(chart_update!(P)),
+                update_note_kind::<P>.run_if(resource_exists_and_changed::<P>),
             ),
         );
     }
@@ -55,9 +57,9 @@ pub struct ChartNoteId {
 #[derive(Component, Default)]
 pub struct CurrentNoteKind(Option<NoteKind>);
 
-fn add_notes(mut commands: Commands, chart: Res<GameChart>, lines: Query<&ChartNote>) {
+fn add_notes<P: ChartProvider>(mut commands: Commands, chart: Res<P>, lines: Query<&ChartNote>) {
     // info!("adding note");
-    for _ in lines.iter().count()..chart.note_count() {
+    for _ in lines.iter().count()..chart.chart().note_count() {
         // info!("adding note {}", i);
         commands
             .spawn(ChartNoteBundle {
@@ -70,9 +72,9 @@ fn add_notes(mut commands: Commands, chart: Res<GameChart>, lines: Query<&ChartN
     }
 }
 
-fn assocate_note(
+fn assocate_note<P: ChartProvider>(
     mut commands: Commands,
-    chart: Res<GameChart>,
+    chart: Res<P>,
     notes: Query<Entity, With<ChartNote>>,
 ) {
     for (entity, (line_idx, note_idx)) in notes.iter().zip(chart.iter_note()) {
@@ -83,13 +85,14 @@ fn assocate_note(
     }
 }
 
-fn update_note(
-    chart: Res<GameChart>,
+fn update_note<P: ChartProvider>(
+    chart: Res<P>,
     cache: Res<GameChartCache>,
     game_time: Res<GameTime>,
     mut notes: Query<(&mut Transform, &ChartNoteId, &Children)>,
     mut note_bg: Query<&mut Sprite, With<note_tags::NoteBg>>,
 ) {
+    let chart = chart.chart();
     notes
         .iter_mut()
         .for_each(|(mut transform, note_id, child)| {
@@ -130,7 +133,7 @@ mod note_tags {
     tags!(NoteFrame, NoteBg, Drag, HoldCap, HoldBody);
 }
 
-fn update_note_kind(
+fn update_note_kind<P: ChartProvider>(
     mut commands: Commands,
     mut notes: Query<(
         Entity,
@@ -138,10 +141,11 @@ fn update_note_kind(
         &ChartNoteId,
         Option<&Children>,
     )>,
-    chart: Res<GameChart>,
+    provider: Res<P>,
 
     texture: Res<NoteTexture>,
 ) {
+    let chart = provider.chart();
     let mut count = 0;
     if notes.is_empty() {
         warn!("No notes found to update.");

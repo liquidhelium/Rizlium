@@ -3,11 +3,13 @@ use helium_framework::{
     prelude::*,
 };
 
+use crate::project::ProjectState;
+
 use self::{note::note_editor_vertical, tool_config_window::tool_config};
 use bevy::prelude::*;
 use egui::{emath::RectTransform, vec2, Color32, Sense, Stroke, Ui, UiBuilder};
 use rizlium_chart::{chart::Spline, editing::EditHistory};
-use rizlium_render::{GameChart, GameTime};
+use rizlium_render::{ChartProvider, GameTime};
 use rust_i18n::t;
 use spline::SplineView;
 
@@ -27,19 +29,19 @@ impl Plugin for Editing {
             "edit.note",
             t!("edit.note.tab"),
             note_window,
-            resource_exists::<GameChart>,
+            resource_exists::<ProjectState>,
         )
         .register_tab(
             "edit.spline",
             t!("edit.spline.tab"),
             spline_edit,
-            resource_exists::<GameChart>,
+            resource_exists::<ProjectState>,
         )
         .register_tab(
             "edit.tool_config",
             t!("edit.tool_config.tab"),
             tool_config,
-            resource_exists::<GameChart>,
+            resource_exists::<ProjectState>,
         );
 
         app.add_plugins(world_view::WorldViewPlugin)
@@ -57,7 +59,7 @@ impl Plugin for Editing {
                     t!("edit.undo.name"),
                     Button::new_conditioned(
                         "edit.undo",
-                        resource_exists::<GameChart>
+                        resource_exists::<ProjectState>
                             .and(|history: Res<ChartEditHistory>| history.can_undo()),
                     ),
                     0,
@@ -67,7 +69,7 @@ impl Plugin for Editing {
                     t!("edit.redo.name"),
                     Button::new_conditioned(
                         "edit.redo",
-                        resource_exists::<GameChart>
+                        resource_exists::<ProjectState>
                             .and(|history: Res<ChartEditHistory>| history.can_redo()),
                     ),
                     1,
@@ -82,7 +84,7 @@ pub struct ChartEditHistory(EditHistory);
 
 fn note_window(
     InMut(ui): InMut<Ui>,
-    chart: Res<GameChart>,
+    chart: Res<ProjectState>,
     mut focused: Local<usize>,
     mut scale: Local<f32>,
     mut row_width: Local<f32>,
@@ -101,7 +103,7 @@ fn note_window(
 
         ui.add(egui::Slider::new(
             &mut *focused,
-            0..=(chart.lines.len() - 1),
+            0..=(chart.chart().lines.len() - 1),
         ));
         ui.add(egui::Slider::new(&mut *scale, 1.0..=2000.0).logarithmic(true));
         ui.add(egui::Slider::new(&mut *row_width, 10.0..=200.0));
@@ -109,7 +111,7 @@ fn note_window(
     note_editor_vertical(
         ui,
         Some(0),
-        chart
+        chart.chart()
             .lines
             .iter()
             .map(|l| l.notes.as_slice())
@@ -125,7 +127,7 @@ fn note_window(
 
 pub fn spline_edit(
     InMut(ui): InMut<Ui>,
-    chart: Res<GameChart>,
+    chart: Res<ProjectState>,
     mut current: Local<usize>,
     mut visible_rect: Local<Option<egui::Rect>>,
     external: Local<Spline<f32>>,
@@ -137,14 +139,14 @@ pub fn spline_edit(
         show_first |= ui
             .add(egui::Slider::new(
                 &mut *current,
-                0..=(chart.canvases.len() - 1),
+                0..=(chart.chart().canvases.len() - 1),
             ))
             .changed();
     });
     let (res, spline_view) = {
         let max_rect = ui.available_rect_before_wrap();
         ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui| {
-            let spline = &chart.canvases[*current].speed;
+            let spline = &chart.chart().canvases[*current].speed;
             let spline_view =
                 SplineView::new(ui, spline, *visible_rect, spline::Orientation::Horizontal);
             let response = spline_view.ui(ui);

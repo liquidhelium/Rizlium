@@ -10,15 +10,14 @@ use rizlium_chart::{
         commands::{EditPoint, InsertLine, InsertPoint, Nop},
     },
 };
-use rizlium_render::{ChartLineId, GameChart};
+use rizlium_render::{ChartLineId, ChartProvider as _};
 
 use self::tool_configs::{PencilToolConfig, ToolConfigExt};
 use crate::{
     extensions::{
         editing::ChartEditHistory,
         inspector::{ChartItem, SelectedItem},
-    },
-    utils::WorldToGame,
+    }, project::ProjectState, utils::WorldToGame
 };
 use helium_framework::prelude::*;
 
@@ -197,7 +196,7 @@ fn pencil_tool(
     mut discard_events: EventReader<DiscardPreeditEvent>,
     tool: Res<Tool>,
     pencil_config: Res<PencilToolConfig>,
-    chart: Option<ResMut<GameChart>>,
+    chart: Option<ResMut<ProjectState>>,
     mut history: ResMut<ChartEditHistory>,
     to_game: WorldToGame,
     mut current_edit: Local<Option<PencilToolEditData>>,
@@ -211,6 +210,7 @@ fn pencil_tool(
     let Some(mut chart) = chart else {
         return;
     };
+    let chart = chart.chart_mut();
     if !history.has_preedit() {
         *current_edit = None;
     }
@@ -218,7 +218,7 @@ fn pencil_tool(
     if !discard_events.is_empty() {
         discard_events.clear();
         *current_edit = None;
-        history.discard_preedit(&mut chart).unwrap();
+        history.discard_preedit(chart).unwrap();
         history.submit_preedit();
     }
     for event in mouse_events.read() {
@@ -244,10 +244,10 @@ fn pencil_tool(
                                 },
                             },
                         },
-                        &mut chart,
+                        chart,
                     )
                     .unwrap();
-                history.push_preedit(Nop, &mut chart).unwrap();
+                history.push_preedit(Nop, chart).unwrap();
                 *current_edit = Some(PencilToolEditData {
                     line_idx: data.line_idx,
                     point_idx: chart.lines[data.line_idx].points.len() - 1,
@@ -268,7 +268,7 @@ fn pencil_tool(
                             new_color: Some(color32_to_colorrgba(pencil_config.pen_color)),
                             new_easing: Some(pencil_config.easing),
                         },
-                        &mut chart,
+                        chart,
                     )
                     .unwrap();
             }
@@ -285,10 +285,10 @@ fn pencil_tool(
                         ]),
                         at: None,
                     },
-                    &mut chart,
+                    chart,
                 )
                 .unwrap();
-            history.push_preedit(Nop, &mut chart).unwrap();
+            history.push_preedit(Nop, chart).unwrap();
             *current_edit = Some(PencilToolEditData {
                 line_idx: chart.lines.len() - 1,
                 point_idx: 1,

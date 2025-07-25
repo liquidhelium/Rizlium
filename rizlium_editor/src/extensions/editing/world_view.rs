@@ -18,9 +18,10 @@ use bevy_prototype_lyon::{
     draw::Stroke, entity::ShapeBundle, prelude::GeometryBuilder, shapes::Circle as Circle0,
 };
 use egui::{InputState, PointerButton, Response, Sense, Ui};
-use rizlium_render::{GameChart, GameChartCache, GameTime};
+use rizlium_render::{ChartProvider, GameChartCache, GameTime};
 use rust_i18n::t;
 use tools::Tool;
+use crate::project::ProjectState;
 
 use helium_framework::prelude::*;
 
@@ -262,8 +263,8 @@ fn get_event_type(response: &Response, drag_delta: egui::Vec2) -> MouseEventType
 // 长类型让我抓狂
 macro_rules! chart_update {
     () => {
-        resource_exists::<GameChart>
-            .and(resource_exists_and_changed::<GameChart>.or(resource_changed::<GameTime>))
+        resource_exists::<ProjectState>
+            .and(resource_exists_and_changed::<ProjectState>.or(resource_changed::<GameTime>))
     };
 }
 
@@ -273,11 +274,11 @@ impl Plugin for PointIndicatorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            add_points_indicator.run_if(resource_exists_and_changed::<GameChart>),
+            add_points_indicator.run_if(resource_exists_and_changed::<ProjectState>),
         )
         .add_systems(
             Update,
-            (associate_segment,).run_if(resource_exists_and_changed::<GameChart>),
+            (associate_segment,).run_if(resource_exists_and_changed::<ProjectState>),
         )
         .add_systems(Update, (update_shape).run_if(chart_update!()));
     }
@@ -303,7 +304,7 @@ pub struct PointIndicatorBundle {
 
 fn add_points_indicator(
     mut commands: Commands,
-    chart: Res<GameChart>,
+    chart: Res<ProjectState>,
     indicators: Query<&PointIndicator>,
 ) {
     let segment_count = chart.segment_count();
@@ -337,7 +338,7 @@ fn add_points_indicator(
 
 fn associate_segment(
     mut commands: Commands,
-    chart: Res<GameChart>,
+    chart: Res<ProjectState>,
     lines: Query<Entity, With<PointIndicator>>,
 ) {
     debug!("running system assocate_segment");
@@ -351,7 +352,7 @@ fn associate_segment(
 }
 
 fn update_shape(
-    chart: Res<GameChart>,
+    chart: Res<ProjectState>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
     mut lines: Query<(&mut Stroke, &PointIndicatorId, &mut Transform)>,
@@ -363,7 +364,7 @@ fn update_shape(
             let line_idx = id.line_idx;
             let keypoint_idx = id.keypoint_idx;
             let Some(pos1) =
-                chart
+                chart.chart()
                     .with_cache(&cache)
                     .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
             else {

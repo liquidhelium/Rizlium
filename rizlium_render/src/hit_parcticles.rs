@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use bevy::{
     asset::{load_internal_asset, weak_handle},
     prelude::*,
@@ -5,14 +7,16 @@ use bevy::{
 use bevy_common_assets::json::JsonAssetPlugin;
 use bevy_hanabi::*;
 
-use crate::{notes::ChartNoteId, GameChart, GameChartCache, GameTime};
+use crate::{default_ph, notes::ChartNoteId, ChartProvider, GameChartCache, GameTime};
 
-pub struct HitParticlePlugin;
+pub struct HitParticlePlugin<P: ChartProvider>(PhantomData<P>);
+
+default_ph!(HitParticlePlugin<P>);
 
 pub const BUILTIN_HIT_PARTICLE: Handle<EffectAsset> =
     weak_handle!("99ae43c6-fcb3-49ce-8c2a-44f7cef9aff6");
 
-impl Plugin for HitParticlePlugin {
+impl<P: ChartProvider> Plugin for HitParticlePlugin<P> {
     fn build(&self, app: &mut App) {
         app.add_plugins(JsonAssetPlugin::<EffectAsset>::new(&[".json"]));
         load_internal_asset!(
@@ -25,7 +29,7 @@ impl Plugin for HitParticlePlugin {
             .add_systems(Startup, set_up_spawner)
             .add_systems(
                 Update,
-                (spawn_particle_system, spawn_queued_particles).run_if(chart_update!()),
+                (spawn_particle_system::<P>, spawn_queued_particles).run_if(chart_update!(P)),
             );
     }
 }
@@ -52,13 +56,14 @@ struct QueuedHitParticles {
     particles: Vec<Vec2>,
 }
 
-fn spawn_particle_system(
+fn spawn_particle_system<P: ChartProvider>(
     time: Res<GameTime>,
     mut notes: Query<(&ChartNoteId, &mut HasHit)>,
-    chart: Res<GameChart>,
+    provider: Res<P>,
     cache: Res<GameChartCache>,
     mut queued_particles: ResMut<QueuedHitParticles>,
 ) {
+    let chart = provider.chart();
     notes.iter_mut().for_each(|(id, mut has_hit)| {
         let Some(note) = chart
             .lines

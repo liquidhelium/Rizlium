@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    io::{Cursor, Read},
+    io::{Cursor, Read}, path::PathBuf,
 };
 
 use bevy::{
@@ -13,7 +13,7 @@ use serde::Deserialize;
 use snafu::{ResultExt, Snafu};
 use zip::ZipArchive;
 
-use rizlium_render::{GameAudioSource, GameChart};
+use crate::{project::ProjectState, time_and_audio::GameAudioSource};
 
 pub struct ChartLoadingPlugin;
 
@@ -185,7 +185,7 @@ fn unpack_chart(
             ev.write(ChartLoadingEvent::err(err));
         }
         Ok(bundle) => {
-            commands.insert_resource(GameChart::new(bundle.chart));
+            commands.insert_resource(ProjectState::Bundle(PathBuf::new(), bundle.chart));
             let audio_handle = audio_sources.add(bundle.music);
             commands.insert_resource(GameAudioSource(audio_handle));
             info!("completed loading chart");

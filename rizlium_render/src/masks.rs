@@ -1,7 +1,9 @@
+use std::marker::PhantomData;
+
 use bevy::render::view::RenderLayers;
 use bevy_prototype_lyon::shapes::Rectangle;
 
-use crate::GameChart;
+use crate::ChartProvider;
 use crate::GameTime;
 
 use super::colorrgba_to_color;
@@ -16,16 +18,17 @@ use bevy_prototype_lyon::prelude::*;
 
 pub const MASK_LAYER: usize = 1;
 pub const MASK_Z: f32 = 10.;
+pub struct MaskPlugin<P: ChartProvider>(PhantomData<P>);
 
-pub struct MaskPlugin;
+default_ph!(MaskPlugin<P>);
 
-impl Plugin for MaskPlugin {
+impl<P: ChartProvider> Plugin for MaskPlugin<P> {
     fn build(&self, app: &mut App) {
         app.init_resource::<GeneratedMaskTheme>()
             .add_systems(Startup, init_mask)
             .add_systems(
                 PostUpdate,
-                update_mask.run_if(chart_update!()),
+                update_mask::<P>.run_if(chart_update!(P)),
             );
     }
 }
@@ -77,11 +80,11 @@ pub(crate) const RING_OFFSET: f32 = 0.2;
 
 pub(crate) const TOP_MASK_HEIGHT: f32 = 0.2;
 
-fn update_mask(
+fn update_mask<P: ChartProvider>(
     mut mask_bottom: Query<(&mut Fill, &mut Path), (With<MaskBottom>, Without<MaskTop>)>,
     mut mask_top: Query<(&mut Fill, &mut Path), (With<MaskTop>,Without<MaskBottom>)>,
     cams: Query<&Projection, With<GameCamera>>,
-    chart: Res<GameChart>,
+    provider: Res<P>,
     time: Res<GameTime>,
     mut generated_mask: ResMut<GeneratedMaskTheme>,
 ) -> Result<()> {
@@ -91,6 +94,7 @@ fn update_mask(
     let Projection::Orthographic(game) = game else {
         return Err("GameCamera must use OrthographicProjection".into());
     };
+    let chart = provider.chart();
     let area = game.area;
     let gradient_height = area.height() * GRADIENT_NORMALIZED_HEIGHT;
 

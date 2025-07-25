@@ -24,12 +24,21 @@ use self::{
     command_panel::CommandPanel, docking::Docking, editing::Editing, game::Game, i18n::I18nPlugin,
     inspector::Inspector,
 };
+use crate::time_and_audio::EditorAudioPlugin;
 
 pub struct ExtensionsPlugin;
 
 impl Plugin for ExtensionsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((I18nPlugin, Game, Docking, CommandPanel, Editing, Inspector, DebugCamExtension));
+        app.add_plugins((
+            I18nPlugin, 
+            Game, 
+            Docking, 
+            CommandPanel, 
+            Editing, 
+            Inspector, 
+            DebugCamExtension,
+        ));
     }
 }
 

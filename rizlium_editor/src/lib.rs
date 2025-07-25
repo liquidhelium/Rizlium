@@ -21,6 +21,8 @@ pub mod extensions;
 mod files;
 pub mod settings_module;
 pub mod utils;
+pub mod project;
+pub mod time_and_audio;
 pub use chart_loader::{ChartLoadingEvent, ChartLoadingPlugin, LoadChartEvent};
 pub use editor_actions::*;
 pub use files::*;

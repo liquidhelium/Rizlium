@@ -7,6 +7,7 @@ use rizlium_editor::extensions::command_panel::command_panel;
 use rizlium_editor::extensions::ExtensionsPlugin;
 use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowControlPlugin};
 use rizlium_editor::settings_module::SettingsPlugin;
+use rizlium_editor::time_and_audio::EditorAudioPlugin;
 use rizlium_editor::{
     sync_dock_state, ui_when_no_dock, ChartLoadingPlugin, FilePlugin, RizliumDockState, RizliumDockStateMirror, WindowUpdateControlPlugin
 };
@@ -22,7 +23,8 @@ use rizlium_editor::{
  CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
     RizTabPresets,
 };
-use rizlium_render::{GameChart, RizliumRenderingPlugin};
+use rizlium_editor::project::ProjectState;
+use rizlium_render::RizliumRenderingPlugin;
 
 fn main() {
     App::new()
@@ -32,11 +34,7 @@ fn main() {
                 enable_multipass_for_primary_context: false,
             },
             DefaultInspectorConfigPlugin,
-            RizliumRenderingPlugin {
-                config: (),
-                init_with_chart: None,
-                manual_time_control: false,
-            },
+            RizliumRenderingPlugin::<ProjectState>::default(),
             helium_framework::HeliumFramework,
             CountFpsPlugin,
             WindowUpdateControlPlugin,
@@ -45,6 +43,7 @@ fn main() {
             ChartLoadingPlugin,
             ExtensionsPlugin,
             ExtraWindowControlPlugin,
+            EditorAudioPlugin
         ))
         .init_resource::<EditorState>()
         .insert_resource(RizliumDockStateMirror::default())
@@ -137,8 +136,8 @@ fn egui_render(world: &mut World) -> Result<()> {
     // todo: status into extension
     egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
         ui.horizontal_centered(|ui| {
-            if world.contains_resource::<GameChart>() {
-                let chart = world.resource::<GameChart>();
+            if world.contains_resource::<ProjectState>() {
+                let chart = world.resource::<ProjectState>();
                 ui.label("Ready");
                 ui.separator();
                 ui.label(format!("{} segments", chart.segment_count()));

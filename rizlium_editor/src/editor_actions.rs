@@ -4,7 +4,8 @@ use bevy::ecs::system::{SystemBuffer, SystemMeta, SystemParam};
 use bevy::ecs::world::CommandQueue;
 use bevy::prelude::*;
 use bevy_persistent::Persistent;
-use rizlium_render::{ShowLines, TimeControlEvent};
+use rizlium_render::ShowLines;
+use crate::time_and_audio::TimeControlEvent;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 

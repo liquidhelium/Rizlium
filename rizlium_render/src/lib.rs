@@ -14,14 +14,13 @@ use rizlium_chart::{chart::Chart, prelude::ColorRGBA};
 pub use masks::MASK_LAYER;
 pub use rizlium_chart;
 use theme::BackgroundThemePlugin;
-pub use time_and_audio::TimeManager;
 
 // 长类型让我抓狂
 #[macro_export]
 macro_rules! chart_update {
-    () => {
-        resource_exists::<GameChart>
-            // .and(resource_exists_and_changed::<GameChart>.or(resource_changed::<GameTime>))
+    ($provider:ty) => {
+        resource_exists::<$provider>
+        // .and(resource_exists_and_changed::<$provider>.or(resource_changed::<GameTime>))
     };
 }
 
@@ -57,35 +56,49 @@ pub(crate) fn colorrgba_to_color(color: ColorRGBA) -> Color {
     })
 }
 
-pub struct RizliumRenderingPlugin {
+pub struct RizliumRenderingPlugin<P: ChartProvider> {
     pub config: (),
-    pub init_with_chart: Option<Chart>,
     pub manual_time_control: bool,
+    _marker: std::marker::PhantomData<P>,
 }
 
-impl Plugin for RizliumRenderingPlugin {
-    fn build(&self, app: &mut App) {
-        let app = app
-            .add_plugins((
-                ShapePlugin,
-                TypeRegisterPlugin,
-                HanabiPlugin,
-                ChartCachePlugin,
-                line_rendering::ChartLinePlugin,
-                TimeAndAudioPlugin {
-                    manual_time_control: self.manual_time_control,
-                },
-                BackgroundThemePlugin,
-                ChartNotePlugin,
-                RingPlugin,
-                MaskPlugin,
-                HitParticlePlugin,
-            ))
-            .add_systems(Startup, spawn_game_camera)
-            .add_systems(PostUpdate, bind_gameview);
-        if let Some(chart) = self.init_with_chart.clone() {
-            app.insert_resource(GameChart::new(chart));
+impl<P: ChartProvider> Default for RizliumRenderingPlugin<P> {
+    fn default() -> Self {
+        Self {
+            config: (),
+            manual_time_control: false,
+            _marker: std::marker::PhantomData,
         }
+    }
+}
+#[macro_export]
+macro_rules! default_ph {
+    ($typ:ty) => {
+        impl<P: ChartProvider> Default for $typ {
+            fn default() -> Self {
+                Self(std::marker::PhantomData)
+            }
+        }
+    };
+}
+
+impl<P: ChartProvider> Plugin for RizliumRenderingPlugin<P> {
+    fn build(&self, app: &mut App) {
+        app.add_plugins((
+            ShapePlugin,
+            TypeRegisterPlugin,
+            HanabiPlugin,
+            ChartCachePlugin::<P>::default(),
+            line_rendering::ChartLinePlugin::<P>::default(),
+            TimeAndAudioPlugin,
+            BackgroundThemePlugin::<P>::default(),
+            ChartNotePlugin::<P>::default(),
+            RingPlugin::<P>::default(),
+            MaskPlugin::<P>::default(),
+            HitParticlePlugin::<P>::default(),
+        ))
+        .add_systems(Startup, spawn_game_camera)
+        .add_systems(PostUpdate, bind_gameview);
     }
 }
 

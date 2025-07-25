@@ -1,20 +1,29 @@
 use bevy::prelude::*;
 use rizlium_chart::prelude::*;
-#[derive(Resource, Deref, DerefMut)]
-pub struct GameChart(Chart); // TODO gate edit history behind this, so that invalid edit won't appear
 
-impl GameChart {
-    pub fn new(chart: Chart) -> Self {
-        Self(chart)
-    }
-    pub fn iter_segment(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
-        self.lines
+use crate::default_ph;
+
+/// Trait for types that can provide chart data as a Bevy resource
+pub trait ChartProvider: Resource {
+    /// Get the current chart
+    fn chart(&self) -> &Chart;
+    
+    /// Get mutable access to the chart
+    fn chart_mut(&mut self) -> &mut Chart;
+    
+    /// Iterate over all segments in the chart
+    fn iter_segment(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+        self.chart()
+            .lines
             .iter()
             .enumerate()
             .flat_map(|(i, l)| std::iter::repeat(i).zip(0..l.points.points().len() - 1))
     }
-    pub fn iter_note(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
-        self.lines
+    
+    /// Iterate over all notes in the chart
+    fn iter_note(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+        self.chart()
+            .lines
             .iter()
             .enumerate()
             .flat_map(|(i, l)| std::iter::repeat(i).zip(0..l.notes.len()))
@@ -24,26 +33,29 @@ impl GameChart {
 #[derive(Resource, Default, Deref)]
 pub struct GameChartCache(pub ChartCache);
 
-pub struct ChartCachePlugin;
+pub struct ChartCachePlugin<P: ChartProvider>(std::marker::PhantomData<P>);
 
-impl Plugin for ChartCachePlugin {
+default_ph!(ChartCachePlugin<P>);
+
+impl<P: ChartProvider> Plugin for ChartCachePlugin<P> {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            chart_cache.run_if(resource_exists_and_changed::<GameChart>),
+            chart_cache::<P>.run_if(resource_exists_and_changed::<P>),
         );
     }
 }
-fn chart_cache(
+
+fn chart_cache<P: ChartProvider>(
     mut commands: Commands,
-    chart: Res<GameChart>,
+    provider: Res<P>,
     cache: Option<ResMut<GameChartCache>>,
 ) {
     let Some(mut cache) = cache else {
         info!("add cache");
-        commands.insert_resource(GameChartCache(ChartCache::from_chart(&chart)));
+        commands.insert_resource(GameChartCache(ChartCache::from_chart(provider.chart())));
         return;
     };
     info!("update cache");
-    cache.0.update_from_chart(&chart);
+    cache.0.update_from_chart(provider.chart());
 }

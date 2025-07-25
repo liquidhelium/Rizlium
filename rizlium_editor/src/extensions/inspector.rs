@@ -7,12 +7,12 @@ use rizlium_chart::{
         NotePath,
     },
 };
-use rizlium_render::{GameCamera, GameChart};
+use rizlium_render::{ChartProvider, GameCamera};
 use rust_i18n::t;
 
 use helium_framework::prelude::*;
 
-use crate::RizliumDockStateMirror;
+use crate::{project::ProjectState, RizliumDockStateMirror};
 
 use super::editing::{world_view::cam_response::WorldMouseEvent, ChartEditHistory};
 
@@ -35,7 +35,7 @@ impl Plugin for Inspector {
             "inspector",
             t!("inspector.tab"),
             logs,
-            resource_exists::<GameChart>,
+            resource_exists::<ProjectState>,
         )
         .init_resource::<SelectedItem>();
         app.register_tab(
@@ -47,14 +47,14 @@ impl Plugin for Inspector {
     }
 }
 
-fn logs(InMut(mut ui): InMut<Ui>, chart: Res<GameChart>, selected: Res<SelectedItem>) {
+fn logs(InMut(mut ui): InMut<Ui>, chart: Res<ProjectState>, selected: Res<SelectedItem>) {
     let Some(ref item) = selected.item else {
         ui.weak(t!("tab.logs.select_to_inspect"));
         return;
     };
     let ui = &mut ui;
     if let ChartItem::LinePoint(l) = item {
-        show_ui(ui, *l, &chart, |ui, line_point| {
+        show_ui(ui, *l, &chart.chart(), |ui, line_point| {
             ui.columns(2, |columns| {
                 columns[0].label("easing:");
                 columns[1].label(format!("{:?}", line_point.ease_type));

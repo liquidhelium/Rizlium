@@ -5,12 +5,12 @@ use bevy::{
 use futures_lite::{future, AsyncWriteExt};
 use indexmap::IndexSet;
 use rfd::AsyncFileDialog;
+use rizlium_render::ChartProvider;
 use rust_i18n::t;
 use serde::{Deserialize, Serialize};
 
-use crate::{ChartLoadingEvent, EditorCommands};
+use crate::{project::ProjectState, ChartLoadingEvent, EditorCommands};
 use helium_framework::prelude::ToastsStorage;
-use rizlium_render::GameChart;
 
 pub struct FilePlugin;
 
@@ -79,7 +79,7 @@ fn report_error_or_add_current(
 pub struct CurrentChartPath(String);
 
 pub fn save_chart(
-    chart: Option<Res<GameChart>>,
+    chart: Option<Res<ProjectState>>,
     current_path: Option<Res<CurrentChartPath>>,
     mut toasts: ResMut<ToastsStorage>,
     mut save: ResMut<PendingSave>,
@@ -100,7 +100,7 @@ pub fn save_chart(
         .map(|inner| inner.to_string_lossy())
         .unwrap_or(std::borrow::Cow::Borrowed("chart"));
     let target = parent.join(name.into_owned() + ".rzl");
-    let owned_chart = (**chart).clone();
+    let owned_chart = (chart.chart()).clone();
     let task: Task<Result<(), Box<dyn std::error::Error + Send + Sync>>> =
         IoTaskPool::get().spawn(async move {
             let mut file = async_fs::File::create(target).await?;

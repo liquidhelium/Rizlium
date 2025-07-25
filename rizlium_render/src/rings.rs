@@ -1,20 +1,22 @@
 use bevy::{ecs::batching::BatchingStrategy, prelude::*};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 
-use crate::{colorrgba_to_color, GameChart, GameChartCache, GameTime};
+use crate::{colorrgba_to_color, ChartProvider, GameChartCache, GameTime};
 
 pub const RING_Z: f32 = 20.;
+pub struct RingPlugin<P: ChartProvider>(std::marker::PhantomData<P>);
 
-pub struct RingPlugin;
-impl Plugin for RingPlugin {
+default_ph!(RingPlugin<P>);
+
+impl<P: ChartProvider> Plugin for RingPlugin<P> {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            add_rings.run_if(resource_exists_and_changed::<GameChart>),
+            add_rings::<P>.run_if(resource_exists_and_changed::<P>),
         )
         .add_systems(
             Update,
-            (rings /*change_ring_color*/,).run_if(chart_update!()),
+            (rings::<P> /*change_ring_color*/,).run_if(chart_update!(P)),
         );
     }
 }
@@ -22,8 +24,8 @@ impl Plugin for RingPlugin {
 #[derive(Component)]
 pub struct Ring(usize);
 
-pub fn rings(
-    chart: Res<GameChart>,
+fn rings<P: ChartProvider>(
+    provider: Res<P>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
     mut rings: Query<(&mut Stroke, &mut Transform, &mut Visibility, &Ring)>,
@@ -32,6 +34,7 @@ pub fn rings(
     let span = info_span!("Ring updates");
     #[cfg(feature = "trace")]
     let _enter = span.enter();
+    let chart = provider.chart();
     rings
         .par_iter_mut()
         .batching_strategy(BatchingStrategy::new().batches_per_thread(40))
@@ -59,8 +62,8 @@ pub fn rings(
         });
 }
 
-pub fn add_rings(mut commands: Commands, chart: Res<GameChart>, rings: Query<&Ring>) {
-    for i in rings.iter().count()..chart.lines.len() {
+fn add_rings<P: ChartProvider>(mut commands: Commands, chart: Res<P>, rings: Query<&Ring>) {
+    for i in rings.iter().count()..chart.chart().lines.len() {
         commands.spawn((
             ShapeBundle {
                 path: GeometryBuilder::new()

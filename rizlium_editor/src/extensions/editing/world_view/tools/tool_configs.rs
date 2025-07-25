@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 use rizlium_chart::chart::EasingId;
+use rizlium_render::ChartProvider;
 use std::marker::PhantomData;
 
 use egui::{Slider, Ui, UiBuilder};
-use rizlium_render::GameChart;
 
-use crate::widgets::enum_selector;
+use crate::{project::ProjectState, widgets::enum_selector};
 
 pub(crate) fn show_window<T: ToolConfig>(ui: &mut Ui, world: &mut World) {
     let child = {
@@ -68,7 +68,7 @@ pub struct PencilToolConfig {
 }
 
 impl PencilToolConfig {
-    pub(crate) fn system(In(mut ui): In<Ui>, mut this: ResMut<Self>, chart: Res<GameChart>) {
+    pub(crate) fn system(In(mut ui): In<Ui>, mut this: ResMut<Self>, chart: Res<ProjectState>) {
         ui.columns(2, |uis| {
             let [uil, uir] = uis else {
                 // must be two
@@ -77,7 +77,7 @@ impl PencilToolConfig {
             uil.label("Canvas index:");
             uir.add(Slider::new(
                 &mut this.canvas,
-                0..=(chart.canvases.len() - 1),
+                0..=(chart.chart().canvases.len() - 1),
             ));
             uil.label("Color: ");
             uir.color_edit_button_srgba(&mut this.pen_color);

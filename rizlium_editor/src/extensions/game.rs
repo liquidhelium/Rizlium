@@ -7,7 +7,8 @@ use bevy::{
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::Ui;
-use rizlium_render::{notes::NoteTexture, GameChart, GameTime, GameView, TimeControlEvent, TimeManager};
+use rizlium_render::{notes::NoteTexture, GameTime, GameView};
+use crate::{project::ProjectState, time_and_audio::{TimeControlEvent, TimeManager as AudioTimeManager}};
 use rust_i18n::t;
 
 use crate::{open_dialog, save_chart, widgets::recent_file_buttons, LoadChartEvent, PendingDialog};
@@ -50,7 +51,7 @@ impl Plugin for Game {
                 "game.save_chart",
                 [Hotkey::new(
                     [ControlLeft, KeyS],
-                    resource_exists::<GameChart>,
+                    resource_exists::<ProjectState>,
                 )],
             )
             .register_hotkey("game.time.advance", [Hotkey::new_global([ArrowRight])])
@@ -77,7 +78,7 @@ impl Plugin for Game {
                         t!("action.save_chart"),
                         menu::Button::new_conditioned(
                             "game.save_chart",
-                            resource_exists::<GameChart>,
+                            resource_exists::<ProjectState>,
                         ),
                         1,
                     );
@@ -148,7 +149,8 @@ fn scroll_time(
 mod time_systems {
     const SINGLE_TIME: f32 = 1.0;
     use bevy::ecs::{event::EventWriter, system::In};
-    use rizlium_render::TimeControlEvent::{self, *};
+    use crate::time_and_audio::TimeControlEvent;
+    use crate::time_and_audio::TimeControlEvent::*;
     pub fn advance_time(mut ev: EventWriter<TimeControlEvent>) {
         ev.write(Advance(SINGLE_TIME));
     }
@@ -181,7 +183,7 @@ pub fn game_view_tab(
     InMut(mut ui): InMut<Ui>,
     gameview: Res<GameView>,
     textures: Res<EguiUserTextures>,
-    time: Res<TimeManager>,
+    time: Res<AudioTimeManager>,
     game_time: Res<GameTime>,
     mut ev: EventWriter<TimeControlEvent>,
 ) {

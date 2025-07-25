@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use bevy::ecs::component::Tick;
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
 use rizlium_chart::chart::{EasingId, KeyPoint, LinePointData, Tween};
@@ -8,9 +10,9 @@ use bevy::{prelude::*, render::view::RenderLayers};
 
 use bevy::render::primitives::Aabb;
 
-use crate::GameChartCache;
+use crate::{ChartProvider, GameChartCache};
 
-use super::{colorrgba_to_color, GameChart, GameTime};
+use super::{colorrgba_to_color, GameTime};
 
 #[derive(Debug, PartialEq, Eq, SystemSet, Clone, Hash)]
 pub enum LineRenderingSystemSet {
@@ -76,33 +78,35 @@ impl Default for ChartLineBundle {
     }
 }
 
-pub struct ChartLinePlugin;
-
+pub struct ChartLinePlugin<P: ChartProvider>(PhantomData<P>);
+use super::default_ph;
+default_ph!(ChartLinePlugin<P>);
 use super::chart_update;
 
-impl Plugin for ChartLinePlugin {
+impl<P: ChartProvider> Plugin for ChartLinePlugin<P> {
     fn build(&self, app: &mut App) {
         app.init_resource::<ShowLines>()
             .add_systems(
                 First,
-                add_segments
+                add_segments::<P>
                     .in_set(LineRenderingSystemSet::SyncChart)
-                    .run_if(resource_exists_and_changed::<GameChart>),
+                    .run_if(resource_exists_and_changed::<P>),
             )
             .add_systems(
                 PreUpdate,
-                associate_segment.run_if(resource_exists_and_changed::<GameChart>),
+                associate_segment::<P>.run_if(resource_exists_and_changed::<P>),
             )
             .add_systems(
                 PostUpdate,
-                (change_bounding, update_shape, update_stroke, update_layer)
+                (change_bounding::<P>, update_shape::<P>, update_stroke::<P>, update_layer)
                     .in_set(LineRenderingSystemSet::Rendering)
-                    .run_if(chart_update!()),
+                    .run_if(chart_update!(P)),
             );
     }
 }
 
-fn add_segments(mut commands: Commands, chart: Res<GameChart>, lines: Query<&ChartLine>) {
+fn add_segments<P: ChartProvider>(mut commands: Commands, provider: Res<P>, lines: Query<&ChartLine>) {
+    let chart = provider.chart();
     let segment_count = chart.segment_count();
     let now_count = lines.iter().count();
     let delta = segment_count - now_count;
@@ -112,12 +116,13 @@ fn add_segments(mut commands: Commands, chart: Res<GameChart>, lines: Query<&Cha
     }
 }
 
-fn change_bounding(
-    chart: Res<GameChart>,
+fn change_bounding<P: ChartProvider>(
+    provider: Res<P>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
     mut lines: Query<(&mut Aabb, &mut Transform, &Stroke, &ChartLineId)>,
 ) {
+    let chart = provider.chart();
     lines
         .iter_mut()
         .for_each(|(mut vis, mut transform, stroke, id)| {
@@ -147,9 +152,9 @@ fn change_bounding(
         });
 }
 
-fn associate_segment(
+fn associate_segment<P: ChartProvider>(
     mut commands: Commands,
-    chart: Res<GameChart>,
+    chart: Res<P>,
     lines: Query<Entity, With<ChartLine>>,
 ) {
     debug!("running system assocate_segment");
@@ -172,8 +177,8 @@ fn associate_segment(
 //     update_color(chart, cache, time, lines);
 // }
 
-fn update_shape(
-    chart: Res<GameChart>,
+fn update_shape<P: ChartProvider>(
+    provider: Res<P>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
     mut lines: Query<(
@@ -185,6 +190,7 @@ fn update_shape(
         &mut Visibility,
     )>,
 ) {
+    let chart = provider.chart();
     lines
         .iter_mut()
         // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
@@ -209,7 +215,7 @@ fn update_shape(
                 return;
             }
             if !is_shape_changed(keypoint1, keypoint2)
-                && (synced.shape.get() >= chart.last_changed().get())
+                && (synced.shape.get() >= provider.last_changed().get())
             {
                 return;
             }
@@ -259,14 +265,14 @@ fn update_shape(
                 builder.line_to(Vec2::from_array(pos) - Vec2::from_array(pos1));
             }
             *path = builder.build();
-            synced.shape = chart.last_changed();
+            synced.shape = provider.last_changed();
         });
 }
 
 const DEBUG_INVISIBLE: Color = Color::LinearRgba(LinearRgba::new(1., 0., 1., 0.2));
 
-fn update_stroke(
-    chart: Res<GameChart>,
+fn update_stroke<P: ChartProvider>(
+    provider: Res<P>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
     mut lines: Query<(
@@ -277,6 +283,7 @@ fn update_stroke(
         &mut LastSyncTick,
     )>,
 ) {
+    let chart = provider.chart();
     lines
         .iter_mut()
         .for_each(|(mut stroke, _, vis, id, mut synced)| {
@@ -324,7 +331,7 @@ fn update_stroke(
                 stops: vec![GradientStop::new(0., color1), GradientStop::new(1., color2)],
             };
             stroke.brush = Brush::Gradient(gradient.into());
-            synced.color = chart.last_changed();
+            synced.color = provider.last_changed();
         });
 }
 
