@@ -4,26 +4,38 @@ use std::{path::PathBuf, time::Duration};
 
 use bevy::{
     diagnostic::FrameCount,
+    ecs::system::RunSystemOnce as _,
     prelude::*,
     window::{PresentMode, PrimaryWindow, RequestRedraw},
 };
+use bevy_egui::EguiContext;
 use bevy_persistent::Persistent;
-use egui::{Color32, Label, Rect, RichText, Ui, UiBuilder, Widget};
+use egui::{Color32, Label, Layout, Rect, RichText, Ui, UiBuilder, Widget};
+use egui_dock::DockArea;
+use helium_framework::{
+    menu::EditorMenuEntrys,
+    prelude::{FocusedTab, HeTabViewer, TabRegistry},
+    widgets::widget,
+};
 // use egui_tracing::EventCollector;
-use rizlium_render::GameTime;
+use rizlium_render::{ChartProvider as _, GameTime};
 i18n!();
 
 use rust_i18n::i18n;
 pub use ui::*;
 mod editor_actions;
 pub mod extensions;
-pub mod settings_module;
-pub mod utils;
 pub mod project;
+pub mod settings_module;
 pub mod time_and_audio;
+pub mod utils;
 pub use editor_actions::*;
 pub use project::*;
-pub mod extra_window_control;
+
+use crate::{
+    extensions::command_panel::command_panel,
+    ui::theme::{tab_theme, top_bar_theme},
+};
 mod ui;
 #[derive(Debug, Resource, Default)]
 pub struct EditorState {
@@ -99,13 +111,14 @@ pub fn ui_when_no_dock(
                         // get recent file name from recent string (os independent)
                         let path = PathBuf::from(recent);
                         let name = path.file_name().unwrap_or_default().to_string_lossy();
-                        let path =path.parent().map(|p|p.to_string_lossy()).unwrap_or_default();
+                        let path = path
+                            .parent()
+                            .map(|p| p.to_string_lossy())
+                            .unwrap_or_default();
                         if ui.hyperlink(name).clicked() {
                             events.write(LoadChartEvent(recent.clone()));
                         }
-                        Label::new(
-                            path
-                        ).truncate().ui(ui);
+                        Label::new(path).truncate().ui(ui);
                     });
                 }
             });
@@ -152,4 +165,120 @@ fn change_render_type(mut window: Query<&mut Window, With<PrimaryWindow>>) -> Re
 
 fn update_type_changing(mut event: EventWriter<RequestRedraw>) {
     event.write(RequestRedraw);
+}
+
+pub struct MainUIPlugin;
+
+impl Plugin for MainUIPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, setup_font)
+            .add_systems(Update, (editor_main, input_state_update));
+    }
+}
+fn setup_font(mut context: Query<&mut EguiContext>) {
+    use egui::{FontData, FontDefinitions, FontFamily};
+    context.iter_mut().for_each(|mut c| {
+        debug!("Setting up fonts for egui");
+        let mut fonts = FontDefinitions::default();
+        fonts.font_data.insert(
+            "SourceHanSansSC".to_owned(),
+            FontData::from_static(include_bytes!("../assets/SourceHanSansSC.otf")).into(),
+        ); // .ttf and .otf supported
+        fonts
+            .families
+            .get_mut(&FontFamily::Proportional)
+            .unwrap()
+            .insert(0, "SourceHanSansSC".to_owned());
+        c.get_mut().set_fonts(fonts);
+        debug!("Fonts set up successfully");
+    });
+}
+
+fn editor_main(world: &mut World) -> Result {
+    let mut egui_context = world.query_filtered::<&mut EguiContext, With<PrimaryWindow>>();
+    let mut binding = egui_context.single_mut(world)?;
+    let ctx = &binding.get_mut().clone();
+
+    ctx.all_styles_mut(|style| {
+        style.visuals.widgets.noninteractive.bg_stroke.width = 0.5;
+        style.visuals.window_corner_radius = 0.0.into();
+    });
+
+    top_bar_ui(ctx, world);
+    main_ui(ctx, world);
+    bottom_ui(ctx, world);
+    Ok(())
+}
+
+fn input_state_update(
+    mut editor_state: ResMut<EditorState>,
+    mut window: Query<&mut EguiContext, With<PrimaryWindow>>,
+) -> Result {
+    editor_state.is_editing_text = window
+        .single_mut()?
+        .get_mut()
+        .output(|out| out.mutable_text_under_cursor);
+    Ok(())
+}
+
+fn top_bar_ui(ctx: &egui::Context, world: &mut World) {
+    egui::TopBottomPanel::top("menu").show(ctx, |ui| {
+        ui.horizontal(|ui| {
+            world.resource_scope(|world: &mut World, mut entries: Mut<EditorMenuEntrys>| {
+                ui.style_mut().visuals = top_bar_theme();
+                entries.foreach_ui(ui, world);
+            });
+            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                world.resource_scope(|_world, fps: Mut<'_, NowFps>| {
+                    ui.label(format!("fps: {}", fps.0));
+                });
+            });
+        });
+        widget(world, ui, command_panel);
+    });
+}
+
+fn bottom_ui(ctx: &egui::Context, world: &mut World) {
+    // todo: status into extension
+    egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
+        ui.horizontal_centered(|ui| {
+            if world
+                .run_system_once(ProjectState::has_chart_system())
+                .is_ok_and(|ok| ok)
+            {
+                let chart = world.resource::<ProjectState>();
+                ui.label("Ready");
+                ui.separator();
+                ui.label(format!("{} segments", chart.segment_count()));
+                ui.separator();
+                ui.label(format!("{} notes", chart.note_count()));
+            } else {
+                ui.label("No chart loaded");
+            }
+        });
+    });
+}
+
+fn main_ui(ctx: &egui::Context, world: &mut World) {
+    world.resource_scope(|world: &mut World, mut registry: Mut<'_, TabRegistry>| {
+        world.resource_scope(
+            |world: &mut World, mut state: Mut<'_, Persistent<RizliumDockState>>| {
+                if state.0.main_surface().is_empty() {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        widget(world, ui, ui_when_no_dock);
+                    });
+                }
+                DockArea::new(&mut state.0).style(tab_theme(ctx)).show(
+                    ctx,
+                    &mut HeTabViewer {
+                        registry: &mut registry,
+                        world,
+                    },
+                );
+                world.resource_mut::<FocusedTab>().0 =
+                    state.0.find_active_focused().unzip().1.cloned();
+                // todo: move this into proper file
+            },
+        );
+    });
 }

@@ -1,3 +1,6 @@
+pub mod widgets;
+pub mod theme;
+
 use bevy::{
     asset::uuid::Uuid,
     ecs::{
@@ -12,7 +15,6 @@ use bevy::{
 use bevy_persistent::Persistent;
 use egui_dock::{DockState, Tree};
 
-pub mod widgets;
 use helium_framework::prelude::TabId;
 use serde::{Deserialize, Serialize};
 
