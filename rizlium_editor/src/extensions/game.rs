@@ -23,12 +23,18 @@ impl Plugin for Game {
     fn build(&self, app: &mut App) {
         use time_systems::*;
         use KeyCode::*;
-        app.reflect_system("game.load_chart", "Load chart file", load_chart)
+        app.reflect_system("game.load_bundle", "Load chart bundle", load_bundle)
+            .reflect_system("game.load_path", "Load chart path", load_path)
             .reflect_system("game.save_chart", "Save current chart to file", save_chart)
             .reflect_system(
-                "game.open_dialog",
-                "Open a dialog to pick chart file and load it",
-                open_dialog_and_load_chart,
+                "game.open_bundle_dialog",
+                "Open a dialog to pick chart bundle file and load it",
+                open_bundle_dialog,
+            )
+            .reflect_system(
+                "game.open_path_dialog",
+                "Open a dialog to pick chart folder and load it",
+                open_path_dialog,
             )
             .reflect_system("game.time.advance", "Advance game time", advance_time)
             .reflect_system("game.time.rewind", "Rewind game time", rewind_time)
@@ -44,8 +50,12 @@ impl Plugin for Game {
                 toggle_enable_scroll_time,
             )
             .register_hotkey(
-                "game.open_dialog",
+                "game.open_bundle_dialog",
                 [Hotkey::new_global([ControlLeft, KeyO])],
+            )
+            .register_hotkey(
+                "game.open_path_dialog",
+                [Hotkey::new_global([ControlLeft, ShiftLeft, KeyO])],
             )
             .register_hotkey(
                 "game.save_chart",
@@ -68,10 +78,16 @@ impl Plugin for Game {
             .menu_context(|mut ctx| {
                 ctx.with_sub_menu("file", t!("file.tab"), 0, |mut ctx| {
                     ctx.add(
-                        "open_chart",
-                        t!("action.open_chart"),
-                        menu::Button::new("game.open_dialog"),
+                        "open_bundle",
+                        t!("action.open_bundle"),
+                        menu::Button::new("game.open_bundle_dialog"),
                         0,
+                    );
+                    ctx.add(
+                        "open_path",
+                        t!("action.open_path"),
+                        menu::Button::new("game.open_path_dialog"),
+                        1,
                     );
                     ctx.add(
                         "save_chart",
@@ -80,7 +96,7 @@ impl Plugin for Game {
                             "game.save_chart",
                             ProjectState::has_chart_system(),
                         ),
-                        1,
+                        2,
                     );
                     ctx.with_category("recent_files", t!("file.recent_files"), 2, |mut ctx| {
                         ctx.add(
@@ -115,20 +131,37 @@ fn load_textures(server: Res<AssetServer>,mut commands: Commands) {
     });
 }
 
-fn load_chart(
+fn load_bundle(
     path: In<String>,
     mut load: EventWriter<LoadChartEvent>,
     _to_recent_file: (), /* todo */
 ) {
-    load.write(LoadChartEvent(path.0));
+    load.write(LoadChartEvent::Bundle(path.0));
+}
+
+fn load_path(
+    path: In<String>,
+    mut load: EventWriter<LoadChartEvent>,
+    _to_recent_file: (), /* todo */
+) {
+    load.write(LoadChartEvent::Path(path.0));
 }
 
 fn save_chart(mut events: EventWriter<SaveChartEvent>) {
     events.write(SaveChartEvent);
 }
 
+fn open_bundle_dialog(mut state: ResMut<ProjectState>) {
+    state.open_bundle_dialog();
+}
+
+fn open_path_dialog(mut state: ResMut<ProjectState>) {
+    state.open_path_dialog();
+}
+
+#[deprecated(note = "Use open_bundle_dialog instead")]
 fn open_dialog_and_load_chart(mut state: ResMut<ProjectState>) {
-    state.open_dialog();
+    state.open_bundle_dialog();
 }
 
 #[derive(Resource, Default)]

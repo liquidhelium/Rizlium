@@ -33,7 +33,7 @@ impl ManualEditorCommands {
     pub fn load_chart(&mut self, path: String) {
         let dup = path.clone();
         self.commands.push(|world: &mut World| {
-            world.send_event(LoadChartEvent(dup));
+            world.send_event(LoadChartEvent::Bundle(dup));
         });
         self.update_recent(path);
     }

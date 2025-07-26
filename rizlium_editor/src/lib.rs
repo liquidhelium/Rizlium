@@ -116,7 +116,7 @@ pub fn ui_when_no_dock(
                             .map(|p| p.to_string_lossy())
                             .unwrap_or_default();
                         if ui.hyperlink(name).clicked() {
-                            events.write(LoadChartEvent(recent.clone()));
+                            events.write(LoadChartEvent::Bundle(recent.clone()));
                         }
                         Label::new(path).truncate().ui(ui);
                     });
