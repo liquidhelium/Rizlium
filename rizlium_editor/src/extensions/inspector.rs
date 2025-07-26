@@ -35,7 +35,7 @@ impl Plugin for Inspector {
             "inspector",
             t!("inspector.tab"),
             logs,
-            resource_exists::<ProjectState>,
+            ProjectState::has_chart_system(),
         )
         .init_resource::<SelectedItem>();
         app.register_tab(

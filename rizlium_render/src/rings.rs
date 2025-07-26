@@ -12,7 +12,7 @@ impl<P: ChartProvider> Plugin for RingPlugin<P> {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            add_rings::<P>.run_if(resource_exists_and_changed::<P>),
+            add_rings::<P>.run_if(P::has_chart_system().and(resource_changed::<P>)),
         )
         .add_systems(
             Update,

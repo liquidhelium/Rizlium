@@ -29,19 +29,19 @@ impl Plugin for Editing {
             "edit.note",
             t!("edit.note.tab"),
             note_window,
-            resource_exists::<ProjectState>,
+            ProjectState::has_chart_system(),
         )
         .register_tab(
             "edit.spline",
             t!("edit.spline.tab"),
             spline_edit,
-            resource_exists::<ProjectState>,
+            ProjectState::has_chart_system(),
         )
         .register_tab(
             "edit.tool_config",
             t!("edit.tool_config.tab"),
             tool_config,
-            resource_exists::<ProjectState>,
+            ProjectState::has_chart_system(),
         );
 
         app.add_plugins(world_view::WorldViewPlugin)
@@ -59,7 +59,7 @@ impl Plugin for Editing {
                     t!("edit.undo.name"),
                     Button::new_conditioned(
                         "edit.undo",
-                        resource_exists::<ProjectState>
+                        ProjectState::has_chart_system()
                             .and(|history: Res<ChartEditHistory>| history.can_undo()),
                     ),
                     0,
@@ -69,7 +69,7 @@ impl Plugin for Editing {
                     t!("edit.redo.name"),
                     Button::new_conditioned(
                         "edit.redo",
-                        resource_exists::<ProjectState>
+                        ProjectState::has_chart_system()
                             .and(|history: Res<ChartEditHistory>| history.can_redo()),
                     ),
                     1,

@@ -263,8 +263,8 @@ fn get_event_type(response: &Response, drag_delta: egui::Vec2) -> MouseEventType
 // 长类型让我抓狂
 macro_rules! chart_update {
     () => {
-        resource_exists::<ProjectState>
-            .and(resource_exists_and_changed::<ProjectState>.or(resource_changed::<GameTime>))
+        ProjectState::has_chart_system()
+            .and(resource_changed::<ProjectState>.or(resource_changed::<GameTime>))
     };
 }
 
@@ -274,11 +274,11 @@ impl Plugin for PointIndicatorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            add_points_indicator.run_if(resource_exists_and_changed::<ProjectState>),
+            add_points_indicator.run_if(ProjectState::has_chart_system().and(resource_changed::<ProjectState>)),
         )
         .add_systems(
             Update,
-            (associate_segment,).run_if(resource_exists_and_changed::<ProjectState>),
+            (associate_segment,).run_if(ProjectState::has_chart_system().and(resource_changed::<ProjectState>)),
         )
         .add_systems(Update, (update_shape).run_if(chart_update!()));
     }

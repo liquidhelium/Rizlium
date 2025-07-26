@@ -14,14 +14,14 @@ impl<P: ChartProvider> Plugin for ChartNotePlugin<P> {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            (add_notes::<P>,).run_if(resource_exists_and_changed::<P>),
+            (add_notes::<P>,).run_if(P::has_chart_system().and(resource_changed::<P>)),
         )
-        .add_systems(Update, assocate_note::<P>.run_if(resource_exists::<P>))
+        .add_systems(Update, assocate_note::<P>.run_if(P::has_chart_system()))
         .add_systems(
             PostUpdate,
             (
                 (update_note::<P>).run_if(chart_update!(P)),
-                update_note_kind::<P>.run_if(resource_exists_and_changed::<P>),
+                update_note_kind::<P>.run_if(P::has_chart_system().and(resource_changed::<P>)),
             ),
         );
     }

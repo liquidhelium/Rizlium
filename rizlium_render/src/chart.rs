@@ -5,6 +5,8 @@ use crate::default_ph;
 
 /// Trait for types that can provide chart data as a Bevy resource
 pub trait ChartProvider: Resource {
+    fn has_chart_system() -> impl Condition<()>;
+
     /// Get the current chart
     fn chart(&self) -> &Chart;
     
@@ -41,7 +43,7 @@ impl<P: ChartProvider> Plugin for ChartCachePlugin<P> {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            chart_cache::<P>.run_if(resource_exists_and_changed::<P>),
+            chart_cache::<P>.run_if(P::has_chart_system().and(resource_changed::<P>)),
         );
     }
 }

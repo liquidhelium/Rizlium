@@ -90,22 +90,31 @@ impl<P: ChartProvider> Plugin for ChartLinePlugin<P> {
                 First,
                 add_segments::<P>
                     .in_set(LineRenderingSystemSet::SyncChart)
-                    .run_if(resource_exists_and_changed::<P>),
+                    .run_if(P::has_chart_system().and(resource_changed::<P>)),
             )
             .add_systems(
                 PreUpdate,
-                associate_segment::<P>.run_if(resource_exists_and_changed::<P>),
+                associate_segment::<P>.run_if(P::has_chart_system().and(resource_changed::<P>)),
             )
             .add_systems(
                 PostUpdate,
-                (change_bounding::<P>, update_shape::<P>, update_stroke::<P>, update_layer)
+                (
+                    change_bounding::<P>,
+                    update_shape::<P>,
+                    update_stroke::<P>,
+                    update_layer,
+                )
                     .in_set(LineRenderingSystemSet::Rendering)
                     .run_if(chart_update!(P)),
             );
     }
 }
 
-fn add_segments<P: ChartProvider>(mut commands: Commands, provider: Res<P>, lines: Query<&ChartLine>) {
+fn add_segments<P: ChartProvider>(
+    mut commands: Commands,
+    provider: Res<P>,
+    lines: Query<&ChartLine>,
+) {
     let chart = provider.chart();
     let segment_count = chart.segment_count();
     let now_count = lines.iter().count();

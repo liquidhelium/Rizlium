@@ -1,3 +1,4 @@
+use bevy::ecs::system::RunSystemOnce;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use helium_framework::menu::EditorMenuEntrys;
 use helium_framework::prelude::HeTabViewer;
@@ -23,8 +24,8 @@ use rizlium_editor::{
  CountFpsPlugin, EditorState, ManualEditorCommands, NowFps, RecentFiles,
     RizTabPresets,
 };
-use rizlium_editor::project::ProjectState;
-use rizlium_render::RizliumRenderingPlugin;
+use rizlium_editor::project::{ProjectPlugin, ProjectState};
+use rizlium_render::{ChartProvider, RizliumRenderingPlugin};
 
 fn main() {
     App::new()
@@ -43,7 +44,9 @@ fn main() {
             ChartLoadingPlugin,
             ExtensionsPlugin,
             ExtraWindowControlPlugin,
-            EditorAudioPlugin
+            EditorAudioPlugin,
+            ProjectPlugin
+
         ))
         .init_resource::<EditorState>()
         .insert_resource(RizliumDockStateMirror::default())
@@ -136,7 +139,7 @@ fn egui_render(world: &mut World) -> Result<()> {
     // todo: status into extension
     egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
         ui.horizontal_centered(|ui| {
-            if world.contains_resource::<ProjectState>() {
+            if world.run_system_once(ProjectState::has_chart_system()).is_ok_and(|ok| ok) {
                 let chart = world.resource::<ProjectState>();
                 ui.label("Ready");
                 ui.separator();

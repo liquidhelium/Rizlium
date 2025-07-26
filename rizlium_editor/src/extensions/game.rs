@@ -7,7 +7,7 @@ use bevy::{
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::Ui;
-use rizlium_render::{notes::NoteTexture, GameTime, GameView};
+use rizlium_render::{notes::NoteTexture, ChartProvider as _, GameTime, GameView};
 use crate::{project::ProjectState, time_and_audio::{TimeControlEvent, TimeManager as AudioTimeManager}};
 use rust_i18n::t;
 
@@ -51,7 +51,7 @@ impl Plugin for Game {
                 "game.save_chart",
                 [Hotkey::new(
                     [ControlLeft, KeyS],
-                    resource_exists::<ProjectState>,
+                    ProjectState::has_chart_system(),
                 )],
             )
             .register_hotkey("game.time.advance", [Hotkey::new_global([ArrowRight])])
@@ -78,7 +78,7 @@ impl Plugin for Game {
                         t!("action.save_chart"),
                         menu::Button::new_conditioned(
                             "game.save_chart",
-                            resource_exists::<ProjectState>,
+                            ProjectState::has_chart_system(),
                         ),
                         1,
                     );

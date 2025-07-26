@@ -19,8 +19,7 @@ use theme::BackgroundThemePlugin;
 #[macro_export]
 macro_rules! chart_update {
     ($provider:ty) => {
-        resource_exists::<$provider>
-        // .and(resource_exists_and_changed::<$provider>.or(resource_changed::<GameTime>))
+        P::has_chart_system().and(resource_changed::<P>.or(resource_changed::<GameTime>))
     };
 }
 
