@@ -15,17 +15,14 @@ i18n!();
 
 use rust_i18n::i18n;
 pub use ui::*;
-mod chart_loader;
 mod editor_actions;
 pub mod extensions;
-mod files;
 pub mod settings_module;
 pub mod utils;
 pub mod project;
 pub mod time_and_audio;
-pub use chart_loader::{ChartLoadingEvent, ChartLoadingPlugin, LoadChartEvent};
 pub use editor_actions::*;
-pub use files::*;
+pub use project::*;
 pub mod extra_window_control;
 mod ui;
 #[derive(Debug, Resource, Default)]

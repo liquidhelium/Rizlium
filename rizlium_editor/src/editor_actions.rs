@@ -1,5 +1,4 @@
-use crate::LoadChartEvent;
-use crate::{files::open_dialog, files::PendingDialog, RecentFiles};
+use crate::project::{LoadChartEvent, ProjectState, RecentFiles, SaveChartEvent};
 use bevy::ecs::system::{SystemBuffer, SystemMeta, SystemParam};
 use bevy::ecs::world::CommandQueue;
 use bevy::prelude::*;
@@ -40,8 +39,8 @@ impl ManualEditorCommands {
     }
     pub fn open_dialog_and_load_chart(&mut self) {
         self.commands.push(|world: &mut World| {
-            let mut res = world.resource_mut::<PendingDialog>();
-            open_dialog(&mut res);
+            let mut state = world.resource_mut::<ProjectState>();
+            state.open_dialog();
         });
     }
     pub fn update_recent(&mut self, path: String) {

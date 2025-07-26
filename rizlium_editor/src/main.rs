@@ -10,7 +10,7 @@ use rizlium_editor::extra_window_control::{DragWindowRequested, ExtraWindowContr
 use rizlium_editor::settings_module::SettingsPlugin;
 use rizlium_editor::time_and_audio::EditorAudioPlugin;
 use rizlium_editor::{
-    sync_dock_state, ui_when_no_dock, ChartLoadingPlugin, FilePlugin, RizliumDockState, RizliumDockStateMirror, WindowUpdateControlPlugin
+    sync_dock_state, ui_when_no_dock, RizliumDockState, RizliumDockStateMirror, WindowUpdateControlPlugin
 };
 
 use bevy::window::PrimaryWindow;
@@ -39,9 +39,7 @@ fn main() {
             helium_framework::HeliumFramework,
             CountFpsPlugin,
             WindowUpdateControlPlugin,
-            FilePlugin,
             SettingsPlugin,
-            ChartLoadingPlugin,
             ExtensionsPlugin,
             ExtraWindowControlPlugin,
             EditorAudioPlugin,

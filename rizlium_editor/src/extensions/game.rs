@@ -11,7 +11,7 @@ use rizlium_render::{notes::NoteTexture, ChartProvider as _, GameTime, GameView}
 use crate::{project::ProjectState, time_and_audio::{TimeControlEvent, TimeManager as AudioTimeManager}};
 use rust_i18n::t;
 
-use crate::{open_dialog, save_chart, widgets::recent_file_buttons, LoadChartEvent, PendingDialog};
+use crate::{widgets::recent_file_buttons, LoadChartEvent, SaveChartEvent};
 use helium_framework::{
     menu::{self, Custom, MenuExt},
     prelude::*,
@@ -123,8 +123,12 @@ fn load_chart(
     load.write(LoadChartEvent(path.0));
 }
 
-fn open_dialog_and_load_chart(mut dialog: ResMut<PendingDialog>) {
-    open_dialog(&mut dialog)
+fn save_chart(mut events: EventWriter<SaveChartEvent>) {
+    events.write(SaveChartEvent);
+}
+
+fn open_dialog_and_load_chart(mut state: ResMut<ProjectState>) {
+    state.open_dialog();
 }
 
 #[derive(Resource, Default)]
