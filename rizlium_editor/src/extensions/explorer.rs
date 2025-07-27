@@ -58,7 +58,7 @@ fn explorer_tab(
     let ui = &mut ui;
 
     let current_path = state.current_path.clone();
-    handle_keyboard_events(ui.ctx(), &mut state, current_path.as_ref());
+    handle_keyboard_events(ui.ctx(), &mut state, current_path.as_ref(), &mut commands);
 
     // 顶部工具栏
     ui.horizontal(|ui| {
@@ -94,7 +94,7 @@ fn explorer_tab(
     let files = state.files.clone();
     
     if let Some(path) = current_path {
-        folder_view(ui, &path, &files, &mut state);
+        folder_view(ui, &path, &files, &mut state, &mut commands);
     } else {
         welcome_view(ui, project.into());
     }
@@ -144,7 +144,7 @@ fn welcome_view(ui: &mut Ui, mut project: Mut<ProjectState>) {
     });
 }
 
-fn folder_view(ui: &mut Ui, path: &Path, files: &[FileEntry], state: &mut ExplorerState) {
+fn folder_view(ui: &mut Ui, path: &Path, files: &[FileEntry], state: &mut ExplorerState, commands: &mut Commands) {
     // 克隆需要的状态，避免借用冲突
     let creating_new = state.creating_new.clone();
     let renaming = state.renaming.clone();
@@ -162,7 +162,7 @@ fn folder_view(ui: &mut Ui, path: &Path, files: &[FileEntry], state: &mut Explor
                 if response.lost_focus() {
                     let trimmed_name = name.trim();
                     if !trimmed_name.is_empty() && validate_filename(trimmed_name, files) {
-                        create_new_item(path, trimmed_name, new_item.is_dir, state);
+                        create_new_item(path, trimmed_name, new_item.is_dir, state, commands);
                     }
                     state.creating_new = None;
                 } else {
@@ -181,7 +181,7 @@ fn folder_view(ui: &mut Ui, path: &Path, files: &[FileEntry], state: &mut Explor
                     continue;
                 }
 
-                let is_renaming = renaming.as_ref().map_or(false, |r| r.path == file.path);
+                let is_renaming = renaming.as_ref().is_some_and(|r| r.path == file.path);
                 
                 if is_renaming {
                     if let Some(rename_state) = renaming.clone() {
@@ -194,7 +194,7 @@ fn folder_view(ui: &mut Ui, path: &Path, files: &[FileEntry], state: &mut Explor
                                 let trimmed_name = new_name.trim();
                                 if !trimmed_name.is_empty() && trimmed_name != rename_state.old_name {
                                     if validate_filename(trimmed_name, files) {
-                                        rename_item(&rename_state.path, trimmed_name, state);
+                                        rename_item(&rename_state.path, trimmed_name, state, commands);
                                     }
                                 }
                                 state.renaming = None;
@@ -221,6 +221,23 @@ fn folder_view(ui: &mut Ui, path: &Path, files: &[FileEntry], state: &mut Explor
                         if response.hovered() {
                             response.clone().highlight();
                         }
+
+                        // 右键菜单
+                        let context_menu_response = response.context_menu(|ui| {
+                            if ui.button("重命名").clicked() {
+                                state.renaming = Some(RenameState {
+                                    path: file.path.clone(),
+                                    old_name: file.name.clone(),
+                                    new_name: file.name.clone(),
+                                });
+                                ui.close_menu();
+                            }
+                            
+                            if ui.button("删除").clicked() {
+                                delete_item(&file.path, state, commands);
+                                ui.close_menu();
+                            }
+                        });
 
                         // 双击重命名
                         if response.double_clicked() {
@@ -292,7 +309,7 @@ fn validate_filename(name: &str, existing_files: &[FileEntry]) -> bool {
 }
 
 // 创建新文件或文件夹
-fn create_new_item(path: &Path, name: &str, is_dir: bool, state: &mut ExplorerState) {
+fn create_new_item(path: &Path, name: &str, is_dir: bool, state: &mut ExplorerState, commands: &mut Commands) {
     let new_path = path.join(name);
     
     if is_dir {
@@ -309,11 +326,11 @@ fn create_new_item(path: &Path, name: &str, is_dir: bool, state: &mut ExplorerSt
     state.is_loading = true;
     let path_clone = path.to_path_buf();
     let task = IoTaskPool::get().spawn(async move { read_folder_contents(&path_clone).await });
-    // 注意：实际的任务处理由handle_explorer_loading系统处理
+    commands.insert_resource(ExplorerLoading { task });
 }
 
 // 重命名文件或文件夹
-fn rename_item(old_path: &Path, new_name: &str, state: &mut ExplorerState) {
+fn rename_item(old_path: &Path, new_name: &str, state: &mut ExplorerState, commands: &mut Commands) {
     if let Some(parent) = old_path.parent() {
         let new_path = parent.join(new_name);
         
@@ -326,7 +343,30 @@ fn rename_item(old_path: &Path, new_name: &str, state: &mut ExplorerState) {
         state.is_loading = true;
         let path_clone = parent.to_path_buf();
         let task = IoTaskPool::get().spawn(async move { read_folder_contents(&path_clone).await });
-        // 注意：实际的任务处理由handle_explorer_loading系统处理
+        commands.insert_resource(ExplorerLoading { task });
+    }
+}
+
+// 删除文件或文件夹
+fn delete_item(path: &Path, state: &mut ExplorerState, commands: &mut Commands) {
+    if let Some(parent) = path.parent() {
+        if path.is_dir() {
+            if let Err(e) = std::fs::remove_dir_all(path) {
+                warn!("Failed to delete directory {}: {}", path.display(), e);
+                return;
+            }
+        } else {
+            if let Err(e) = std::fs::remove_file(path) {
+                warn!("Failed to delete file {}: {}", path.display(), e);
+                return;
+            }
+        }
+        
+        // 刷新文件列表
+        state.is_loading = true;
+        let path_clone = parent.to_path_buf();
+        let task = IoTaskPool::get().spawn(async move { read_folder_contents(&path_clone).await });
+        commands.insert_resource(ExplorerLoading { task });
     }
 }
 
@@ -392,7 +432,7 @@ pub struct ExplorerLoading {
 }
 
 // 处理键盘事件
-fn handle_keyboard_events(ctx: &Context, state: &mut ExplorerState, current_path: Option<&PathBuf>) {
+fn handle_keyboard_events(ctx: &Context, state: &mut ExplorerState, current_path: Option<&PathBuf>, commands: &mut Commands) {
     let mut should_confirm_create = false;
     let mut should_confirm_rename = false;
     
@@ -417,7 +457,7 @@ fn handle_keyboard_events(ctx: &Context, state: &mut ExplorerState, current_path
             let name = new_item.name.trim();
             if !name.is_empty() {
                 if let Some(path) = current_path {
-                    create_new_item(path, name, new_item.is_dir, state);
+                    create_new_item(path, name, new_item.is_dir, state, commands);
                 }
             }
         }
@@ -427,7 +467,7 @@ fn handle_keyboard_events(ctx: &Context, state: &mut ExplorerState, current_path
         if let Some(rename_state) = state.renaming.take() {
             let new_name = rename_state.new_name.trim();
             if !new_name.is_empty() && new_name != rename_state.old_name {
-                rename_item(&rename_state.path, new_name, state);
+                rename_item(&rename_state.path, new_name, state, commands);
             }
         }
     }
