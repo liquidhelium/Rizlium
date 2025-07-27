@@ -59,9 +59,15 @@ pub enum ProjectState {
 
 #[derive(Clone)]
 pub struct LoadedChart {
+    pub source: SourceKind,
     pub chart: Chart,
     pub audio_source: AudioSource,
     pub path: String,
+}
+#[derive(Clone)]
+pub enum SourceKind {
+    Folder,
+    Bundle
 }
 
 #[derive(Debug, Clone)]
@@ -303,13 +309,23 @@ fn handle_chart_loading(
         match result {
             Ok(loaded) => {
                 let path = loaded.path.clone();
-                *state = ProjectState::Loaded(LoadedProject::Bundle(
-                    PathBuf::from(&loaded.path),
-                    loaded.chart,
-                ));
+                match loaded.source {
+                    SourceKind::Folder => {
+                        *state = ProjectState::Loaded(LoadedProject::Folder(
+                            PathBuf::from(path),
+                            loaded.chart,
+                        ));
+                    }
+                    SourceKind::Bundle => {
+                        *state = ProjectState::Loaded(LoadedProject::Bundle(
+                            PathBuf::from(path),
+                            loaded.chart,
+                        ));
+                    }
+                }
                 let handle = asset_server.add(loaded.audio_source);
                 command.insert_resource(GameAudioSource(handle));
-                events.write(ChartLoadingEvent::Success(path));
+                events.write(ChartLoadingEvent::Success(loaded.path));
             }
             Err(err) => {
                 *state = ProjectState::Idle;
@@ -386,6 +402,7 @@ async fn load_chart_from_bundle(path: &str) -> Result<LoadedChart, ChartLoadingE
     };
 
     Ok(LoadedChart {
+        source: SourceKind::Bundle,
         chart,
         audio_source,
         path: path.to_string(),
@@ -420,6 +437,7 @@ async fn load_chart_from_path(path: &str) -> Result<LoadedChart, ChartLoadingErr
     };
 
     Ok(LoadedChart {
+        source: SourceKind::Folder,
         chart,
         audio_source,
         path: path.to_string(),

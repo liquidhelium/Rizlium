@@ -5,6 +5,7 @@ mod editing;
 mod game;
 pub mod i18n;
 mod inspector;
+pub mod explorer;
 
 use std::borrow::Cow;
 

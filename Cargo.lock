@@ -5322,6 +5322,7 @@ dependencies = [
  "snafu",
  "strum",
  "tracing-subscriber",
+ "uuid",
  "zip 0.6.6",
 ]
 

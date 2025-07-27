@@ -117,7 +117,8 @@ impl Plugin for Game {
             (setup_game_view.after(bevy_egui::EguiStartupSet::InitContexts), load_textures),
         )
         .add_systems(Update, scroll_time)
-        .init_resource::<ScrollTimeState>();
+        .init_resource::<ScrollTimeState>()
+        .add_plugins(crate::extensions::explorer::ExplorerPlugin);
     }
 }
 
