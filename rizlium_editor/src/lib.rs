@@ -13,7 +13,7 @@ use bevy_persistent::Persistent;
 use egui::{Color32, Label, Layout, Rect, RichText, Ui, UiBuilder, Widget};
 use egui_dock::DockArea;
 use helium_framework::{
-    menu::EditorMenuEntrys,
+    menu_system::MenuSystem,
     prelude::{FocusedTab, HeTabViewer, TabRegistry},
     widgets::widget,
 };
@@ -36,6 +36,9 @@ use crate::{
     extensions::command_panel::command_panel,
     ui::theme::{tab_theme, top_bar_theme},
 };
+
+#[derive(Debug)]
+pub struct MainMenuContext;
 mod ui;
 #[derive(Debug, Resource, Default)]
 pub struct EditorState {
@@ -224,9 +227,9 @@ fn input_state_update(
 fn top_bar_ui(ctx: &egui::Context, world: &mut World) {
     egui::TopBottomPanel::top("menu").show(ctx, |ui| {
         ui.horizontal(|ui| {
-            world.resource_scope(|world: &mut World, mut entries: Mut<EditorMenuEntrys>| {
+            world.resource_scope(|world: &mut World, mut menu_system: Mut<MenuSystem>| {
                 ui.style_mut().visuals = top_bar_theme();
-                entries.foreach_ui(ui, world);
+                menu_system.show_menu(ui, world, &MainMenuContext);
             });
             ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
                 world.resource_scope(|_world, fps: Mut<'_, NowFps>| {

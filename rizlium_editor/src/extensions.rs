@@ -9,15 +9,9 @@ pub mod explorer;
 
 use std::borrow::Cow;
 
-use bevy::{
-    ecs::world::World,
-    prelude::{App, Deref, DerefMut, Plugin, Resource},
-};
-use snafu::Snafu;
+use bevy::prelude::{App, Plugin};
 
-use helium_framework::menu::{
-    Category, ItemAsContainer, ItemGroup, MenuItem, MenuItemProvider, MenuItemVariant, SubMenu,
-};
+use helium_framework::menu_system::MenuRegistration;
 
 use crate::extensions::debug_flycam::DebugCamExtension;
 

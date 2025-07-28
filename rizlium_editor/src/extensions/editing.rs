@@ -1,9 +1,6 @@
-use helium_framework::{
-    menu::{Button, MenuExt},
-    prelude::*,
-};
+use helium_framework::prelude::*;
 
-use crate::project::ProjectState;
+use crate::{project::ProjectState, MainMenuContext};
 
 use self::{note::note_editor_vertical, tool_config_window::tool_config};
 use bevy::prelude::*;
@@ -51,31 +48,10 @@ impl Plugin for Editing {
         app.reflect_system("edit.redo", t!("edit.redo.desc"), undo_redo::redo);
         use KeyCode::*;
         app.register_hotkey("edit.undo", [Hotkey::new_global([ControlLeft, KeyZ])])
-            .register_hotkey("edit.redo", [Hotkey::new_global([ControlLeft, KeyY])]);
-        app.menu_context(|mut ctx| {
-            ctx.with_sub_menu("edit", t!("edit.name"), 3, |mut ctx| {
-                ctx.add(
-                    "undo",
-                    t!("edit.undo.name"),
-                    Button::new_conditioned(
-                        "edit.undo",
-                        ProjectState::has_chart_system()
-                            .and(|history: Res<ChartEditHistory>| history.can_undo()),
-                    ),
-                    0,
-                );
-                ctx.add(
-                    "redo",
-                    t!("edit.redo.name"),
-                    Button::new_conditioned(
-                        "edit.redo",
-                        ProjectState::has_chart_system()
-                            .and(|history: Res<ChartEditHistory>| history.can_redo()),
-                    ),
-                    1,
-                );
-            });
-        });
+            .register_hotkey("edit.redo", [Hotkey::new_global([ControlLeft, KeyY])])
+            .register_submenu::<MainMenuContext>("edit", t!("edit.name"))
+            .register_command::<MainMenuContext>("edit/undo", t!("edit.undo.name"), "edit.undo")
+            .register_command::<MainMenuContext>("edit/redo", t!("edit.redo.name"), "edit.redo");
     }
 }
 

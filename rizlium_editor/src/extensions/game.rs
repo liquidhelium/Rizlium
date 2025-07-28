@@ -3,19 +3,18 @@ use bevy::{
     prelude::*,
     render::render_resource::{
         Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-    }, transform::commands,
+    },
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::Ui;
 use rizlium_render::{notes::NoteTexture, ChartProvider as _, GameTime, GameView};
-use crate::{project::ProjectState, time_and_audio::{TimeControlEvent, TimeManager as AudioTimeManager}};
+use crate::{project::ProjectState, time_and_audio::{TimeControlEvent, TimeManager as AudioTimeManager}, MainMenuContext};
 use rust_i18n::t;
 
-use crate::{widgets::recent_file_buttons, LoadChartEvent, SaveChartEvent};
+use crate::{LoadChartEvent, SaveChartEvent};
 use helium_framework::{
-    menu::{self, Custom, MenuExt},
+    menu_system::MenuRegistration,
     prelude::*,
-    widgets::widget,
 };
 pub struct Game;
 
@@ -75,41 +74,10 @@ impl Plugin for Game {
                     TriggerType::PressAndRelease,
                 )],
             )
-            .menu_context(|mut ctx| {
-                ctx.with_sub_menu("file", t!("file.tab"), 0, |mut ctx| {
-                    ctx.add(
-                        "open_bundle",
-                        t!("action.open_bundle"),
-                        menu::Button::new("game.open_bundle_dialog"),
-                        0,
-                    );
-                    ctx.add(
-                        "open_path",
-                        t!("action.open_path"),
-                        menu::Button::new("game.open_path_dialog"),
-                        1,
-                    );
-                    ctx.add(
-                        "save_chart",
-                        t!("action.save_chart"),
-                        menu::Button::new_conditioned(
-                            "game.save_chart",
-                            ProjectState::has_chart_system(),
-                        ),
-                        2,
-                    );
-                    ctx.with_category("recent_files", t!("file.recent_files"), 2, |mut ctx| {
-                        ctx.add(
-                            "recent_files_inner",
-                            "_".into(),
-                            Custom(Box::new(|ui, world, _| {
-                                widget(world, ui, recent_file_buttons)
-                            })),
-                            0,
-                        );
-                    })
-                });
-            })
+            .register_submenu::<MainMenuContext>("file",  t!("file.tab"))
+            .register_command::<MainMenuContext>("file/open_bundle", t!("action.open_bundle"), "game.open_bundle_dialog")
+            .register_command::<MainMenuContext>("file/open_path", t!("action.open_path"), "game.open_path_dialog")
+            .register_command::<MainMenuContext>("file/save_chart", t!("action.save_chart"), "game.save_chart")
             .register_tab("game.view", t!("game.view.tab"), game_view_tab, || true);
         // bevy systems
         app.add_systems(

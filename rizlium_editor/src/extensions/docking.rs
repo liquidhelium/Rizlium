@@ -3,32 +3,29 @@ use bevy::{asset::uuid::Uuid, prelude::*};
 use bevy_persistent::Persistent;
 use egui::{Sense, TextEdit, Ui, Widget};
 use helium_framework::{
-    menu::{Custom, MenuExt},
-    prelude::ToastsStorage,
-    utils::identifier::Identifier,
-    widgets::widget,
+    menu_system::MenuRegistration,
+    prelude::{ActionsExt, ToastsStorage},
+    utils::identifier::Identifier, widgets::widget,
 };
 use rust_i18n::t;
 
 use crate::{
-    settings_module::{SettingsModuleStruct, SettingsRegistrationExt},
-    widgets::dock_button,
-    RizTabPresets, RizliumDockStateMirror,
+    settings_module::{SettingsModuleStruct, SettingsRegistrationExt}, widgets::dock_button, MainMenuContext, RizTabPresets, RizliumDockStateMirror
 };
 pub struct Docking;
 
 impl Plugin for Docking {
     fn build(&self, app: &mut App) {
-        app.menu_context(|mut ctx| {
-            ctx.with_sub_menu("dock_buttons_menu", "Window".into(), 9, |mut sub| {
-                sub.add(
-                    "dock_buttons",
-                    "_buttons".into(),
-                    Custom(Box::new(|u, w, _| widget(w, u, dock_button))),
-                    0,
-                )
-            });
+        app.reflect_system("docking.button", "A docking Button", |(InMut(ui), InRef(_)): (InMut<Ui>, InRef<MainMenuContext>), world:&mut World| {
+            widget(world, ui, dock_button, );
         });
+        
+        app.register_submenu::<MainMenuContext>("window",  "Window");
+        app.register_custom::<MainMenuContext>(
+            "window/button",
+            "Docking",
+            "docking.button",
+        );
         app.register_settings_module(
             "docking",
             SettingsModuleStruct::new(
