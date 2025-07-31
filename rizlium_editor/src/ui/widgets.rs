@@ -1,7 +1,9 @@
 mod dock_buttons;
 mod recent_file_buttons;
+mod shortcut_display;
 pub use dock_buttons::dock_button;
 pub use recent_file_buttons::recent_file_buttons;
+pub use shortcut_display::shortcut_display;
 
 use bevy::prelude::*;
 use egui::Ui;

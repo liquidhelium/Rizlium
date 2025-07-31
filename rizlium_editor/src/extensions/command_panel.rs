@@ -10,7 +10,7 @@ impl Plugin for CommandPanel {
         use bevy::input::keyboard::KeyCode::*;
         app.reflect_system(
             "command_panel.toggle_open",
-            "Open or close the command panel",
+            "Show all commands",
             toggle_open_command_panel,
         )
         .register_hotkey(

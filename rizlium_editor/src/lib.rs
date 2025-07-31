@@ -8,13 +8,14 @@ use bevy::{
     prelude::*,
     window::{PresentMode, PrimaryWindow, RequestRedraw},
 };
-use bevy_egui::EguiContext;
+use bevy_egui::{EguiContext, EguiContexts, EguiUserTextures};
 use bevy_persistent::Persistent;
-use egui::{Color32, Label, Layout, Rect, RichText, Ui, UiBuilder, Widget};
+use egui::{Color32, Frame, Label, Layout, Rect, RichText, Style, Ui, UiBuilder, Widget};
 use egui_dock::DockArea;
 use helium_framework::{
     menu_system::MenuSystem,
-    prelude::{FocusedTab, HeTabViewer, TabRegistry},
+    prelude::{FocusedTab, HeTabViewer, HotkeyRegistry, RSystemRegistry, TabRegistry},
+    utils::identifier::Identifier,
     widgets::widget,
 };
 // use egui_tracing::EventCollector;
@@ -34,7 +35,7 @@ pub use project::*;
 
 use crate::{
     extensions::command_panel::command_panel,
-    ui::theme::{tab_theme, top_bar_theme},
+    ui::{theme::{tab_theme, top_bar_theme}, widgets::shortcut_display},
 };
 
 #[derive(Debug)]
@@ -51,8 +52,45 @@ pub struct DebugResources {
     pub show_cursor: bool,
 }
 
-// #[derive(Resource)]
-// pub struct EventCollectorResource(pub EventCollector);
+macro_rules! icons_def {
+    ($stru:ident, $func:ident, ($($path:ident),+)) => {
+        #[derive(Resource)]
+        pub struct $stru {
+            $($path: Handle<Image>),+
+        }
+
+
+        fn load_icons(
+            mut commands: Commands,
+            asset_server: Res<AssetServer>,
+            mut egui_context: EguiContexts,
+        ) -> Result<()> {
+            $(
+                let $path = asset_server.load(concat!(stringify!($path), ".png"));
+            )+
+            commands.insert_resource($stru {
+                $($path: $path.clone(),)+
+            });
+            $(
+                egui_context.add_image($path);
+            )+
+            Ok(())
+        }
+
+    };
+}
+
+icons_def!(
+    Icons,
+    load_icons,
+    (
+        rizlium_colored_64x,
+        rizlium_colored,
+        rizlium_solid_64x,
+        rizlium_solid,
+        rizlium_solid_darker
+    )
+);
 
 pub struct CountFpsPlugin;
 
@@ -91,9 +129,41 @@ pub fn ui_when_no_dock(
     In(ui): In<&mut Ui>,
     recents: Res<Persistent<RecentFiles>>,
     mut events: EventWriter<LoadChartEvent>,
+    egui_textures: Res<EguiUserTextures>,
+    icons: Res<Icons>,
+    hotkeys: Res<HotkeyRegistry>,
+    actions: Res<RSystemRegistry>,
 ) {
+    let desc = |ui: &mut Ui, id: &str| {
+        if let Some(action) = actions.get(&Identifier::from(id)) {
+            ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+
+                ui.label(RichText::new(action.description.clone()).weak())
+            });
+        }
+    };
+    let keys = |ui: &mut Ui, id: &str| {
+        if let Some(hotkeys) = hotkeys.get(&Identifier::from(id)) {
+            ui.with_layout(Layout::left_to_right(egui::Align::Min), |ui| {
+                ui.set_style(Style::default());
+                let max_index = hotkeys.len() -1;
+                for (index,hotkey) in hotkeys.iter().enumerate() {
+                    shortcut_display(&hotkey.key.iter().map(|&key| format!("{key:?}")).collect::<Vec<_>>(), ui);
+                    if index != max_index {
+                        ui.label(";");
+                    }
+                }
+            });
+        }
+    };
+    let id = egui_textures.image_id(&icons.rizlium_solid_darker).unwrap();
     let main_rect = ui.available_rect_before_wrap().shrink(50.);
     ui.allocate_new_ui(UiBuilder::new().max_rect(main_rect), |ui: &mut Ui| {
+        ui.vertical_centered(|ui| {
+            ui.add(egui::Image::new((id, egui::Vec2::splat(300.))));
+            
+        });
+        let main_rect = ui.available_rect_before_wrap().shrink(50.);
         let center_rect = if main_rect.width() >= 500. {
             Rect::from_center_size(main_rect.center(), [500., main_rect.height()].into())
         } else {
@@ -103,43 +173,27 @@ pub fn ui_when_no_dock(
             let center_rect = ui.available_rect_before_wrap();
             let max_rect = left_half(&center_rect);
             ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui: &mut Ui| {
-                ui.heading("Getting Started");
-                ui.label("This is  Rizlium editor, you can load charts and edit them here.");
-
-                ui.heading("Open");
-                for recent in recents.iter().rev() {
-                    // vscode like recent file links
-
-                    ui.horizontal(|ui| {
-                        // get recent file name from recent string (os independent)
-                        let path = PathBuf::from(recent);
-                        let name = path.file_name().unwrap_or_default().to_string_lossy();
-                        let path = path
-                            .parent()
-                            .map(|p| p.to_string_lossy())
-                            .unwrap_or_default();
-                        if ui.hyperlink(name).clicked() {
-                            events.write(LoadChartEvent::Bundle(recent.clone()));
-                        }
-                        Label::new(path).truncate().ui(ui);
-                    });
-                }
+                desc(ui, "command_panel.toggle_open");
+                desc(ui, "game.open_path_dialog");
+                desc(ui, "game.open_bundle_dialog");
             });
             let max_rect = right_half(&center_rect);
             ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui: &mut Ui| {
-                ui.label(do114514::<100>());
+                keys(ui, "command_panel.toggle_open");
+                keys(ui, "game.open_path_dialog");
+                keys(ui, "game.open_bundle_dialog");
             });
         });
     });
 }
 
 fn left_half(rect: &Rect) -> Rect {
-    Rect::from_min_size(rect.min, [rect.width() / 2., rect.height()].into())
+    Rect::from_min_size(rect.min, [rect.width() / 2. - 10., rect.height()].into())
 }
 
 fn right_half(rect: &Rect) -> Rect {
     Rect::from_min_max(
-        [rect.max.x - rect.width() / 2., rect.min.y].into(),
+        [rect.max.x - rect.width() / 2. + 10., rect.min.y].into(),
         rect.max,
     )
 }
@@ -174,7 +228,7 @@ pub struct MainUIPlugin;
 
 impl Plugin for MainUIPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_font)
+        app.add_systems(Startup, (setup_font, load_icons))
             .add_systems(Update, (editor_main, input_state_update));
     }
 }
@@ -225,20 +279,29 @@ fn input_state_update(
 }
 
 fn top_bar_ui(ctx: &egui::Context, world: &mut World) {
-    egui::TopBottomPanel::top("menu").show(ctx, |ui| {
-        ui.horizontal(|ui| {
-            world.resource_scope(|world: &mut World, mut menu_system: Mut<MenuSystem>| {
-                ui.style_mut().visuals = top_bar_theme();
-                menu_system.show_menu(ui, world, &MainMenuContext);
-            });
-            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                world.resource_scope(|_world, fps: Mut<'_, NowFps>| {
-                    ui.label(format!("fps: {}", fps.0));
+    let r = world
+        .resource::<EguiUserTextures>()
+        .image_id(&world.resource::<Icons>().rizlium_colored_64x)
+        .unwrap();
+    egui::TopBottomPanel::top("menu")
+        .exact_height(35.0)
+        .show(ctx, |ui| {
+            ui.horizontal_centered(|ui| {
+                ui.add(
+                    egui::Image::new((r, egui::Vec2::splat(23.0))), // .corner_radius(5),
+                );
+                world.resource_scope(|world: &mut World, mut menu_system: Mut<MenuSystem>| {
+                    ui.style_mut().visuals = top_bar_theme();
+                    menu_system.show_menu(ui, world, &MainMenuContext);
+                });
+                ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                    world.resource_scope(|_world, fps: Mut<'_, NowFps>| {
+                        ui.label(format!("fps: {}", fps.0));
+                    });
                 });
             });
+            widget(world, ui, command_panel);
         });
-        widget(world, ui, command_panel);
-    });
 }
 
 fn bottom_ui(ctx: &egui::Context, world: &mut World) {
@@ -267,9 +330,14 @@ fn main_ui(ctx: &egui::Context, world: &mut World) {
         world.resource_scope(
             |world: &mut World, mut state: Mut<'_, Persistent<RizliumDockState>>| {
                 if state.0.main_surface().is_empty() {
-                    egui::CentralPanel::default().show(ctx, |ui| {
-                        widget(world, ui, ui_when_no_dock);
-                    });
+                    egui::CentralPanel::default()
+                        .frame(
+                            Frame::central_panel(ctx.style().as_ref())
+                                .fill(Color32::from_rgb(31, 31, 31)),
+                        )
+                        .show(ctx, |ui| {
+                            widget(world, ui, ui_when_no_dock);
+                        });
                 }
                 DockArea::new(&mut state.0).style(tab_theme(ctx)).show(
                     ctx,

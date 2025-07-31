@@ -27,12 +27,12 @@ impl Plugin for Game {
             .reflect_system("game.save_chart", "Save current chart to file", save_chart)
             .reflect_system(
                 "game.open_bundle_dialog",
-                "Open a dialog to pick chart bundle file and load it",
+                "Open a chart bundle file",
                 open_bundle_dialog,
             )
             .reflect_system(
                 "game.open_path_dialog",
-                "Open a dialog to pick chart folder and load it",
+                "Open a chart folder",
                 open_path_dialog,
             )
             .reflect_system("game.time.advance", "Advance game time", advance_time)
