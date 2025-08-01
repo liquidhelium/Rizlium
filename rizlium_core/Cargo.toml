@@ -1,0 +1,13 @@
+[package]
+name = "rizlium_core"
+version = "0.2.2"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.16", default-features = false }
+helium_framework = { git = "https://github.com/liquidhelium/helium_framework", features = ["serde"] }
+rizlium_project = { path = "../rizlium_project" }
+rizlium_audio = { path = "../rizlium_audio" }
+rizlium_render = { path = "../rizlium_render" }
+bevy-persistent = { version = "0.8", features = ["json", "toml"] }
+serde = { version = "*", features = ["derive"] }

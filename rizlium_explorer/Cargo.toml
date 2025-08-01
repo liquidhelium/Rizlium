@@ -1,0 +1,13 @@
+[package]
+name = "rizlium_explorer"
+version = "0.2.2"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.16", default-features = false }
+egui = "0.31"
+helium_framework = { git = "https://github.com/liquidhelium/helium_framework", features = ["serde"] }
+rizlium_project = { path = "../rizlium_project" }
+futures-lite = "2"
+async-fs = "*"
+uuid = { version = "1.4", features = ["v4"] }

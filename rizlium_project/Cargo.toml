@@ -1,0 +1,20 @@
+[package]
+name = "rizlium_project"
+version = "0.2.2"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.16", default-features = false }
+bevy_kira_audio = "0.23"
+rizlium_chart = { path = "../rizlium_chart" }
+rizlium_render = { path = "../rizlium_render" }
+rizlium_audio = { path = "../rizlium_audio" }
+serde = { version = "*", features = ["derive"] }
+zip = "0.6.6"
+futures-lite = "2"
+async-fs = "*"
+snafu = "0.8.2"
+indexmap = { version = "*", features = ["serde"] }
+serde_json = "*"
+serde_yaml = "*"
+rfd = {version = "*",default-features=false, features = ["async-std","gtk3"]}

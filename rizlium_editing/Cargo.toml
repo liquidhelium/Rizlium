@@ -1,0 +1,21 @@
+[package]
+name = "rizlium_editing"
+version = "0.2.2"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.16", default-features = false, features = ["bevy_core_pipeline", "bevy_render", "bevy_asset"] }
+egui = "0.31"
+bevy_egui = "0.34"
+bevy_prototype_lyon = { git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium", branch = "master" }
+helium_framework = { git = "https://github.com/liquidhelium/helium_framework", features = ["serde"] }
+rizlium_chart = { path = "../rizlium_chart" }
+rizlium_core = { path = "../rizlium_core" }
+rizlium_render = { path = "../rizlium_render" }
+rizlium_project = { path = "../rizlium_project" }
+rizlium_ui = { path = "../rizlium_ui" }
+rust-i18n = "3"
+strum = { version = "0.26", features = ["derive"] }
+
+[build-dependencies]
+rust-i18n-support = "0.3"

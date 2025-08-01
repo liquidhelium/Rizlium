@@ -1,0 +1,13 @@
+[package]
+name = "rizlium_extensions"
+version = "0.2.2"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.16", default-features = false }
+helium_framework = { git = "https://github.com/liquidhelium/helium_framework", features = ["serde"] }
+rizlium_editing = { path = "../rizlium_editing" }
+rizlium_game = { path = "../rizlium_game" }
+rizlium_explorer = { path = "../rizlium_explorer" }
+rizlium_audio = { path = "../rizlium_audio" }
+rust-i18n = "3"

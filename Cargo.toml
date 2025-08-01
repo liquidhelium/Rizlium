@@ -2,7 +2,16 @@
 members = [
     "rizlium_chart",
     "rizlium_render",
-    "rizlium_editor",
+    # "rizlium_editor", # 暂时注释掉，将被拆分为多个crate
+    "rizlium_core",
+    "rizlium_project",
+    "rizlium_audio",
+    "rizlium_ui",
+    "rizlium_editing",
+    "rizlium_game",
+    "rizlium_explorer",
+    "rizlium_extensions",
+    "rizlium_editor_main",
     # "rizlium_splash",
     # "rizlium_video_renderer",
 ]
