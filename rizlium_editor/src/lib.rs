@@ -8,7 +8,7 @@ use bevy::{
     prelude::*,
     window::{PresentMode, PrimaryWindow, RequestRedraw},
 };
-use bevy_egui::{EguiContext, EguiContexts, EguiUserTextures};
+use bevy_egui::{EguiContext, EguiContexts, EguiGlobalSettings, EguiPrimaryContextPass, EguiUserTextures, PrimaryEguiContext};
 use bevy_persistent::Persistent;
 use egui::{Color32, Frame, Label, Layout, Rect, RichText, Style, Ui, UiBuilder, Widget};
 use egui_dock::DockArea;
@@ -228,11 +228,16 @@ pub struct MainUIPlugin;
 
 impl Plugin for MainUIPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (setup_font, load_icons))
-            .add_systems(Update, (editor_main, input_state_update));
+        app.add_systems(Startup, (load_icons, spawn_cam))
+            .add_systems(EguiPrimaryContextPass, (editor_main, input_state_update, setup_font));
     }
 }
-fn setup_font(mut context: Query<&mut EguiContext>) {
+fn spawn_cam(mut commands: Commands, mut settings: ResMut<EguiGlobalSettings>) {
+    settings.auto_create_primary_context = false;
+    commands.spawn((Camera2d, PrimaryEguiContext));
+}
+
+fn setup_font(mut context: Query<&mut EguiContext, Added<EguiContext>>) {
     use egui::{FontData, FontDefinitions, FontFamily};
     context.iter_mut().for_each(|mut c| {
         debug!("Setting up fonts for egui");
@@ -252,7 +257,7 @@ fn setup_font(mut context: Query<&mut EguiContext>) {
 }
 
 fn editor_main(world: &mut World) -> Result {
-    let mut egui_context = world.query_filtered::<&mut EguiContext, With<PrimaryWindow>>();
+    let mut egui_context = world.query_filtered::<&mut EguiContext, With<PrimaryEguiContext>>();
     let mut binding = egui_context.single_mut(world)?;
     let ctx = &binding.get_mut().clone();
 
@@ -269,7 +274,7 @@ fn editor_main(world: &mut World) -> Result {
 
 fn input_state_update(
     mut editor_state: ResMut<EditorState>,
-    mut window: Query<&mut EguiContext, With<PrimaryWindow>>,
+    mut window: Query<&mut EguiContext, With<PrimaryEguiContext>>,
 ) -> Result {
     editor_state.is_editing_text = window
         .single_mut()?

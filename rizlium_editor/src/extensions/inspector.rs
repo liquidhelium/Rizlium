@@ -81,10 +81,6 @@ fn show_ui<P: ChartPath>(
     };
 }
 
-fn bevy_inspector(InMut(ui): InMut<Ui>, world: &mut World) {
-    // bevy_inspector_egui::bevy_inspector::ui_for_world(world, &mut ui);
-}
-
 fn debug_window(
     InMut(ui): InMut<Ui>,
     // history: Res<ChartEditHistory>,

@@ -6,41 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# Todo: split x11, wayland and webgl2
-bevy = { version = "0.16", default-features = false, features = [
-    # "animation",
-    "bevy_asset",
-    # "bevy_scene",
-    "bevy_winit",
-    "bevy_core_pipeline",
-    # "bevy_pbr",
-    # "bevy_gltf",
-    "bevy_render",
-    "bevy_sprite",
-    "png",
-    "hdr",
-    "zstd",
-    "x11",
-    "ktx2",
-    # "filesystem_watcher",
-    "tonemapping_luts",
-    "webgl2",
-    "wayland",
-    "multi_threaded",
-] }
-bevy_kira_audio = { version = "0.23" }
-kira = "0.9"
+bevy ={ workspace = true}
+serde_json = { workspace = true }
 bevy_prototype_lyon = { git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium" }
 rizlium_chart = { path = "../rizlium_chart" }
-zip = "*"
-serde = { version = "*", features = ["derive"] }
-serde_yaml = "*"
-serde_json = "*"
-async-fs = "*"
-futures-lite = "*"
 snafu = "0.8"
 bevy_hanabi = "0.16"
-bevy_common_assets = {version = "0.13", features = ["json"]}
+bevy_common_assets = {version = "0.13.0", features = ["json"]}
 
 [features]
 trace = ["bevy/trace_tracy"]

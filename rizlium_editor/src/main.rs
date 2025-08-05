@@ -1,4 +1,5 @@
-use bevy_inspector_egui::DefaultInspectorConfigPlugin;
+use bevy::ecs::error::GLOBAL_ERROR_HANDLER;
+// use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use rizlium_editor::extensions::ExtensionsPlugin;
 use rizlium_editor::settings_module::SettingsPlugin;
 use rizlium_editor::time_and_audio::EditorAudioPlugin;
@@ -18,14 +19,14 @@ use rizlium_editor::project::{ProjectPlugin, ProjectState};
 use rizlium_render::RizliumRenderingPlugin;
 
 fn main() {
+    GLOBAL_ERROR_HANDLER.set(|err, ctx| {
+        error!("Encountered an error! \n ========= \n Context:\n{ctx:#?}\n ========= \n Error:\n {err:#?}")
+    }).expect("Cannot set global error handler. It has been set by a library?");
     App::new()
         .add_plugins((
             DefaultPlugins.build(),
-            EguiPlugin {
-                enable_multipass_for_primary_context: false,
-            },
-            DefaultInspectorConfigPlugin,
-            RizliumRenderingPlugin::<ProjectState>::default(),
+            EguiPlugin::default(),
+            // DefaultInspectorConfigPlugin,
             helium_framework::HeliumFramework,
             CountFpsPlugin,
             WindowUpdateControlPlugin,
@@ -33,7 +34,8 @@ fn main() {
             ExtensionsPlugin,
             EditorAudioPlugin,
             ProjectPlugin,
-            MainUIPlugin
+            MainUIPlugin,
+            RizliumRenderingPlugin::<ProjectState>::default(),
         ))
         .init_resource::<EditorState>()
         .insert_resource(RizliumDockStateMirror::default())
