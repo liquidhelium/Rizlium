@@ -1,7 +1,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use std::{path::PathBuf, time::Duration};
-
+ 
 use bevy::{
     diagnostic::FrameCount,
     ecs::system::RunSystemOnce as _,
@@ -18,7 +18,6 @@ use helium_framework::{
     utils::identifier::Identifier,
     widgets::widget,
 };
-// use egui_tracing::EventCollector;
 use rizlium_render::{ChartProvider as _, GameTime};
 i18n!();
 

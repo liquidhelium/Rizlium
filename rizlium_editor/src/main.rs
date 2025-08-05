@@ -26,7 +26,6 @@ fn main() {
         .add_plugins((
             DefaultPlugins.build(),
             EguiPlugin::default(),
-            // DefaultInspectorConfigPlugin,
             helium_framework::HeliumFramework,
             CountFpsPlugin,
             WindowUpdateControlPlugin,

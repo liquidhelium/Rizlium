@@ -8,7 +8,6 @@ use indexmap::IndexSet;
 use rizlium_chart::prelude::*;
 use rizlium_render::ChartProvider;
 use serde::{Deserialize, Serialize};
-use snafu::ResultExt;
 use std::{
     io::{Cursor, Read},
     path::{Path, PathBuf},
