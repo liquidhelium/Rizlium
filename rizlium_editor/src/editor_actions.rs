@@ -1,4 +1,4 @@
-use crate::project::{LoadChartEvent, ProjectState, RecentFiles, SaveChartEvent};
+use crate::project::{LoadChartEvent, ProjectState, RecentFiles};
 use bevy::ecs::system::{SystemBuffer, SystemMeta, SystemParam};
 use bevy::ecs::world::CommandQueue;
 use bevy::prelude::*;
@@ -40,7 +40,7 @@ impl ManualEditorCommands {
     pub fn open_dialog_and_load_chart(&mut self) {
         self.commands.push(|world: &mut World| {
             let mut state = world.resource_mut::<ProjectState>();
-            state.open_dialog();
+            state.open_bundle_dialog();
         });
     }
     pub fn update_recent(&mut self, path: String) {

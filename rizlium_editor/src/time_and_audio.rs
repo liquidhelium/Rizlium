@@ -1,6 +1,5 @@
 use bevy::{math::f64, prelude::*};
 use bevy_kira_audio::{Audio, AudioControl, AudioInstance, AudioSource, AudioTween, PlaybackState};
-use std::ops::Deref;
 
 use rizlium_render::{GameChartCache, GameTime};
 
@@ -79,7 +78,7 @@ fn dispatch_events(
             TimeControlEvent::Seek(pos) => {
                 let pos = (*pos as f64).clamp(0., audio_data.sound.duration().as_secs_f64() - 0.01);
                 time.seek(pos);
-                audio.seek_to(pos.into());
+                audio.seek_to(pos);
             }
             TimeControlEvent::Toggle => time.toggle_paused(),
             TimeControlEvent::SetPaused(paused) => time.set_paused(*paused),
@@ -89,7 +88,7 @@ fn dispatch_events(
                     audio_data.sound.duration().as_secs_f64() - 0.01 - time.current(),
                 );
                 time.advance(duration);
-                audio.seek_by(duration.into());
+                audio.seek_by(duration);
             }
         }
     }

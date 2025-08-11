@@ -1,6 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 
-use std::{path::PathBuf, time::Duration};
+use std::time::Duration;
  
 use bevy::{
     diagnostic::FrameCount,
@@ -8,9 +8,9 @@ use bevy::{
     prelude::*,
     window::{PresentMode, PrimaryWindow, RequestRedraw},
 };
-use bevy_egui::{EguiContext, EguiContexts, EguiGlobalSettings, EguiPrimaryContextPass, EguiUserTextures, PrimaryEguiContext};
+use bevy_egui::{EguiContext, EguiUserTextures,};
 use bevy_persistent::Persistent;
-use egui::{Color32, Frame, Label, Layout, Rect, RichText, Style, Ui, UiBuilder, Widget};
+use egui::{Color32, Frame, Layout, Rect, RichText, Style, Ui, UiBuilder};
 use egui_dock::DockArea;
 use helium_framework::{
     menu_system::MenuSystem,
@@ -29,6 +29,7 @@ pub mod project;
 pub mod settings_module;
 pub mod time_and_audio;
 pub mod utils;
+pub mod dynamic_extensions;
 pub use editor_actions::*;
 pub use project::*;
 
@@ -58,7 +59,7 @@ macro_rules! icons_def {
             $($path: Handle<Image>),+
         }
 
-
+        use bevy_egui::EguiContexts;
         fn load_icons(
             mut commands: Commands,
             asset_server: Res<AssetServer>,
@@ -126,8 +127,8 @@ fn compute_fps(
 
 pub fn ui_when_no_dock(
     In(ui): In<&mut Ui>,
-    recents: Res<Persistent<RecentFiles>>,
-    mut events: EventWriter<LoadChartEvent>,
+    _recents: Res<Persistent<RecentFiles>>,
+    mut _events: EventWriter<LoadChartEvent>,
     egui_textures: Res<EguiUserTextures>,
     icons: Res<Icons>,
     hotkeys: Res<HotkeyRegistry>,
@@ -197,10 +198,6 @@ fn right_half(rect: &Rect) -> Rect {
     )
 }
 
-fn do114514<const LEN: usize>() -> String {
-    ["114514"; LEN].join("")
-}
-
 pub struct WindowUpdateControlPlugin;
 
 impl Plugin for WindowUpdateControlPlugin {
@@ -227,13 +224,13 @@ pub struct MainUIPlugin;
 
 impl Plugin for MainUIPlugin {
     fn build(&self, app: &mut App) {
+        // app.world_mut().resource_mut::<EguiGlobalSettings>().auto_create_primary_context = false;
         app.add_systems(Startup, (load_icons, spawn_cam))
-            .add_systems(EguiPrimaryContextPass, (editor_main, input_state_update, setup_font));
+            .add_systems(Update, (editor_main, input_state_update, setup_font));
     }
 }
-fn spawn_cam(mut commands: Commands, mut settings: ResMut<EguiGlobalSettings>) {
-    settings.auto_create_primary_context = false;
-    commands.spawn((Camera2d, PrimaryEguiContext));
+fn spawn_cam(mut commands: Commands) {
+    commands.spawn(Camera2d);
 }
 
 fn setup_font(mut context: Query<&mut EguiContext, Added<EguiContext>>) {
@@ -256,7 +253,7 @@ fn setup_font(mut context: Query<&mut EguiContext, Added<EguiContext>>) {
 }
 
 fn editor_main(world: &mut World) -> Result {
-    let mut egui_context = world.query_filtered::<&mut EguiContext, With<PrimaryEguiContext>>();
+    let mut egui_context = world.query_filtered::<&mut EguiContext,()>();
     let mut binding = egui_context.single_mut(world)?;
     let ctx = &binding.get_mut().clone();
 
@@ -273,7 +270,7 @@ fn editor_main(world: &mut World) -> Result {
 
 fn input_state_update(
     mut editor_state: ResMut<EditorState>,
-    mut window: Query<&mut EguiContext, With<PrimaryEguiContext>>,
+    mut window: Query<&mut EguiContext>,
 ) -> Result {
     editor_state.is_editing_text = window
         .single_mut()?

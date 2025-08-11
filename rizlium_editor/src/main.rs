@@ -25,7 +25,9 @@ fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins.build(),
-            EguiPlugin::default(),
+            EguiPlugin {
+                enable_multipass_for_primary_context: false
+            },
             helium_framework::HeliumFramework,
             CountFpsPlugin,
             WindowUpdateControlPlugin,

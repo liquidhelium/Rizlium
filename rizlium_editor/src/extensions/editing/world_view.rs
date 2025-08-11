@@ -71,7 +71,20 @@ fn setup_world_cam(
 ) {
     let handle = images.add(get_image());
     egui_context.add_image(handle.clone());
-    commands.spawn((get_camera(handle.clone()), WorldCam));
+    commands.spawn((
+        
+            // todo: use a shader to shadow places which are not in GameView
+            Camera2d,
+            Camera {
+                target: bevy::render::camera::RenderTarget::Image(handle.clone().into()),
+                ..default()
+            },
+            Msaa::Off,
+            OrderIndependentTransparencySettings::default(),
+            Fxaa::default(),
+            RenderLayers::default().with(114)
+        
+    , WorldCam));
     commands.insert_resource(WorldView(handle));
 }
 

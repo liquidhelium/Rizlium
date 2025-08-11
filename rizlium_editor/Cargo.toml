@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 rizlium_render = { path = "../rizlium_render" }
-bevy_egui = "0.35"
+bevy_egui = "0.34"
 egui = "0.31"
 egui_dock = { version = "0.16", features = ["serde"] }
 # egui_tracing = "0.2"

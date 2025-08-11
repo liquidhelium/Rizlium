@@ -7,11 +7,9 @@ pub mod i18n;
 mod inspector;
 pub mod explorer;
 
-use std::borrow::Cow;
 
 use bevy::prelude::{App, Plugin};
 
-use helium_framework::menu_system::MenuRegistration;
 
 use crate::extensions::debug_flycam::DebugCamExtension;
 
@@ -19,7 +17,6 @@ use self::{
     command_panel::CommandPanel, docking::Docking, editing::Editing, game::Game, i18n::I18nPlugin,
     inspector::Inspector,
 };
-use crate::time_and_audio::EditorAudioPlugin;
 
 pub struct ExtensionsPlugin;
 

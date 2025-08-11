@@ -3,6 +3,7 @@ members = [
     "rizlium_chart",
     "rizlium_render",
     "rizlium_editor",
+    "rizlium_dyn_plugin"
     # "rizlium_splash",
     # "rizlium_video_renderer",
 ]
