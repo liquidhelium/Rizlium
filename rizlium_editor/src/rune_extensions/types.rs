@@ -108,6 +108,12 @@ pub struct RuneRegistrar {
     pub menus: Vec<MenuRegistration>,
 }
 
+impl Default for RuneRegistrar {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RuneRegistrar {
     pub fn new() -> Self {
         Self {

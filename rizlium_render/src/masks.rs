@@ -114,7 +114,7 @@ fn update_mask<P: ChartProvider>(
     };
 
     // 更新 bottom mask
-    if let Ok((mut fill, mut path)) = mask_bottom.get_single_mut() {
+    if let Ok((mut fill, mut path)) = mask_bottom.single_mut() {
         let gradient_rect = Rect {
             min: Vec2 {
                 x: area.min.x - area.width(),
@@ -151,7 +151,7 @@ fn update_mask<P: ChartProvider>(
     }
 
     // 更新 top mask
-    if let Ok((mut fill, mut path)) = mask_top.get_single_mut() {
+    if let Ok((mut fill, mut path)) = mask_top.single_mut() {
         let mask_height = area.height() * TOP_MASK_HEIGHT;
         let gradient_rect = Rect {
             min: Vec2 {

@@ -1,3 +1,3 @@
 pub fn main(reg) {
-    reg.register_action("rune.action", "RuneAction", ||{});
+    reg.register_tab("rune.tab", "RuneTab", |ui|{ui.label("helloworld! this tab is from rune!你好世界")});
 }

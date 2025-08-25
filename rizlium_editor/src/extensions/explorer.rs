@@ -192,11 +192,10 @@ fn folder_view(ui: &mut Ui, path: &Path, files: &[FileEntry], state: &mut Explor
                             let response = inline_edit(ui, &mut new_name, true, Some(&rename_state.old_name));
                             if response.lost_focus() {
                                 let trimmed_name = new_name.trim();
-                                if !trimmed_name.is_empty() && trimmed_name != rename_state.old_name {
-                                    if validate_filename(trimmed_name, files) {
+                                if !trimmed_name.is_empty() && trimmed_name != rename_state.old_name
+                                    && validate_filename(trimmed_name, files) {
                                         rename_item(&rename_state.path, trimmed_name, state, commands);
                                     }
-                                }
                                 state.renaming = None;
                             } else {
                                 // 更新状态
@@ -316,10 +315,8 @@ fn create_new_item(path: &Path, name: &str, is_dir: bool, state: &mut ExplorerSt
         if let Err(e) = std::fs::create_dir_all(&new_path) {
             warn!("Failed to create directory {}: {}", new_path.display(), e);
         }
-    } else {
-        if let Err(e) = std::fs::write(&new_path, b"") {
-            warn!("Failed to create file {}: {}", new_path.display(), e);
-        }
+    } else if let Err(e) = std::fs::write(&new_path, b"") {
+        warn!("Failed to create file {}: {}", new_path.display(), e);
     }
     
     // 刷新文件列表
@@ -355,11 +352,9 @@ fn delete_item(path: &Path, state: &mut ExplorerState, commands: &mut Commands) 
                 warn!("Failed to delete directory {}: {}", path.display(), e);
                 return;
             }
-        } else {
-            if let Err(e) = std::fs::remove_file(path) {
-                warn!("Failed to delete file {}: {}", path.display(), e);
-                return;
-            }
+        } else if let Err(e) = std::fs::remove_file(path) {
+            warn!("Failed to delete file {}: {}", path.display(), e);
+            return;
         }
         
         // 刷新文件列表
@@ -482,7 +477,7 @@ fn start_creating_new_item(state: &mut ExplorerState, is_dir: bool) {
     let mut counter = 1;
     let mut name = default_name.to_string();
     while state.files.iter().any(|f| f.name == name) {
-        name = format!("{}{}", default_name, counter);
+        name = format!("{default_name}{counter}");
         counter += 1;
     }
     

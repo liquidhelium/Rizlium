@@ -13,7 +13,6 @@ use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::{DragValue, Ui, Widget};
 use helium_framework::prelude::{tab_focused, ActionsExt, Hotkey, HotkeysExt, TabRegistrationExt, TriggerType};
 
-use crate::tab_opened;
 /// Mouse sensitivity and movement speed
 #[derive(Resource)]
 pub struct MovementSettings {

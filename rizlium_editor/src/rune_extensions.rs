@@ -92,7 +92,7 @@ fn reload_plugins(world: &mut World) {
         ) {
             world
                 .resource_mut::<ToastsStorage>()
-                .error(format!("Failed to load plugins: {:#}", e));
+                .error(format!("Failed to load plugins: {e:#}"));
         }
     });
     world.insert_resource(extentions);

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use bevy::prelude::*;
 use egui::Ui;
 use helium_framework::prelude::{ActionsExt, TabRegistrationExt};
-use rune::{alloc::clone::TryClone as _, runtime::{Function, RuntimeContext}};
+use rune::{alloc::clone::TryClone as _, runtime::RuntimeContext};
 
 use super::types::{DelegateUi, RuneRegistrar};
 
@@ -53,7 +53,7 @@ pub fn process_rune_registrations(
         
         // 注册到helium action系统
         world.commands().queue(move |world: &mut World| {
-            world.resource_scope(|world, mut registry: Mut<'_, helium_framework::reflect_system::RSystemRegistry>| {
+            world.resource_scope(|world, registry: Mut<'_, helium_framework::reflect_system::RSystemRegistry>| {
                 let meta = helium_framework::reflect_system::ReflectSystemMeta {
                     id: hotkey.id.clone().as_str().into(),
                     description: hotkey.description.clone(),

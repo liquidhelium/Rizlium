@@ -1,7 +1,7 @@
 use crate::tween;
 
 use super::Tween;
-use std::ops::{Add, Div};
+use std::ops::Add;
 
 #[cfg(feature = "deserialize")]
 use serde::Deserialize;

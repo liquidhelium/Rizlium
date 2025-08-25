@@ -11,7 +11,7 @@ use bevy::{
     tasks::{Task, futures_lite::StreamExt as _},
 };
 use rune::{
-    runtime::{Function, RuntimeContext}, termcolor::{ColorChoice, StandardStream}, Context, Diagnostics, FromValue, Sources, Unit
+    runtime::{Function, RuntimeContext}, termcolor::{ColorChoice, StandardStream}, Context, Diagnostics, Sources, Unit
 };
 
 pub struct Extension {

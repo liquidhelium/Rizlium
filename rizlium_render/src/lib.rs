@@ -1,3 +1,4 @@
+#![allow(unused, clippy::type_complexity)]
 use bevy::{
     core_pipeline::{fxaa::Fxaa, oit::OrderIndependentTransparencySettings},
     prelude::*,
@@ -9,7 +10,7 @@ use bevy_prototype_lyon::prelude::*;
 use masks::MaskPlugin;
 use notes::ChartNotePlugin;
 use rings::RingPlugin;
-use rizlium_chart::{chart::Chart, prelude::ColorRGBA};
+use rizlium_chart::prelude::ColorRGBA;
 
 pub use masks::MASK_LAYER;
 pub use rizlium_chart;

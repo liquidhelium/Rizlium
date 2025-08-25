@@ -1,4 +1,7 @@
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::type_complexity)]
+#![allow(unused)]
+
 
 use std::time::Duration;
  
@@ -32,7 +35,7 @@ pub mod utils;
 pub mod rune_extensions;
 
 use crate::{
-    extensions::command_panel::{self, command_panel}, project::{LoadChartEvent, ProjectState, RecentFiles}, ui::{theme::{tab_theme, top_bar_theme}, widgets::shortcut_display}
+    extensions::command_panel::command_panel, project::{LoadChartEvent, ProjectState, RecentFiles}, ui::{theme::{tab_theme, top_bar_theme}, widgets::shortcut_display}
 };
 
 #[derive(Debug)]

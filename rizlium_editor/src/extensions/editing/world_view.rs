@@ -17,7 +17,7 @@ use bevy_egui::{EguiContexts, EguiUserTextures};
 use bevy_prototype_lyon::{
     draw::Stroke, entity::ShapeBundle, prelude::GeometryBuilder, shapes::Circle as Circle0,
 };
-use egui::{InputState, PointerButton, Response, Sense, Ui};
+use egui::{PointerButton, Response, Sense, Ui};
 use rizlium_render::{ChartProvider, GameChartCache, GameTime};
 use rust_i18n::t;
 use tools::Tool;

@@ -486,12 +486,8 @@ impl ProjectState {
 }
 
 #[derive(Resource)]
+#[derive(Default)]
 struct PendingSave {
     task: Option<Task<Result<(), Box<dyn std::error::Error + Send + Sync>>>>,
 }
 
-impl Default for PendingSave {
-    fn default() -> Self {
-        Self { task: None }
-    }
-}

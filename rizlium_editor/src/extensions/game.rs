@@ -128,11 +128,6 @@ fn open_path_dialog(mut state: ResMut<ProjectState>) {
     state.open_path_dialog();
 }
 
-#[deprecated(note = "Use open_bundle_dialog instead")]
-fn open_dialog_and_load_chart(mut state: ResMut<ProjectState>) {
-    state.open_bundle_dialog();
-}
-
 #[derive(Resource, Default)]
 struct ScrollTimeState(bool);
 
@@ -191,7 +186,7 @@ pub fn game_view_tab(
     textures: Res<EguiUserTextures>,
     time: Res<AudioTimeManager>,
     game_time: Res<GameTime>,
-    mut ev: EventWriter<TimeControlEvent>,
+    ev: EventWriter<TimeControlEvent>,
 ) {
     let ui = &mut ui;
     let img = textures
