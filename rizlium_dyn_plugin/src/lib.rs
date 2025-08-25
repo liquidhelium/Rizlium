@@ -11,8 +11,7 @@ use bevy::{
     tasks::{Task, futures_lite::StreamExt as _},
 };
 use rune::{
-    Context, Diagnostics, FromValue, Sources, Unit,
-    runtime::{Function, RuntimeContext},
+    runtime::{Function, RuntimeContext}, termcolor::{ColorChoice, StandardStream}, Context, Diagnostics, FromValue, Sources, Unit
 };
 
 pub struct Extension {
@@ -23,6 +22,10 @@ pub struct Extension {
 impl Extension {
     pub fn sources(&self) -> &Sources {
         &self.sources
+    }
+    
+    pub fn unit(&self) -> &Arc<Unit>{
+        &self.unit
     }
 }
 
@@ -39,8 +42,8 @@ pub struct ExtensionsStorage {
 
 #[derive(Resource)]
 pub struct RuneEngine {
-    context: Context,
-    runtime_context: Arc<RuntimeContext>,
+    pub context: Context,
+    pub runtime_context: Arc<RuntimeContext>,
 }
 
 pub fn compile_extension(string: String, context: &Context) -> anyhow::Result<Extension> {
@@ -53,7 +56,13 @@ pub fn compile_extension(string: String, context: &Context) -> anyhow::Result<Ex
         .with_context(context)
         .with_diagnostics(&mut diagnostics)
         .build()?;
-
+    if !diagnostics.is_empty() {
+            let mut writer = StandardStream::stderr(ColorChoice::Always);
+            if let Err(e) = diagnostics.emit(&mut writer, &sources) {
+                error!("Failed to emit diagnostics: {e}");
+            }
+        }
+    
     Ok(Extension {
         sources,
         unit: Arc::new(unit),
@@ -76,6 +85,8 @@ pub async fn fetch_and_compile_extensions(
                 && ext == "rn"
             {
                 let content = read_to_string(&path).await?;
+                info!("Compiling extension: {}", path.display());
+                info!("Content: {}", content);
                 extensions.insert(
                     entry.path().to_string_lossy().into_owned(),
                     ExtensionHandle::Compiled(compile_extension(content, &engine.context)?),
@@ -93,41 +104,14 @@ pub struct ExtensionFunctions {
     pub actions: Function,
 }
 
-pub async fn load_compiled_extensions(
+pub async fn load_compiled_extensions<'c>(
     storage: &mut ExtensionsStorage,
     engine: &RuneEngine,
-    handler: &mut dyn FnMut(ExtensionFunctions) -> anyhow::Result<()>,
+    mut handler: Box<dyn FnMut(&Extension, &RuneEngine) -> anyhow::Result<()> + 'c>,
 ) -> anyhow::Result<()> {
-    for (name, handle) in storage.extensions.iter_mut() {
+    for (_, handle) in storage.extensions.iter_mut() {
         if let ExtensionHandle::Compiled(extension) = handle {
-            let unit = extension.unit.clone();
-            let mut vm = rune::runtime::Vm::new(engine.runtime_context.clone(), unit.clone());
-            let rune::runtime::VmResult::Ok(result) =
-                vm.execute(["main"], ())?.async_complete().await
-            else {
-                return Err(anyhow::anyhow!("Failed to execute extension: {}", name));
-            };
-            let mut result: rune::alloc::HashMap<rune::alloc::String, Function> =
-                rune::alloc::HashMap::from_value(result)?;
-
-            let (Some(hotkey), Some(tab), Some(menu), Some(actions)) = (
-                result.remove("hotkey"),
-                result.remove("tab"),
-                result.remove("menu"),
-                result.remove("actions"),
-            ) else {
-                return Err(anyhow::anyhow!(
-                    "Extension {} is missing required functions",
-                    name
-                ));
-            };
-            let functions = ExtensionFunctions {
-                hotkey,
-                tab,
-                menu,
-                actions,
-            };
-            handler(functions)?;
+            handler(extension, engine)?;
 
             // *handle = ExtensionHandle::Loaded(extension);
         }

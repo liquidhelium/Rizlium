@@ -3220,7 +3220,6 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 [[package]]
 name = "helium_framework"
 version = "0.1.0"
-source = "git+https://github.com/liquidhelium/helium_framework#061cb0fa8bd209bddc25536b1c8eb218aa6b16d9"
 dependencies = [
  "bevy",
  "bevy_egui",
@@ -5262,6 +5261,7 @@ dependencies = [
 name = "rizlium_editor"
 version = "0.2.2"
 dependencies = [
+ "anyhow",
  "async-fs",
  "bevy",
  "bevy-persistent",
@@ -5279,7 +5279,9 @@ dependencies = [
  "kira",
  "rfd",
  "rizlium_chart",
+ "rizlium_dyn_plugin",
  "rizlium_render",
+ "rune",
  "rust-i18n",
  "serde",
  "serde_json",

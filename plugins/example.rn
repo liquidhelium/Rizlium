@@ -1,0 +1,3 @@
+pub fn main(reg) {
+    reg.register_action("rune.action", "RuneAction", ||{});
+}

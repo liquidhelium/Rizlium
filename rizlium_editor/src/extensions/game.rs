@@ -11,7 +11,7 @@ use rizlium_render::{notes::NoteTexture, ChartProvider as _, GameTime, GameView}
 use crate::{project::ProjectState, time_and_audio::{TimeControlEvent, TimeManager as AudioTimeManager}, MainMenuContext};
 use rust_i18n::t;
 
-use crate::{LoadChartEvent, SaveChartEvent};
+use crate::{LoadChartEvent, project::SaveChartEvent};
 use helium_framework::{
     menu_system::MenuRegistration,
     prelude::*,

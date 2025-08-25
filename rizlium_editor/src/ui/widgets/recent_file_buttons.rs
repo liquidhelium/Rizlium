@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_persistent::Persistent;
 
-use crate::{EditorCommands, RecentFiles};
+use crate::{editor_actions::EditorCommands, RecentFiles};
 
 pub fn recent_file_buttons(
     In(ui): In<&mut egui::Ui>,

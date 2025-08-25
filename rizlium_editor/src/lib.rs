@@ -29,13 +29,10 @@ pub mod project;
 pub mod settings_module;
 pub mod time_and_audio;
 pub mod utils;
-pub mod dynamic_extensions;
-pub use editor_actions::*;
-pub use project::*;
+pub mod rune_extensions;
 
 use crate::{
-    extensions::command_panel::command_panel,
-    ui::{theme::{tab_theme, top_bar_theme}, widgets::shortcut_display},
+    extensions::command_panel::{self, command_panel}, project::{LoadChartEvent, ProjectState, RecentFiles}, ui::{theme::{tab_theme, top_bar_theme}, widgets::shortcut_display}
 };
 
 #[derive(Debug)]
@@ -287,6 +284,7 @@ fn top_bar_ui(ctx: &egui::Context, world: &mut World) {
     egui::TopBottomPanel::top("menu")
         .exact_height(35.0)
         .show(ctx, |ui| {
+            widget(world, ui, command_panel);
             ui.horizontal_centered(|ui| {
                 ui.add(
                     egui::Image::new((r, egui::Vec2::splat(23.0))), // .corner_radius(5),

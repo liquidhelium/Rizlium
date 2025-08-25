@@ -1,4 +1,5 @@
 use bevy::ecs::error::GLOBAL_ERROR_HANDLER;
+use rizlium_editor::rune_extensions::HeliumRuneSupportPlugin;
 // use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use rizlium_editor::extensions::ExtensionsPlugin;
 use rizlium_editor::settings_module::SettingsPlugin;
@@ -12,7 +13,7 @@ use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_persistent::prelude::*;
 use rizlium_editor::{
- CountFpsPlugin, EditorState, RecentFiles,
+ CountFpsPlugin, EditorState, project::RecentFiles,
     RizTabPresets,
 };
 use rizlium_editor::project::{ProjectPlugin, ProjectState};
@@ -37,6 +38,7 @@ fn main() {
             ProjectPlugin,
             MainUIPlugin,
             RizliumRenderingPlugin::<ProjectState>::default(),
+            HeliumRuneSupportPlugin
         ))
         .init_resource::<EditorState>()
         .insert_resource(RizliumDockStateMirror::default())

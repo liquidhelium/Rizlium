@@ -7,6 +7,9 @@ edition = "2021"
 
 [dependencies]
 rizlium_render = { path = "../rizlium_render" }
+rizlium_dyn_plugin = { path = "../rizlium_dyn_plugin"}
+rune = "0.14"
+anyhow = "1"
 bevy_egui = "0.34"
 egui = "0.31"
 egui_dock = { version = "0.16", features = ["serde"] }
@@ -31,7 +34,7 @@ strum = { version = "0.27", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9.33"
 rust-i18n = "3"
-helium_framework = { git = "https://github.com/liquidhelium/helium_framework", features = [
+helium_framework = { path = "../helium_framework", features = [
     "serde",
 ] }
 bevy_prototype_lyon = { git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium" }
