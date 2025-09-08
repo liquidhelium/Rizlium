@@ -97,7 +97,7 @@ impl<P: ChartProvider> Plugin for ChartLinePlugin<P> {
                 associate_segment::<P>.run_if(P::has_chart_system().and(resource_changed::<P>)),
             )
             .add_systems(
-                PostUpdate,
+                FixedUpdate,
                 (
                     change_bounding::<P>,
                     update_shape::<P>,

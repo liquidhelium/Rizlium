@@ -189,7 +189,7 @@ fn world_tab(
         .response
         .rect;
     // tool select
-    tool_select_bar::tool_select_bar(ui, area.left_top() + [10., 10.].into(), &mut tool);
+    tool_select_bar::tool_select_bar(ui, area.left_top() + [10., 10.].into(), &mut tool, area);
     let response = ui.interact(rect, ui.next_auto_id(), Sense::click_and_drag());
 
     if response.contains_pointer() || response.interact_pointer_pos().is_some() {

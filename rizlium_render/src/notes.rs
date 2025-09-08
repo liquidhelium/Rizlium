@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use rizlium_chart::chart::NoteKind;
 
-use crate::{colorrgba_to_color, default_ph, hit_parcticles::HasHit, ChartProvider, GameChartCache, GameTime};
+use crate::{
+    colorrgba_to_color, default_ph, hit_parcticles::HasHit, ChartProvider, GameChartCache, GameTime,
+};
 
 pub const NOTE_Z: f32 = 5.;
 
@@ -12,12 +14,12 @@ default_ph!(ChartNotePlugin<P>);
 impl<P: ChartProvider> Plugin for ChartNotePlugin<P> {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            PreUpdate,
+            First,
             (add_notes::<P>,).run_if(P::has_chart_system().and(resource_changed::<P>)),
         )
-        .add_systems(Update, assocate_note::<P>.run_if(P::has_chart_system()))
+        .add_systems(PreUpdate, assocate_note::<P>.run_if(P::has_chart_system()))
         .add_systems(
-            PostUpdate,
+            FixedUpdate,
             (
                 (update_note::<P>).run_if(chart_update!(P)),
                 update_note_kind::<P>.run_if(P::has_chart_system().and(resource_changed::<P>)),
@@ -88,23 +90,26 @@ fn update_note<P: ChartProvider>(
     chart: Res<P>,
     cache: Res<GameChartCache>,
     game_time: Res<GameTime>,
-    mut notes: Query<(&mut Transform, &ChartNoteId, &Children)>,
+    mut notes: Query<(&mut Transform, &ChartNoteId, &Children, &mut Visibility)>,
     mut note_bg: Query<&mut Sprite, With<note_tags::NoteBg>>,
 ) {
     let chart = chart.chart();
     notes
         .iter_mut()
-        .for_each(|(mut transform, note_id, child)| {
+        .for_each(|(mut transform, note_id, child, mut vis)| {
             let time;
             {
                 let Some(line) = chart.lines.get(note_id.line_idx) else {
+                    *vis = Visibility::Hidden;
                     return;
                 };
                 let Some(note) = line.notes.get(note_id.note_idx) else {
+                    *vis = Visibility::Hidden;
                     return;
                 };
                 time = note.time;
             }
+            *vis = Visibility::Visible;
             let chart_with_cache = chart.with_cache(&cache);
             let pos: Vec2 = chart_with_cache
                 .line_pos_at_clamped(note_id.line_idx, time, **game_time)
@@ -113,7 +118,8 @@ fn update_note<P: ChartProvider>(
             *transform = transform.with_translation(pos.extend(NOTE_Z));
             for child in child.iter() {
                 if let Ok(mut sprite) = note_bg.get_mut(child) {
-                    sprite.color = colorrgba_to_color(chart.theme_at(time).unwrap().this.color.note);
+                    sprite.color =
+                        colorrgba_to_color(chart.theme_at(time).unwrap().this.color.note);
                 }
             }
         });
@@ -139,6 +145,7 @@ fn update_note_kind<P: ChartProvider>(
         &mut CurrentNoteKind,
         &ChartNoteId,
         Option<&Children>,
+        &ViewVisibility,
     )>,
     provider: Res<P>,
 
@@ -152,7 +159,8 @@ fn update_note_kind<P: ChartProvider>(
     }
     notes
         .iter_mut()
-        .for_each(|(entity, mut kind, id, children)| {
+        .filter(|(_, _, _, _, vis)| vis.get())
+        .for_each(|(entity, mut kind, id, children, _)| {
             if let Some(line) = chart.lines.get(id.line_idx) {
                 if let Some(note) = line.notes.get(id.note_idx) {
                     if kind.0.as_ref() == Some(&note.kind) {

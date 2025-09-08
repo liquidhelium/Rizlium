@@ -1,12 +1,13 @@
 // 引入 Bevy 引擎的核心模块。
 use bevy::{
-    prelude::*, // 引入 Bevy 预设，包含常用功能。
+    prelude::*,                // 引入 Bevy 预设，包含常用功能。
     tasks::{IoTaskPool, Task}, // 引入 IO 任务池和任务类型，用于异步执行文件操作。
 };
 // 引入 `bevy_kira_audio` 插件，用于处理音频。
 use bevy_kira_audio::{prelude::StaticSoundData, AudioSource};
 // 引入 `futures_lite` 的异步写操作 trait。
 use futures_lite::io::AsyncWriteExt;
+use helium_framework::prelude::ToastsStorage;
 // 引入 `IndexSet`，一个保持插入顺序的哈希集合，用于管理最近文件列表。
 use indexmap::IndexSet;
 // 引入 `rizlium_chart` crate 的预设模块，包含谱面相关的所有定义。
@@ -41,10 +42,10 @@ impl Plugin for ProjectPlugin {
                 PostUpdate, // 在每次更新循环的 `PostUpdate` 阶段运行这些系统。
                 (
                     handle_load_chart_events, // 处理加载谱面请求。
-                    handle_dialog_pending, // 处理文件对话框的异步结果。
-                    handle_chart_loading, // 处理正在加载的谱面的异步任务。
+                    handle_dialog_pending,    // 处理文件对话框的异步结果。
+                    handle_chart_loading,     // 处理正在加载的谱面的异步任务。
                     handle_save_chart_events, // 处理保存谱面的请求。
-                    report_loading_results, // 报告加载结果（成功或失败）。
+                    report_loading_results,   // 报告加载结果（成功或失败）。
                 ),
             );
     }
@@ -159,10 +160,10 @@ pub enum ChartLoadingError {
 /// `ChartInfo` 结构体对应于 `info.yml` 文件的内容。
 #[derive(Deserialize)]
 pub struct ChartInfo {
-    pub name: String, // 谱面名称。
+    pub name: String,        // 谱面名称。
     pub format: ChartFormat, // 谱面格式。
-    pub chart_path: String, // 谱面文件相对于 `info.yml` 的路径。
-    pub music_path: String, // 音乐文件相对于 `info.yml` 的路径。
+    pub chart_path: String,  // 谱面文件相对于 `info.yml` 的路径。
+    pub music_path: String,  // 音乐文件相对于 `info.yml` 的路径。
 }
 
 /// `ChartFormat` 枚举定义了支持的谱面格式。
@@ -251,7 +252,11 @@ impl ProjectState {
                 LoadedProject::Bundle(_, chart) => chart,
             };
             // 每条线有两个点，所以线段数是点数减一。
-            chart.lines.iter().map(|line| line.points.len().saturating_sub(1)).sum()
+            chart
+                .lines
+                .iter()
+                .map(|line| line.points.len().saturating_sub(1))
+                .sum()
         } else {
             0
         }
@@ -301,7 +306,7 @@ impl ProjectState {
 /// `handle_load_chart_events` 系统负责处理 `LoadChartEvent` 事件。
 fn handle_load_chart_events(
     mut events: EventReader<LoadChartEvent>, // 读取加载事件。
-    mut state: ResMut<ProjectState>, // 可变地访问项目状态。
+    mut state: ResMut<ProjectState>,         // 可变地访问项目状态。
 ) {
     if events.is_empty() {
         return;
@@ -336,13 +341,14 @@ fn handle_dialog_pending(mut state: ResMut<ProjectState>, mut events: EventWrite
         return;
     }
     // 从状态中取出异步任务并轮询一次。
+    info!("polling dialog pending task");
     let poll_result = match *state {
         ProjectState::DialogPending(DialogPending::Bundle(ref mut task)) => {
             // `block_on` 和 `poll_once` 用于非阻塞地检查任务是否已完成。
             let result = futures_lite::future::block_on(futures_lite::future::poll_once(task));
             // 如果任务完成，将结果（文件路径）包装成 `LoadChartEvent`。
             result.map(|path| path.map(LoadChartEvent::Bundle))
-        },
+        }
         ProjectState::DialogPending(DialogPending::Path(ref mut task)) => {
             let result = futures_lite::future::block_on(futures_lite::future::poll_once(task));
             result.map(|path| path.map(LoadChartEvent::Path))
@@ -379,6 +385,7 @@ fn handle_chart_loading(
     };
 
     // 轮询任务是否完成。
+    info!("polling chart loading task");
     if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
         match result {
             // 如果加载成功...
@@ -404,14 +411,14 @@ fn handle_chart_loading(
                 // 将音频句柄存储在 `GameAudioSource` 资源中，以便音频系统可以播放它。
                 command.insert_resource(GameAudioSource(handle));
                 // 发送成功事件。
-                events.send(ChartLoadingEvent::Success(loaded.path));
+                events.write(ChartLoadingEvent::Success(loaded.path));
             }
             // 如果加载失败...
             Err(err) => {
                 // 将状态重置为 `Idle`。
                 *state = ProjectState::Idle;
                 // 发送失败事件。
-                events.send(ChartLoadingEvent::Error(err));
+                events.write(ChartLoadingEvent::Error(err));
             }
         }
     }
@@ -451,6 +458,7 @@ fn handle_save_chart_events(
 fn report_loading_results(
     mut events: EventReader<ChartLoadingEvent>,
     mut recent: ResMut<RecentFiles>,
+    mut toast: ResMut<ToastsStorage>
 ) {
     for event in events.read() {
         match event {
@@ -458,7 +466,11 @@ fn report_loading_results(
                 // 如果加载成功，将路径添加到最近文件列表。
                 recent.push(path.clone());
             }
-            ChartLoadingEvent::Error(_) => {} // 加载失败时不执行任何操作。
+            ChartLoadingEvent::Error(e) => {
+                // 如果加载失败，记录错误并显示一个 toast 通知。
+                error!("Failed to load chart: {e}");
+                toast.error("Failed to load chart: {e}");
+            } 
         }
     }
 }
@@ -577,7 +589,7 @@ impl ProjectState {
                 .add_filter("Chart Bundle", &["zip"]) // 设置文件过滤器。
                 .pick_file() // 显示“选择文件”对话框。
                 .await; // 等待用户操作。
-            // 如果用户选择了文件，则返回其路径字符串。
+                        // 如果用户选择了文件，则返回其路径字符串。
             file.map(|f| f.path().to_string_lossy().into_owned())
         });
         // 将项目状态切换到 `DialogPending`。

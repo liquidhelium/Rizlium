@@ -1,7 +1,7 @@
 use egui::{Color32, Context, Visuals};
 use egui_dock::TabInteractionStyle;
 
-pub fn top_bar_theme() -> Visuals {
+pub fn menu_bar_theme() -> Visuals {
     Visuals {
         widgets: egui::style::Widgets {
             inactive: egui::style::WidgetVisuals {

@@ -1,4 +1,6 @@
 #![allow(unused, clippy::type_complexity)]
+use std::marker::PhantomData;
+
 use bevy::{
     core_pipeline::{fxaa::Fxaa, oit::OrderIndependentTransparencySettings},
     prelude::*,
@@ -96,6 +98,7 @@ impl<P: ChartProvider> Plugin for RizliumRenderingPlugin<P> {
             RingPlugin::<P>::default(),
             MaskPlugin::<P>::default(),
             HitParticlePlugin::<P>::default(),
+            CameraControlPlugin::<P>::default(),
         ))
         .add_systems(Startup, spawn_game_camera)
         .add_systems(PostUpdate, bind_gameview);
@@ -150,13 +153,54 @@ fn bind_gameview(
     }
 }
 
-pub struct CameraControlPlugin;
+pub struct CameraControlPlugin<P>(PhantomData<P>);
+
+impl<P> Default for CameraControlPlugin<P> {
+    fn default() -> Self {
+        Self(std::marker::PhantomData)
+    }
+}
 
 #[derive(Component)]
 pub struct GameCamera;
 
-impl Plugin for CameraControlPlugin {
-    fn build(&self, _app: &mut App) {
-        // app.add_systems(PreUpdate, update_camera);
+impl<P: ChartProvider> Plugin for CameraControlPlugin<P> {
+    fn build(&self, app: &mut App) {
+        app.add_systems(PreUpdate, update_camera::<P>.run_if(chart_update!(P)));
     }
+}
+
+fn update_camera<P: ChartProvider>(
+    time: Res<GameTime>,
+    mut query: Query<(&mut Projection, &mut Transform), With<GameCamera>>,
+    chart: Res<P>,
+    cache: Res<GameChartCache>,
+) -> Result<()> {
+    let chart = chart.chart(); // ensure loaded
+    let cam_move = chart.cam_move.value_padding(time.0).unwrap_or_else(|| {
+        warn!("Camera movement padding failed");
+        0.0
+    });
+    let cam_scale = chart
+        .cam_scale
+        .value_padding(time.0)
+        .into_iter()
+        .flat_map(|m| {
+            // prevent zero scale, or nan will break everything
+            if m.abs() < f32::EPSILON {
+                None
+            } else {
+                Some(m)
+            }
+        }).next()
+        .unwrap_or_else(|| {
+            warn!("Camera scale padding failed");
+            1.0
+        });
+    let (mut proj, mut transform) = query.single_mut()?;
+    if let Projection::Orthographic(ortho) = &mut *proj {
+        ortho.scale = 1. / cam_scale;
+    }
+    transform.translation.x = cam_move;
+    Ok(())
 }

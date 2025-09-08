@@ -6,10 +6,9 @@
 // `unused`: 允许存在未使用的代码，可能用于临时禁用或开发中的功能。
 #![allow(unused)]
 
-
 // 引入标准库中的 `Duration`，用于处理时间间隔。
 use std::time::Duration;
- 
+
 // 引入 Bevy 引擎的各个模块。
 use bevy::{
     // `FrameCount` 资源，用于获取自应用启动以来渲染的总帧数。
@@ -22,7 +21,7 @@ use bevy::{
     window::{PresentMode, PrimaryWindow, RequestRedraw},
 };
 // 引入 `bevy_egui` 插件，用于在 Bevy 中集成 egui UI 框架。
-use bevy_egui::{EguiContext, EguiUserTextures,};
+use bevy_egui::{EguiContext, EguiUserTextures};
 // 引入 `bevy_persistent` 插件，用于轻松地持久化（保存和加载）Bevy 资源。
 use bevy_persistent::Persistent;
 // 引入 `egui` 库的核心组件，用于构建用户界面。
@@ -68,13 +67,21 @@ pub mod rune_extensions;
 use crate::{
     extensions::command_panel::command_panel, // 命令面板 UI 函数
     project::{LoadChartEvent, ProjectState, RecentFiles}, // 项目相关的事件和状态
-    ui::{theme::{tab_theme, top_bar_theme}, widgets::shortcut_display} // UI 主题和自定义小部件
+    ui::{
+        theme::{tab_theme, menu_bar_theme},
+        widgets::shortcut_display,
+    }, // UI 主题和自定义小部件
 };
 
 /// `MainMenuContext` 是一个零大小的结构体，用作主菜单的上下文标识。
 /// `helium_framework` 的菜单系统使用这种上下文类型来决定显示哪个菜单。
 #[derive(Debug)]
 pub struct MainMenuContext;
+
+
+/// `RightMenuContext` 是一个零大小的结构体，用作顶栏右侧菜单的上下文标识。
+#[derive(Debug)]
+pub struct RightMenuContext;
 // 声明 `ui` 模块，其中包含 UI 相关的代码。
 mod ui;
 /// `EditorState` 是一个 Bevy 资源，用于存储编辑器的全局状态。
@@ -179,8 +186,8 @@ impl Default for SecondTimer {
 fn compute_fps(
     mut last_fps: Local<u32>, // `Local` 变量，用于在系统调用之间保持状态（上次的帧数）。
     current: Res<FrameCount>, // 当前的总帧数资源。
-    mut fps: ResMut<NowFps>, // 用于存储结果的 FPS 资源。
-    time: Res<Time>, // Bevy 的时间资源，用于驱动计时器。
+    mut fps: ResMut<NowFps>,  // 用于存储结果的 FPS 资源。
+    time: Res<Time>,          // Bevy 的时间资源，用于驱动计时器。
     mut fps_timer: Local<SecondTimer>, // 每秒触发一次的计时器。
 ) {
     // `tick` 方法推进计时器，如果计时器完成了一个周期（即一秒钟过去了），则 `finished()` 返回 true。
@@ -199,7 +206,7 @@ pub fn ui_when_no_dock(
     _recents: Res<Persistent<RecentFiles>>, // 最近文件列表资源（当前未使用）。
     mut _events: EventWriter<LoadChartEvent>, // 加载谱面事件的写入器（当前未使用）。
     egui_textures: Res<EguiUserTextures>, // egui 纹理资源，用于获取图像 ID。
-    icons: Res<Icons>, // 图标资源。
+    icons: Res<Icons>,   // 图标资源。
     hotkeys: Res<HotkeyRegistry>, // 快捷键注册表资源。
     actions: Res<RSystemRegistry>, // 系统（动作）注册表资源。
 ) {
@@ -222,11 +229,18 @@ pub fn ui_when_no_dock(
             ui.with_layout(Layout::left_to_right(egui::Align::Min), |ui| {
                 // 重置样式，以确保快捷键显示正常。
                 ui.set_style(Style::default());
-                let max_index = hotkeys.len() -1;
+                let max_index = hotkeys.len() - 1;
                 // 遍历所有为该动作注册的快捷键组合。
-                for (index,hotkey) in hotkeys.iter().enumerate() {
+                for (index, hotkey) in hotkeys.iter().enumerate() {
                     // 使用 `shortcut_display` 自定义小部件来渲染快捷键。
-                    shortcut_display(&hotkey.key.iter().map(|&key| format!("{key:?}")).collect::<Vec<_>>(), ui);
+                    shortcut_display(
+                        &hotkey
+                            .key
+                            .iter()
+                            .map(|&key| format!("{key:?}"))
+                            .collect::<Vec<_>>(),
+                        ui,
+                    );
                     // 如果不是最后一个快捷键，则添加分号作为分隔符。
                     if index != max_index {
                         ui.label(";");
@@ -244,7 +258,6 @@ pub fn ui_when_no_dock(
         // 垂直居中显示 logo。
         ui.vertical_centered(|ui| {
             ui.add(egui::Image::new((id, egui::Vec2::splat(300.))));
-            
         });
         // 再次计算可用区域，并向内收缩 50 像素。
         let main_rect = ui.available_rect_before_wrap().shrink(50.);
@@ -325,7 +338,8 @@ pub struct MainUIPlugin;
 impl Plugin for MainUIPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, (load_icons, spawn_cam)) // 启动时加载图标并生成相机。
-            .add_systems(Update, (editor_main, input_state_update, setup_font)); // 每帧更新时运行主 UI 逻辑。
+            .add_systems(Update, (editor_main, input_state_update, setup_font));
+        // 每帧更新时运行主 UI 逻辑。
     }
 }
 /// `spawn_cam` 系统在启动时生成一个 2D 相机，这是 Bevy 渲染 2D 场景所必需的。
@@ -361,7 +375,7 @@ fn setup_font(mut context: Query<&mut EguiContext, Added<EguiContext>>) {
 /// 它直接操作 `World`，因此可以访问任何资源和组件。
 fn editor_main(world: &mut World) -> Result<()> {
     // 查询 `EguiContext`，这是与 egui 交互的入口点。
-    let mut egui_context = world.query_filtered::<&mut EguiContext,()>();
+    let mut egui_context = world.query_filtered::<&mut EguiContext, ()>();
     let mut binding = egui_context.single_mut(world)?;
     // 克隆 egui 上下文，以便在多个 UI 函数之间传递。
     let ctx = binding.get_mut().clone();
@@ -413,15 +427,18 @@ fn top_bar_ui(ctx: &egui::Context, world: &mut World) {
                 );
                 // 使用 `resource_scope` 安全地访问 `MenuSystem` 资源并显示菜单。
                 world.resource_scope(|world: &mut World, mut menu_system: Mut<MenuSystem>| {
-                    // 应用自定义的顶部栏主题。
-                    ui.style_mut().visuals = top_bar_theme();
+                    // 应用自定义的主题。
+                    ui.style_mut().visuals = menu_bar_theme();
                     // 显示主菜单。
                     menu_system.show_menu(ui, world, &MainMenuContext);
                 });
                 // 使用从右到左的布局来将 FPS 计数器推到最右边。
                 ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                    world.resource_scope(|_world, fps: Mut<'_, NowFps>| {
-                        ui.label(format!("fps: {}", fps.0));
+                    world.resource_scope(|world: &mut World, mut menu_system: Mut<MenuSystem>| {
+                        // 应用自定义的主题。
+                        ui.style_mut().visuals = menu_bar_theme();
+                        // 显示右侧菜单。
+                        menu_system.show_menu(ui, world, &RightMenuContext);
                     });
                 });
             });
