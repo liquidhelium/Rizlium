@@ -173,7 +173,10 @@ impl Plugin for HotkeyPlugin {
     }
 }
 enum Either {
-    HasTrigger(ReflectSystemRunner<'static, In<RuntimeTrigger>, ()>, RuntimeTrigger),
+    HasTrigger(
+        ReflectSystemRunner<'static, In<RuntimeTrigger>, ()>,
+        RuntimeTrigger,
+    ),
     NoTrigger(ReflectSystemRunner<'static, (), ()>),
 }
 
@@ -187,10 +190,10 @@ impl Either {
     fn run(self, world: &mut World) -> Result<(), ActionError> {
         match self {
             Either::HasTrigger(runner, t) => {
-                runner.run(world,In(t))?;
+                runner.run(world, In(t))?;
             }
             Either::NoTrigger(runner) => {
-                runner.run(world,())?;
+                runner.run(world, ())?;
             }
         }
         Ok(())

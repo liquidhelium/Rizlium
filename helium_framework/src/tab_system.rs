@@ -4,8 +4,8 @@ use bevy::{ecs::schedule::BoxedCondition, platform::collections::HashMap, prelud
 use egui::Ui;
 use egui_dock::{DockState, TabViewer};
 use rust_i18n::t;
-use snafu::Snafu;
 use serde::{Deserialize, Serialize};
+use snafu::Snafu;
 
 use crate::{
     reflect_system::ReflectSystemId,
@@ -31,7 +31,7 @@ impl<'a> TabViewer for HeTabViewer<'a> {
     }
 }
 
-#[derive(Debug, Resource,Serialize, Deserialize)]
+#[derive(Debug, Resource, Serialize, Deserialize)]
 pub struct HeDockState(pub DockState<TabId>);
 
 pub type TabId = Identifier;
@@ -134,7 +134,8 @@ impl TabRegistrationExt for App {
         system: impl IntoSystem<InMut<'static, Ui>, (), M1> + 'static,
         avalible_when: impl Condition<M2>,
     ) -> &mut Self {
-        self.world_mut().register_tab(id, name, system, avalible_when);
+        self.world_mut()
+            .register_tab(id, name, system, avalible_when);
         self
     }
 }

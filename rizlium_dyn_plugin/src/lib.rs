@@ -11,7 +11,9 @@ use bevy::{
     tasks::{Task, futures_lite::StreamExt as _},
 };
 use rune::{
-    runtime::{Function, RuntimeContext}, termcolor::{ColorChoice, StandardStream}, Context, Diagnostics, Sources, Unit
+    Context, Diagnostics, Sources, Unit,
+    runtime::{Function, RuntimeContext},
+    termcolor::{ColorChoice, StandardStream},
 };
 
 pub struct Extension {
@@ -23,8 +25,8 @@ impl Extension {
     pub fn sources(&self) -> &Sources {
         &self.sources
     }
-    
-    pub fn unit(&self) -> &Arc<Unit>{
+
+    pub fn unit(&self) -> &Arc<Unit> {
         &self.unit
     }
 }
@@ -57,12 +59,12 @@ pub fn compile_extension(string: String, context: &Context) -> anyhow::Result<Ex
         .with_diagnostics(&mut diagnostics)
         .build()?;
     if !diagnostics.is_empty() {
-            let mut writer = StandardStream::stderr(ColorChoice::Always);
-            if let Err(e) = diagnostics.emit(&mut writer, &sources) {
-                error!("Failed to emit diagnostics: {e}");
-            }
+        let mut writer = StandardStream::stderr(ColorChoice::Always);
+        if let Err(e) = diagnostics.emit(&mut writer, &sources) {
+            error!("Failed to emit diagnostics: {e}");
         }
-    
+    }
+
     Ok(Extension {
         sources,
         unit: Arc::new(unit),

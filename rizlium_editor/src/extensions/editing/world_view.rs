@@ -1,6 +1,7 @@
 use core::panic;
 use std::ops::ControlFlow;
 
+use crate::project::ProjectState;
 use bevy::{
     core_pipeline::{fxaa::Fxaa, oit::OrderIndependentTransparencySettings},
     math::vec2,
@@ -21,7 +22,6 @@ use egui::{PointerButton, Response, Sense, Ui};
 use rizlium_render::{ChartProvider, GameChartCache, GameTime};
 use rust_i18n::t;
 use tools::Tool;
-use crate::project::ProjectState;
 
 use helium_framework::prelude::*;
 
@@ -72,19 +72,18 @@ fn setup_world_cam(
     let handle = images.add(get_image());
     egui_context.add_image(handle.clone());
     commands.spawn((
-        
-            // todo: use a shader to shadow places which are not in GameView
-            Camera2d,
-            Camera {
-                target: bevy::render::camera::RenderTarget::Image(handle.clone().into()),
-                ..default()
-            },
-            Msaa::Off,
-            OrderIndependentTransparencySettings::default(),
-            Fxaa::default(),
-            RenderLayers::default().with(114)
-        
-    , WorldCam));
+        // todo: use a shader to shadow places which are not in GameView
+        Camera2d,
+        Camera {
+            target: bevy::render::camera::RenderTarget::Image(handle.clone().into()),
+            ..default()
+        },
+        Msaa::Off,
+        OrderIndependentTransparencySettings::default(),
+        Fxaa::default(),
+        RenderLayers::default().with(114),
+        WorldCam,
+    ));
     commands.insert_resource(WorldView(handle));
 }
 
@@ -287,11 +286,13 @@ impl Plugin for PointIndicatorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PreUpdate,
-            add_points_indicator.run_if(ProjectState::has_chart_system().and(resource_changed::<ProjectState>)),
+            add_points_indicator
+                .run_if(ProjectState::has_chart_system().and(resource_changed::<ProjectState>)),
         )
         .add_systems(
             Update,
-            (associate_segment,).run_if(ProjectState::has_chart_system().and(resource_changed::<ProjectState>)),
+            (associate_segment,)
+                .run_if(ProjectState::has_chart_system().and(resource_changed::<ProjectState>)),
         )
         .add_systems(Update, (update_shape).run_if(chart_update!()));
     }
@@ -376,11 +377,11 @@ fn update_shape(
         .for_each(|(_, id, mut transform)| {
             let line_idx = id.line_idx;
             let keypoint_idx = id.keypoint_idx;
-            let Some(pos1) =
-                chart.chart()
-                    .with_cache(&cache)
-                    .pos_for_linepoint_at(line_idx, keypoint_idx, **time)
-            else {
+            let Some(pos1) = chart.chart().with_cache(&cache).pos_for_linepoint_at(
+                line_idx,
+                keypoint_idx,
+                **time,
+            ) else {
                 return;
             };
             let pos1: Vec2 = pos1.into();

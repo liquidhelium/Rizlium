@@ -17,7 +17,9 @@ use crate::{
     extensions::{
         editing::ChartEditHistory,
         inspector::{ChartItem, SelectedItem},
-    }, project::ProjectState, utils::WorldToGame
+    },
+    project::ProjectState,
+    utils::WorldToGame,
 };
 use helium_framework::prelude::*;
 

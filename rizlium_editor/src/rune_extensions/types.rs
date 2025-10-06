@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use bevy::prelude::*;
 use egui::{Ui, UiBuilder};
-use rune::{Any, runtime::Function};
+use rune::{runtime::Function, Any};
 
 /// Rune可访问的UI包装器
 #[derive(Any, Clone)]
@@ -143,7 +143,13 @@ impl RuneRegistrar {
     }
 
     #[rune::function]
-    pub fn register_hotkey(&mut self, id: &str, keys: Vec<String>, description: &str, func: Function) {
+    pub fn register_hotkey(
+        &mut self,
+        id: &str,
+        keys: Vec<String>,
+        description: &str,
+        func: Function,
+    ) {
         self.hotkeys.push(HotkeyRegistration {
             id: id.to_string(),
             keys,

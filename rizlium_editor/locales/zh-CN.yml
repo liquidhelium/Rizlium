@@ -2,10 +2,12 @@ _version: 1
 settings.language: 语言
 settings.docking: 布局
 settings.docking.save_error: 保存布局失败！
-action.open_chart: 打开
-action.save_chart: 保存
+action.open_bundle: 打开打包的谱面
+action.save_chart: 保存谱面
+action.open_path: 打开谱面文件夹
 chart_type.bundled: 已打包谱面
 chart.load.fail: '加载谱面失败, 错误: %{err}'
+path.load.fail: 加载文件夹失败,错误：%{err}
 chart.load.success: 谱面加载完毕
 edit.world_view.temp_toggle_view: 临时从铅笔工具切换到视图工具
 edit.world_view.to_pencil.desc: 切换到铅笔工具

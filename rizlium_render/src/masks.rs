@@ -26,10 +26,7 @@ impl<P: ChartProvider> Plugin for MaskPlugin<P> {
     fn build(&self, app: &mut App) {
         app.init_resource::<GeneratedMaskTheme>()
             .add_systems(Startup, init_mask)
-            .add_systems(
-                PostUpdate,
-                update_mask::<P>.run_if(chart_update!(P)),
-            );
+            .add_systems(PostUpdate, update_mask::<P>.run_if(chart_update!(P)));
     }
 }
 
@@ -82,7 +79,7 @@ pub(crate) const TOP_MASK_HEIGHT: f32 = 0.2;
 
 fn update_mask<P: ChartProvider>(
     mut mask_bottom: Query<(&mut Fill, &mut Path), (With<MaskBottom>, Without<MaskTop>)>,
-    mut mask_top: Query<(&mut Fill, &mut Path), (With<MaskTop>,Without<MaskBottom>)>,
+    mut mask_top: Query<(&mut Fill, &mut Path), (With<MaskTop>, Without<MaskBottom>)>,
     cams: Query<&Projection, With<GameCamera>>,
     provider: Res<P>,
     time: Res<GameTime>,

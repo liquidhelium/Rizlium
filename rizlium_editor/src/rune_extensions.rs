@@ -57,15 +57,14 @@ pub fn process_rune_extension_with_helium(
 
     // 调用 Rune 脚本中名为 `main` 的函数，并将 `registrar` 的可变引用作为参数传入。
     // `context` 方法用于在发生错误时附加一条描述性的错误信息。
-    vm.call(["main"], (&mut registrar,)).context(
-        "Failed to call main function in Rune extension",
-    )?;
+    vm.call(["main"], (&mut registrar,))
+        .context("Failed to call main function in Rune extension")?;
 
     // 在 Rune 脚本执行完毕后，处理 `registrar` 中收集到的所有注册请求。
     wrappers::process_rune_registrations(
-        registrar, // 包含了所有来自 Rune 脚本的注册信息。
+        registrar,                      // 包含了所有来自 Rune 脚本的注册信息。
         engine.runtime_context.clone(), // Rune 的运行时上下文，用于后续的函数调用。
-        world, // Bevy 的 `World`，用于实际执行注册操作。
+        world,                          // Bevy 的 `World`，用于实际执行注册操作。
     )?;
 
     // 返回成功。
@@ -93,10 +92,14 @@ impl Plugin for HeliumRuneSupportPlugin {
         // --- 2. 注册“重载插件”的命令和菜单项 ---
         // `reflect_system` 将一个普通的 Rust 函数（`reload_plugins`）注册为一个“反射系统”，
         // 使其可以通过字符串 ID 被调用。
-        app.reflect_system("plugins.reload", "Debug: Reload plugins",reload_plugins)
+        app.reflect_system("plugins.reload", "Debug: Reload plugins", reload_plugins)
             // `register_command` 将这个反射系统与一个菜单项关联起来。
             // 当用户点击 "Debug" -> "Reload plugins" 菜单时，就会执行 `reload_plugins` 系统。
-            .register_command::<MainMenuContext>("reload_plugins", "Reloads all plugins", "plugins.reload");
+            .register_command::<MainMenuContext>(
+                "reload_plugins",
+                "Reloads all plugins",
+                "plugins.reload",
+            );
     }
 }
 
@@ -105,7 +108,7 @@ fn reload_plugins(world: &mut World) {
     // `block_on` 会阻塞当前线程，直到异步操作完成。
     // 这里我们异步地查找、编译所有插件。
     let result = block_on(fetch_and_compile_extensions(
-        PathBuf::from("plugins"), // 插件目录。
+        PathBuf::from("plugins"),       // 插件目录。
         world.resource::<RuneEngine>(), // 传入 Rune 引擎用于编译。
     ));
     // 检查编译结果。
@@ -120,23 +123,21 @@ fn reload_plugins(world: &mut World) {
     // 因为可能添加了新的类型或函数，需要重新生成运行时上下文。
     let mut engine = world.resource_mut::<RuneEngine>();
     engine.runtime_context = Arc::new(engine.context.runtime().unwrap());
-    
+
     // 使用 `resource_scope` 来安全地借用 `RuneEngine` 资源。
     world.resource_scope(|world, engine: Mut<RuneEngine>| {
         // 异步加载所有已成功编译的扩展。
-        if let Err(e) = block_on(
-            load_compiled_extensions(
-                &mut extentions,
-                &engine,
-                // 传入一个回调闭包，用于处理每个加载的扩展。
-                Box::new(|ext, engine| {
-                    // 在这个闭包中，我们调用之前定义的 `process_rune_extension_with_helium` 函数，
-                    // 来执行脚本的 `main` 函数并处理其注册。
-                    process_rune_extension_with_helium(ext, engine, world)?;
-                    Ok(())
-                }),
-            )
-        ) {
+        if let Err(e) = block_on(load_compiled_extensions(
+            &mut extentions,
+            &engine,
+            // 传入一个回调闭包，用于处理每个加载的扩展。
+            Box::new(|ext, engine| {
+                // 在这个闭包中，我们调用之前定义的 `process_rune_extension_with_helium` 函数，
+                // 来执行脚本的 `main` 函数并处理其注册。
+                process_rune_extension_with_helium(ext, engine, world)?;
+                Ok(())
+            }),
+        )) {
             // 如果加载过程中（即执行 `main` 函数时）出错，则显示错误通知。
             world
                 .resource_mut::<ToastsStorage>()

@@ -18,24 +18,20 @@ fn main() {
         })
         .add_plugins(HeliumFramework)
         .insert_resource(HeDockState(DockState::new(vec!["default".into()])));
-    app.reflect_system("editor.format", "Format Code", |(InMut(ui), InRef(editor)): (InMut<Ui>, InRef<EditorContext>)| {
-        ui.label("This is a format code action");
-        ui.label(format!("Context: {:?}", editor));
-    });
+    app.reflect_system(
+        "editor.format",
+        "Format Code",
+        |(InMut(ui), InRef(editor)): (InMut<Ui>, InRef<EditorContext>)| {
+            ui.label("This is a format code action");
+            ui.label(format!("Context: {:?}", editor));
+        },
+    );
     // Register menus using new system
-    app.register_submenu::<MainMenuContext>("file",  "File")
-    .register_command::<MainMenuContext>("file/new",  "New", "file.new")
+    app.register_submenu::<MainMenuContext>("file", "File")
+        .register_command::<MainMenuContext>("file/new", "New", "file.new")
         .register_command::<MainMenuContext>("file/quit", "Quit", "file.quit")
-        .register_custom::<EditorContext>(
-            "editor.format",
-            "Format Code",
-            "editor.format",
-        )
-        .register_command::<EditorContext>(
-            "editor.copy",
-            "Copy",
-            "editor.copy",
-        );
+        .register_custom::<EditorContext>("editor.format", "Format Code", "editor.format")
+        .register_command::<EditorContext>("editor.copy", "Copy", "editor.copy");
 
     app.add_systems(Update, egui_main);
     app.run();
@@ -45,7 +41,7 @@ fn egui_main(world: &mut World) {
     let mut egui_context = world.query_filtered::<&mut EguiContext, With<PrimaryWindow>>();
     let mut binding = egui_context.single_mut(world).unwrap();
     let ctx = &binding.get_mut().clone();
-    
+
     egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
         ui.horizontal(|ui| {
             world.resource_scope(|world, mut menu_system: Mut<MenuSystem>| {
@@ -57,12 +53,11 @@ fn egui_main(world: &mut World) {
 
     egui::CentralPanel::default().show(ctx, |ui| {
         ui.label("New Menu System Demo");
-        ui.add(Label::new("context").sense(Sense::all())).context_menu(
-            |ui| {
+        ui.add(Label::new("context").sense(Sense::all()))
+            .context_menu(|ui| {
                 world.resource_scope(|world, mut menu_system: Mut<MenuSystem>| {
                     menu_system.show_menu::<EditorContext>(ui, world, &EditorContext);
                 });
-            }
-        );
+            });
     });
 }

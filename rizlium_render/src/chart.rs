@@ -9,10 +9,10 @@ pub trait ChartProvider: Resource {
 
     /// Get the current chart
     fn chart(&self) -> &Chart;
-    
+
     /// Get mutable access to the chart
     fn chart_mut(&mut self) -> &mut Chart;
-    
+
     /// Iterate over all segments in the chart
     fn iter_segment(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
         self.chart()
@@ -21,7 +21,7 @@ pub trait ChartProvider: Resource {
             .enumerate()
             .flat_map(|(i, l)| std::iter::repeat(i).zip(0..l.points.points().len() - 1))
     }
-    
+
     /// Iterate over all notes in the chart
     fn iter_note(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
         self.chart()

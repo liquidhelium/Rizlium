@@ -4,15 +4,15 @@ pub fn shortcut_display(shortcut: &[String], ui: &mut egui::Ui) {
     let spacing = 3.0;
     let key_padding = egui::vec2(6.0, 2.0);
     let key_height = 16.0;
-    
+
     ui.horizontal(|ui| {
         let mut total_width = 0.0;
         let painter = ui.painter();
-        
-        let plus_width =  painter
-                .layout_no_wrap(String::from("+"), FontId::default(), Color32::WHITE)
-                .size()
-                .x;
+
+        let plus_width = painter
+            .layout_no_wrap(String::from("+"), FontId::default(), Color32::WHITE)
+            .size()
+            .x;
         // 计算总宽度
         for (i, key) in shortcut.iter().enumerate() {
             let key_width = painter
@@ -25,12 +25,12 @@ pub fn shortcut_display(shortcut: &[String], ui: &mut egui::Ui) {
                 total_width += plus_width + spacing * 2.0;
             }
         }
-        
+
         // 为整个快捷键组合分配空间
         let available_height = key_height;
         let (rect, _response) =
             ui.allocate_exact_size(egui::vec2(total_width, available_height), Sense::hover());
-        
+
         let painter = ui.painter();
         let mut cursor_x = rect.left();
         let center_y = rect.center().y;

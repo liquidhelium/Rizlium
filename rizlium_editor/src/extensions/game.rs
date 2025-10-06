@@ -1,3 +1,8 @@
+use crate::{
+    project::ProjectState,
+    time_and_audio::{TimeControlEvent, TimeManager as AudioTimeManager},
+    MainMenuContext,
+};
 use bevy::{
     input::mouse::MouseWheel,
     prelude::*,
@@ -8,14 +13,10 @@ use bevy::{
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::Ui;
 use rizlium_render::{notes::NoteTexture, ChartProvider as _, GameTime, GameView};
-use crate::{project::ProjectState, time_and_audio::{TimeControlEvent, TimeManager as AudioTimeManager}, MainMenuContext};
 use rust_i18n::t;
 
-use crate::{LoadChartEvent, project::SaveChartEvent};
-use helium_framework::{
-    menu_system::MenuRegistration,
-    prelude::*,
-};
+use crate::{project::SaveChartEvent, LoadChartEvent};
+use helium_framework::{menu_system::MenuRegistration, prelude::*};
 pub struct Game;
 
 impl Plugin for Game {
@@ -74,15 +75,30 @@ impl Plugin for Game {
                     TriggerType::PressAndRelease,
                 )],
             )
-            .register_submenu::<MainMenuContext>("file",  t!("file.tab"))
-            .register_command::<MainMenuContext>("file/open_bundle", t!("action.open_bundle"), "game.open_bundle_dialog")
-            .register_command::<MainMenuContext>("file/open_path", t!("action.open_path"), "game.open_path_dialog")
-            .register_command::<MainMenuContext>("file/save_chart", t!("action.save_chart"), "game.save_chart")
+            .register_submenu::<MainMenuContext>("file", t!("file.tab"))
+            .register_command::<MainMenuContext>(
+                "file/open_bundle",
+                t!("action.open_bundle"),
+                "game.open_bundle_dialog",
+            )
+            .register_command::<MainMenuContext>(
+                "file/open_path",
+                t!("action.open_path"),
+                "game.open_path_dialog",
+            )
+            .register_command::<MainMenuContext>(
+                "file/save_chart",
+                t!("action.save_chart"),
+                "game.save_chart",
+            )
             .register_tab("game.view", t!("game.view.tab"), game_view_tab, || true);
         // bevy systems
         app.add_systems(
             Startup,
-            (setup_game_view.after(bevy_egui::EguiStartupSet::InitContexts), load_textures),
+            (
+                setup_game_view.after(bevy_egui::EguiStartupSet::InitContexts),
+                load_textures,
+            ),
         )
         .add_systems(Update, scroll_time)
         .init_resource::<ScrollTimeState>()
@@ -90,7 +106,7 @@ impl Plugin for Game {
     }
 }
 
-fn load_textures(server: Res<AssetServer>,mut commands: Commands) {
+fn load_textures(server: Res<AssetServer>, mut commands: Commands) {
     commands.insert_resource(NoteTexture {
         note_frame: server.load("note_textures/note_frame.png"),
         note_bg: server.load("note_textures/note_bg.png"),
@@ -149,9 +165,9 @@ fn scroll_time(
 
 mod time_systems {
     const SINGLE_TIME: f32 = 1.0;
-    use bevy::ecs::{event::EventWriter, system::In};
     use crate::time_and_audio::TimeControlEvent;
     use crate::time_and_audio::TimeControlEvent::*;
+    use bevy::ecs::{event::EventWriter, system::In};
     pub fn advance_time(mut ev: EventWriter<TimeControlEvent>) {
         ev.write(Advance(SINGLE_TIME));
     }

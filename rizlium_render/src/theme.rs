@@ -13,8 +13,7 @@ impl<P: ChartProvider> Plugin for BackgroundThemePlugin<P> {
         app.add_systems(
             Update,
             change_bg::<P>.run_if(
-                P::has_chart_system()
-                    .and(resource_changed::<P>.or(resource_changed::<GameTime>)),
+                P::has_chart_system().and(resource_changed::<P>.or(resource_changed::<GameTime>)),
             ),
         );
     }

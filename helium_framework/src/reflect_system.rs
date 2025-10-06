@@ -2,6 +2,7 @@ use std::any::{type_name, TypeId};
 use std::intrinsics::transmute_unchecked;
 
 use bevy::ecs::system::{SystemId, SystemParam};
+use bevy::ecs::world::CommandQueue;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use bevy::reflect::Typed;
@@ -200,9 +201,13 @@ impl RSystemRegistry {
     }
 }
 
+#[derive(Resource, Deref, DerefMut, Default)]
+pub struct QueuedActions(CommandQueue);
+
 #[derive(SystemParam)]
 pub struct Actions<'w, 's> {
     commands: Commands<'w, 's>,
+    queued: ResMut<'w, QueuedActions>,
     storages: Res<'w, RSystemRegistry>,
 }
 
@@ -222,6 +227,51 @@ impl Actions<'_, '_> {
             let input1 = unsafe { transmute_unchecked::<_, I::Param<'static>>(input) };
             let id1 = id.clone();
             self.commands.queue(move |world: &mut World| {
+                if let Err(err) = get
+                    .map(|meta| {
+                        {
+                            let system_id = meta.system_id;
+                            let system_id: SystemId<I::Param<'static>, ()> =
+                                system_id.system_id().ok_or(ActionError::MismatchInput {
+                                    // TODO
+                                    expected_type_name: meta.input,
+                                    found_type_name: type_name::<I::Param<'static>>().to_owned(),
+                                })?;
+                            let e = world.run_system_with(system_id, input1.into_inner());
+                            if let Ok(output) = e {
+                                Ok(output)
+                            } else {
+                                Err(ActionError::RegistrationError {
+                                    message: "Failed to run system with input".to_string(),
+                                })
+                            }
+                        }
+                    })
+                    .unwrap()
+                {
+                    error!("Failed to run action {}: {:?}", id1, err);
+                }
+            });
+            Ok(())
+        } else {
+            Err(ActionError::NotFound { id: id.to_string() })
+        }
+    }
+    pub fn queue_action<'i, I: InputSubset<'i> + Send + Sync + 'static>(
+        &mut self,
+        id: &ActionId,
+        input: I,
+    ) -> Result<(), ActionError>
+    where
+        <I as bevy::prelude::SystemInput>::Param<'static>:
+            InputSubset<'static> + 'static + Send + Sync,
+        <<I as bevy::prelude::SystemInput>::Param<'static> as SystemInput>::Inner<'static>: 'static,
+    {
+        if self.storages.0.contains_key(id) {
+            let get = self.storages.0.get(id).cloned();
+            let input1 = unsafe { transmute_unchecked::<_, I::Param<'static>>(input) };
+            let id1 = id.clone();
+            self.queued.push(move |world: &mut World| {
                 if let Err(err) = get
                     .map(|meta| {
                         {
@@ -384,7 +434,8 @@ pub struct ActionPlugin;
 
 impl Plugin for ActionPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<RSystemRegistry>();
+        app.init_resource::<RSystemRegistry>()
+            .init_resource::<QueuedActions>();
     }
 }
 

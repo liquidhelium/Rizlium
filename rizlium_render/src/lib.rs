@@ -192,7 +192,8 @@ fn update_camera<P: ChartProvider>(
             } else {
                 Some(m)
             }
-        }).next()
+        })
+        .next()
         .unwrap_or_else(|| {
             warn!("Camera scale padding failed");
             1.0

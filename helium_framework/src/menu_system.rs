@@ -367,14 +367,14 @@ impl<'a, C: 'static + Send + Sync> MenuTree<'a, C> {
                         if ui.button(&*item.title).clicked() {
                             match world
                                 .resource_mut::<RSystemRegistry>()
-                                .construct_runner(action_id, )
+                                .construct_runner(action_id)
                             {
                                 Err(e) => {
                                     error!("Failed to run command {}: {}", action_id, e)
                                 }
                                 Ok(runner) => {
                                     // SAFETY: we ensure the lifetime by running immediately
-                                    let _ = runner.run(world,());
+                                    let _ = runner.run(world, ());
                                 }
                             };
                         }

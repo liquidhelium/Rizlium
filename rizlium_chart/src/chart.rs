@@ -140,7 +140,7 @@ impl ChartCache {
                             keypoint.ease_type = EasingId::Linear;
                         }
                         let this_real = self.beat_remap.value_padding(keypoint.time).unwrap();
-                        let pos = (last_value*5./6.).mul_add(this_real - last_real, last_start);
+                        let pos = (last_value * 5. / 6.).mul_add(this_real - last_real, last_start);
                         let value = keypoint.value;
                         keypoint.value = pos;
                         keypoint.time = this_real;

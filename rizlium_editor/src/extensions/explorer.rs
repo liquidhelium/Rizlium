@@ -92,7 +92,7 @@ fn explorer_tab(
     // 主内容区域
     let current_path = state.current_path.clone();
     let files = state.files.clone();
-    
+
     if let Some(path) = current_path {
         folder_view(ui, &path, &files, &mut state, &mut commands);
     } else {
@@ -144,17 +144,23 @@ fn welcome_view(ui: &mut Ui, mut project: Mut<ProjectState>) {
     });
 }
 
-fn folder_view(ui: &mut Ui, path: &Path, files: &[FileEntry], state: &mut ExplorerState, commands: &mut Commands) {
+fn folder_view(
+    ui: &mut Ui,
+    path: &Path,
+    files: &[FileEntry],
+    state: &mut ExplorerState,
+    commands: &mut Commands,
+) {
     // 克隆需要的状态，避免借用冲突
     let creating_new = state.creating_new.clone();
     let renaming = state.renaming.clone();
-    
+
     // 文件列表
     egui::ScrollArea::vertical().show(ui, |ui| {
         // 显示正在创建的新项目
         if let Some(new_item) = creating_new {
             let icon = if new_item.is_dir { "📁" } else { "📄" };
-            
+
             ui.horizontal(|ui| {
                 ui.label(icon);
                 let mut name = new_item.name.clone();
@@ -182,20 +188,23 @@ fn folder_view(ui: &mut Ui, path: &Path, files: &[FileEntry], state: &mut Explor
                 }
 
                 let is_renaming = renaming.as_ref().is_some_and(|r| r.path == file.path);
-                
+
                 if is_renaming {
                     if let Some(rename_state) = renaming.clone() {
                         ui.horizontal(|ui| {
                             let icon = if file.is_dir { "📁" } else { "📄" };
                             ui.label(icon);
                             let mut new_name = rename_state.new_name.clone();
-                            let response = inline_edit(ui, &mut new_name, true, Some(&rename_state.old_name));
+                            let response =
+                                inline_edit(ui, &mut new_name, true, Some(&rename_state.old_name));
                             if response.lost_focus() {
                                 let trimmed_name = new_name.trim();
-                                if !trimmed_name.is_empty() && trimmed_name != rename_state.old_name
-                                    && validate_filename(trimmed_name, files) {
-                                        rename_item(&rename_state.path, trimmed_name, state, commands);
-                                    }
+                                if !trimmed_name.is_empty()
+                                    && trimmed_name != rename_state.old_name
+                                    && validate_filename(trimmed_name, files)
+                                {
+                                    rename_item(&rename_state.path, trimmed_name, state, commands);
+                                }
                                 state.renaming = None;
                             } else {
                                 // 更新状态
@@ -231,7 +240,7 @@ fn folder_view(ui: &mut Ui, path: &Path, files: &[FileEntry], state: &mut Explor
                                 });
                                 ui.close_menu();
                             }
-                            
+
                             if ui.button("删除").clicked() {
                                 delete_item(&file.path, state, commands);
                                 ui.close_menu();
@@ -254,13 +263,18 @@ fn folder_view(ui: &mut Ui, path: &Path, files: &[FileEntry], state: &mut Explor
 }
 
 // 内联编辑组件 - 类似VSCode的文件名编辑
-fn inline_edit(ui: &mut Ui, text: &mut String, selected: bool, original_name: Option<&str>) -> egui::Response {
+fn inline_edit(
+    ui: &mut Ui,
+    text: &mut String,
+    selected: bool,
+    original_name: Option<&str>,
+) -> egui::Response {
     let id = ui.auto_id_with("inline_edit");
     let state = egui::TextEdit::singleline(text)
         .id(id)
         .desired_width(150.0)
         .show(ui);
-    
+
     if selected {
         state.response.request_focus();
         // 选择全部文本
@@ -271,29 +285,35 @@ fn inline_edit(ui: &mut Ui, text: &mut String, selected: bool, original_name: Op
                     if let Some(original) = original_name {
                         // 如果是重命名，选择文件名（不含扩展名）
                         if let Some(dot_idx) = original.rfind('.') {
-                            edit_state.cursor.set_char_range(Some(egui::text::CCursorRange::two(
-                                egui::text::CCursor::new(0),
-                                egui::text::CCursor::new(dot_idx),
-                            )));
+                            edit_state
+                                .cursor
+                                .set_char_range(Some(egui::text::CCursorRange::two(
+                                    egui::text::CCursor::new(0),
+                                    egui::text::CCursor::new(dot_idx),
+                                )));
                         } else {
-                            edit_state.cursor.set_char_range(Some(egui::text::CCursorRange::two(
-                                egui::text::CCursor::new(0),
-                                egui::text::CCursor::new(len),
-                            )));
+                            edit_state
+                                .cursor
+                                .set_char_range(Some(egui::text::CCursorRange::two(
+                                    egui::text::CCursor::new(0),
+                                    egui::text::CCursor::new(len),
+                                )));
                         }
                     } else {
                         // 新建时选择全部文本
-                        edit_state.cursor.set_char_range(Some(egui::text::CCursorRange::two(
-                            egui::text::CCursor::new(0),
-                            egui::text::CCursor::new(len),
-                        )));
+                        edit_state
+                            .cursor
+                            .set_char_range(Some(egui::text::CCursorRange::two(
+                                egui::text::CCursor::new(0),
+                                egui::text::CCursor::new(len),
+                            )));
                     }
                     edit_state.store(ui.ctx(), id);
                 }
             }
         }
     }
-    
+
     state.response
 }
 
@@ -302,15 +322,21 @@ fn validate_filename(name: &str, existing_files: &[FileEntry]) -> bool {
     if name.is_empty() || name.contains('/') || name.contains('\\') || name.contains(':') {
         return false;
     }
-    
+
     // 检查是否已存在同名文件
     !existing_files.iter().any(|f| f.name == name)
 }
 
 // 创建新文件或文件夹
-fn create_new_item(path: &Path, name: &str, is_dir: bool, state: &mut ExplorerState, commands: &mut Commands) {
+fn create_new_item(
+    path: &Path,
+    name: &str,
+    is_dir: bool,
+    state: &mut ExplorerState,
+    commands: &mut Commands,
+) {
     let new_path = path.join(name);
-    
+
     if is_dir {
         if let Err(e) = std::fs::create_dir_all(&new_path) {
             warn!("Failed to create directory {}: {}", new_path.display(), e);
@@ -318,7 +344,7 @@ fn create_new_item(path: &Path, name: &str, is_dir: bool, state: &mut ExplorerSt
     } else if let Err(e) = std::fs::write(&new_path, b"") {
         warn!("Failed to create file {}: {}", new_path.display(), e);
     }
-    
+
     // 刷新文件列表
     state.is_loading = true;
     let path_clone = path.to_path_buf();
@@ -327,15 +353,25 @@ fn create_new_item(path: &Path, name: &str, is_dir: bool, state: &mut ExplorerSt
 }
 
 // 重命名文件或文件夹
-fn rename_item(old_path: &Path, new_name: &str, state: &mut ExplorerState, commands: &mut Commands) {
+fn rename_item(
+    old_path: &Path,
+    new_name: &str,
+    state: &mut ExplorerState,
+    commands: &mut Commands,
+) {
     if let Some(parent) = old_path.parent() {
         let new_path = parent.join(new_name);
-        
+
         if let Err(e) = std::fs::rename(old_path, &new_path) {
-            warn!("Failed to rename {} to {}: {}", old_path.display(), new_path.display(), e);
+            warn!(
+                "Failed to rename {} to {}: {}",
+                old_path.display(),
+                new_path.display(),
+                e
+            );
             return;
         }
-        
+
         // 刷新文件列表
         state.is_loading = true;
         let path_clone = parent.to_path_buf();
@@ -356,7 +392,7 @@ fn delete_item(path: &Path, state: &mut ExplorerState, commands: &mut Commands) 
             warn!("Failed to delete file {}: {}", path.display(), e);
             return;
         }
-        
+
         // 刷新文件列表
         state.is_loading = true;
         let path_clone = parent.to_path_buf();
@@ -427,10 +463,15 @@ pub struct ExplorerLoading {
 }
 
 // 处理键盘事件
-fn handle_keyboard_events(ctx: &Context, state: &mut ExplorerState, current_path: Option<&PathBuf>, commands: &mut Commands) {
+fn handle_keyboard_events(
+    ctx: &Context,
+    state: &mut ExplorerState,
+    current_path: Option<&PathBuf>,
+    commands: &mut Commands,
+) {
     let mut should_confirm_create = false;
     let mut should_confirm_rename = false;
-    
+
     ctx.input(|input| {
         if input.key_pressed(egui::Key::Enter) {
             if state.creating_new.is_some() {
@@ -439,13 +480,13 @@ fn handle_keyboard_events(ctx: &Context, state: &mut ExplorerState, current_path
                 should_confirm_rename = true;
             }
         }
-        
+
         if input.key_pressed(egui::Key::Escape) {
             state.creating_new = None;
             state.renaming = None;
         }
     });
-    
+
     // 处理确认事件（在input闭包外处理，避免借用冲突）
     if should_confirm_create {
         if let Some(new_item) = state.creating_new.take() {
@@ -457,7 +498,7 @@ fn handle_keyboard_events(ctx: &Context, state: &mut ExplorerState, current_path
             }
         }
     }
-    
+
     if should_confirm_rename {
         if let Some(rename_state) = state.renaming.take() {
             let new_name = rename_state.new_name.trim();
@@ -472,7 +513,7 @@ fn handle_keyboard_events(ctx: &Context, state: &mut ExplorerState, current_path
 fn start_creating_new_item(state: &mut ExplorerState, is_dir: bool) {
     let temp_id = uuid::Uuid::new_v4().to_string();
     let default_name = if is_dir { "New Folder" } else { "New File" };
-    
+
     // 确保名称唯一
     let mut counter = 1;
     let mut name = default_name.to_string();
@@ -480,7 +521,7 @@ fn start_creating_new_item(state: &mut ExplorerState, is_dir: bool) {
         name = format!("{default_name}{counter}");
         counter += 1;
     }
-    
+
     state.creating_new = Some(NewItemState {
         name,
         is_dir,
