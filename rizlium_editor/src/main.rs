@@ -87,8 +87,8 @@ fn setup_persistent(mut commands: Commands) {
     );
 }
 fn persist_dock_state(
-    mut events: EventReader<bevy::app::AppExit>,
-    mut state: ResMut<Persistent<RizliumDockState>>,
+    events: EventReader<bevy::app::AppExit>,
+    state: ResMut<Persistent<RizliumDockState>>,
 ) -> Result<()> {
     if !events.is_empty() {
         debug!("AppExit event received, persisting dock state.");

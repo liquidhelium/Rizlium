@@ -117,6 +117,8 @@ pub enum Action<C> {
     /// 参数是自定义系统的标识符
     Custom(ActionId),
 
+    Widget(ActionId),
+
     /// 表示这是一个子菜单项，会包含子菜单
     SubMenu,
 }
@@ -392,6 +394,19 @@ impl<'a, C: 'static + Send + Sync> MenuTree<'a, C> {
                             }
                         };
                     }
+                    Action::Widget(id) => {
+                        match world
+                            .resource_mut::<RSystemRegistry>()
+                            .construct_runner(id)
+                        {
+                            Err(e) => {
+                                error!("Failed to run custom menu {}: {}", id, e)
+                            }
+                            Ok(runner) => {
+                                let _ = runner.run(world, InMut(ui));
+                            }
+                        };
+                    }
                     Action::SubMenu => {
                         // SubMenu items are handled by the tree structure
                     }
@@ -518,6 +533,12 @@ pub trait MenuRegistration {
         title: impl Into<Cow<'static, str>>,
         system_id: impl Into<crate::utils::identifier::Identifier>,
     ) -> &mut Self;
+    fn register_widget<C: 'static + Send + Sync>(
+        &mut self,
+        path: impl Into<String>,
+        title: impl Into<Cow<'static, str>>,
+        system_id: impl Into<crate::utils::identifier::Identifier>,
+    ) -> &mut Self;
 }
 
 impl MenuRegistration for World {
@@ -608,6 +629,17 @@ impl MenuRegistration for World {
     ) -> &mut Self {
         self.register(MenuItem::<C>::new(title, path, Action::SubMenu))
     }
+    fn register_widget<C: 'static + Send + Sync>(
+        &mut self,
+        path: impl Into<String>,
+        title: impl Into<Cow<'static, str>>,
+        system_id: impl Into<crate::utils::identifier::Identifier>,
+    ) -> &mut Self {
+        let system_id = system_id.into();
+        self.register(MenuItem::new(title, path, Action::Widget::<C>(system_id)));
+
+        self
+    }
 }
 
 impl MenuRegistration for App {
@@ -647,6 +679,18 @@ impl MenuRegistration for App {
         title: impl Into<Cow<'static, str>>,
     ) -> &mut Self {
         self.register(MenuItem::<C>::new(title, path, Action::SubMenu))
+    }
+
+    fn register_widget<C: 'static + Send + Sync>(
+        &mut self,
+        path: impl Into<String>,
+        title: impl Into<Cow<'static, str>>,
+        system_id: impl Into<crate::utils::identifier::Identifier>,
+    ) -> &mut Self {
+        let system_id = system_id.into();
+        self.register(MenuItem::new(title, path, Action::Widget::<C>(system_id)));
+
+        self
     }
 }
 

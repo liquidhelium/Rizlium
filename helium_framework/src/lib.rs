@@ -1,5 +1,3 @@
-// transmute_unchecked
-#![feature(core_intrinsics)]
 pub mod hotkeys;
 pub mod menu_system;
 pub mod notifications;

@@ -255,7 +255,7 @@ fn handle_dialog_pending(mut state: ResMut<ProjectState>, mut events: EventWrite
         return;
     };
     if let Some(e) = selected_path {
-        events.send(e);
+        events.write(e);
     } else {
         *state = ProjectState::Idle;
     }

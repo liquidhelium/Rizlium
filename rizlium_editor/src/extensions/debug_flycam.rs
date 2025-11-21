@@ -71,7 +71,7 @@ fn toggle_grab_cursor(window: &mut Window) {
     }
 }
 fn initial_grab_cursor(mut primary_window: Query<&mut Window, With<PrimaryWindow>>) {
-    if let Ok(mut window) = primary_window.get_single_mut() {
+    if let Ok(mut window) = primary_window.single_mut() {
         toggle_grab_cursor(&mut window);
     } else {
         warn!("Primary window not found for `initial_grab_cursor`!");
@@ -141,7 +141,7 @@ fn player_move_backward(
     settings: Res<MovementSettings>,
     mut query: Query<(&FlyCam, &mut Transform)>,
 ) {
-    if let Ok(window) = primary_window.get_single() {
+    if let Ok(window) = primary_window.single() {
         for (_camera, mut transform) in query.iter_mut() {
             if window.cursor_options.grab_mode != CursorGrabMode::None {
                 let local_z = transform.local_z();
@@ -158,7 +158,7 @@ fn player_move_left(
     settings: Res<MovementSettings>,
     mut query: Query<(&FlyCam, &mut Transform)>,
 ) {
-    if let Ok(window) = primary_window.get_single() {
+    if let Ok(window) = primary_window.single() {
         for (_camera, mut transform) in query.iter_mut() {
             if window.cursor_options.grab_mode != CursorGrabMode::None {
                 let local_z = transform.local_z();
@@ -175,7 +175,7 @@ fn player_move_right(
     settings: Res<MovementSettings>,
     mut query: Query<(&FlyCam, &mut Transform)>,
 ) {
-    if let Ok(window) = primary_window.get_single() {
+    if let Ok(window) = primary_window.single() {
         for (_camera, mut transform) in query.iter_mut() {
             if window.cursor_options.grab_mode != CursorGrabMode::None {
                 let local_z = transform.local_z();
@@ -192,7 +192,7 @@ fn player_move_ascend(
     settings: Res<MovementSettings>,
     mut query: Query<(&FlyCam, &mut Transform)>,
 ) {
-    if let Ok(window) = primary_window.get_single() {
+    if let Ok(window) = primary_window.single() {
         for (_camera, mut transform) in query.iter_mut() {
             if window.cursor_options.grab_mode != CursorGrabMode::None {
                 transform.translation += Vec3::Y * time.delta_secs() * settings.speed;
@@ -206,7 +206,7 @@ fn player_move_descend(
     settings: Res<MovementSettings>,
     mut query: Query<(&FlyCam, &mut Transform)>,
 ) {
-    if let Ok(window) = primary_window.get_single() {
+    if let Ok(window) = primary_window.single() {
         for (_camera, mut transform) in query.iter_mut() {
             if window.cursor_options.grab_mode != CursorGrabMode::None {
                 transform.translation -= Vec3::Y * time.delta_secs() * settings.speed;
@@ -220,7 +220,7 @@ fn player_look(
     mut state: EventReader<MouseMotion>,
     mut query: Query<&mut Transform, With<FlyCam>>,
 ) {
-    if let Ok(window) = primary_window.get_single() {
+    if let Ok(window) = primary_window.single() {
         for mut transform in query.iter_mut() {
             for ev in state.read() {
                 let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
@@ -242,7 +242,7 @@ fn player_look(
     }
 }
 fn cursor_grab(mut primary_window: Query<&mut Window, With<PrimaryWindow>>) {
-    if let Ok(mut window) = primary_window.get_single_mut() {
+    if let Ok(mut window) = primary_window.single_mut() {
         toggle_grab_cursor(&mut window);
     } else {
         warn!("Primary window not found for `cursor_grab`!");

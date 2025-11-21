@@ -1,5 +1,7 @@
+//! 反射性系统调用
+//! 类型方面基本思想：bevy的SystemInput有一个关联类型Param，Param又是SystemInput。一般这个Param和SystemInput本身是一样的
+//! 因此可以用Param<'static>来表示系统的输入类型(I::Param<'static> = I 的'static版), 作为生命周期擦除的工具。
 use std::any::{type_name, TypeId};
-use std::intrinsics::transmute_unchecked;
 
 use bevy::ecs::system::{SystemId, SystemParam};
 use bevy::ecs::world::CommandQueue;
@@ -49,13 +51,12 @@ fn run_system_reflect<'i, I, O>(
     input: I,
 ) -> Result<O, ActionError>
 where
-    I: SystemInput + InputSubset<'i> + 'static,
-    I::Inner<'i>: 'static,
+    I: SystemInput + InputSubset<'i>,
+    I::Param<'static>: InputSubset<'static> + 'static,
     O: 'static,
 {
     let system_id = meta.system_id;
-    let system_id: SystemId<I, O> = system_id.system_id().ok_or(ActionError::MismatchInput {
-        // TODO
+    let system_id: SystemId<I::Param<'static>, O> = system_id.system_id().ok_or(ActionError::MismatchInput {
         expected_type_name: meta.input.clone(),
         found_type_name: type_name::<I>().to_owned(),
     })?;
@@ -105,9 +106,7 @@ impl<'a, I: InputSubset<'a>, O: 'static> ReflectSystemRunner<'a, I, O> {
     where
         I::Param<'static>: InputSubset<'static> + 'static,
     {
-        run_system_reflect::<I::Param<'static>, O>(world, &self.meta, unsafe {
-            transmute_unchecked::<_, I::Param<'static>>(input)
-        })
+        run_system_reflect::<I, O>(world, &self.meta, input)
     }
 }
 
@@ -139,9 +138,7 @@ impl RSystemRegistry {
             .get(id)
             .ok_or(ActionError::NotFound { id: id.to_string() })
             .map(|meta| {
-                run_system_reflect::<I::Param<'static>, O>(world, meta, unsafe {
-                    transmute_unchecked::<_, I::Param<'static>>(input)
-                })
+                run_system_reflect::<I, O>(world, meta, input)
             })?
     }
 
@@ -224,28 +221,11 @@ impl Actions<'_, '_> {
     {
         if self.storages.0.contains_key(id) {
             let get = self.storages.0.get(id).cloned();
-            let input1 = unsafe { transmute_unchecked::<_, I::Param<'static>>(input) };
             let id1 = id.clone();
             self.commands.queue(move |world: &mut World| {
                 if let Err(err) = get
                     .map(|meta| {
-                        {
-                            let system_id = meta.system_id;
-                            let system_id: SystemId<I::Param<'static>, ()> =
-                                system_id.system_id().ok_or(ActionError::MismatchInput {
-                                    // TODO
-                                    expected_type_name: meta.input,
-                                    found_type_name: type_name::<I::Param<'static>>().to_owned(),
-                                })?;
-                            let e = world.run_system_with(system_id, input1.into_inner());
-                            if let Ok(output) = e {
-                                Ok(output)
-                            } else {
-                                Err(ActionError::RegistrationError {
-                                    message: "Failed to run system with input".to_string(),
-                                })
-                            }
-                        }
+                        run_system_reflect::<I, ()>(world, &meta, input)
                     })
                     .unwrap()
                 {
@@ -269,28 +249,11 @@ impl Actions<'_, '_> {
     {
         if self.storages.0.contains_key(id) {
             let get = self.storages.0.get(id).cloned();
-            let input1 = unsafe { transmute_unchecked::<_, I::Param<'static>>(input) };
             let id1 = id.clone();
             self.queued.push(move |world: &mut World| {
                 if let Err(err) = get
                     .map(|meta| {
-                        {
-                            let system_id = meta.system_id;
-                            let system_id: SystemId<I::Param<'static>, ()> =
-                                system_id.system_id().ok_or(ActionError::MismatchInput {
-                                    // TODO
-                                    expected_type_name: meta.input,
-                                    found_type_name: type_name::<I::Param<'static>>().to_owned(),
-                                })?;
-                            let e = world.run_system_with(system_id, input1.into_inner());
-                            if let Ok(output) = e {
-                                Ok(output)
-                            } else {
-                                Err(ActionError::RegistrationError {
-                                    message: "Failed to run system with input".to_string(),
-                                })
-                            }
-                        }
+                        run_system_reflect::<I, ()>(world, &meta, input)
                     })
                     .unwrap()
                 {
@@ -348,7 +311,7 @@ mod sealed {
 }
 
 pub trait InputSubset<'i>: sealed::Sealed + SystemInput {
-    fn into_inner(self) -> Self::Inner<'i>;
+    fn into_inner(self) -> <Self::Param<'static> as SystemInput>::Inner<'i>;
 }
 impl<'a, T: 'static> InputSubset<'a> for In<T> {
     fn into_inner(self) -> Self::Inner<'a> {
@@ -371,7 +334,7 @@ macro_rules! impl_system_input_tuple {
     ($(($n:tt, $name:ident)),*) => {
         #[allow(clippy::unused_unit)]
         impl<'i, $($name: InputSubset<'i>),*> InputSubset<'i> for ($($name,)*) {
-            fn into_inner(self) -> Self::Inner<'i> {
+            fn into_inner(self) -> <Self::Param<'static> as SystemInput>::Inner<'i> {
                 ($(
                     self.$n.into_inner(),
                 )*)
