@@ -7,7 +7,7 @@ use bevy::{
 use bevy_common_assets::json::JsonAssetPlugin;
 use bevy_hanabi::*;
 
-use crate::{default_ph, notes::ChartNoteId, ChartProvider, GameChartCache, GameTime};
+use crate::{ChartProvider, GameChartCache, GameTime, default_ph, notes::{ChartNoteId, NoteTexture}};
 
 pub struct HitParticlePlugin<P: ChartProvider>(PhantomData<P>);
 
@@ -34,7 +34,7 @@ impl<P: ChartProvider> Plugin for HitParticlePlugin<P> {
     }
 }
 
-fn set_up_spawner(mut commands: Commands) {
+fn set_up_spawner(mut commands: Commands, texture: Res<NoteTexture>) {
     commands.spawn((
         ParticleEffect {
             handle: BUILTIN_HIT_PARTICLE,
@@ -45,6 +45,9 @@ fn set_up_spawner(mut commands: Commands) {
             y: 0.0,
             z: 40.,
         }),
+        EffectMaterial {
+            images: vec![texture.note_bg.clone()]
+        }
     ));
 }
 
@@ -97,7 +100,7 @@ fn spawn_queued_particles(
     let Some((mut spawner, mut transform, mut particle)) = spawner.single_mut().ok() else {
         return;
     };
-    // only one spawn is allow in a frame
+    // only one spawn is allowed in a frame
     if let Some(pos) = queued_particles.particles.pop() {
         // info!("Spawning hit particles");
         particle.prng_seed = Some(time.to_bits());

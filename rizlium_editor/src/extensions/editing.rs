@@ -45,8 +45,24 @@ impl Plugin for Editing {
             .register_hotkey("edit.redo", [Hotkey::new_global([ControlLeft, KeyY])])
             .register_submenu::<MainMenuContext>("edit", t!("edit.name"))
             .register_command::<MainMenuContext>("edit/undo", t!("edit.undo.name"), "edit.undo")
-            .register_command::<MainMenuContext>("edit/redo", t!("edit.redo.name"), "edit.redo");
+            .register_command::<MainMenuContext>("edit/redo", t!("edit.redo.name"), "edit.redo")
+            .reflect_system("edit.history.widget", "history widget", history_list)
+            .register_widget::<MainMenuContext>("edit/historylist", "History", "edit.history.widget");
     }
+}
+
+fn history_list(
+    InMut(ui): InMut<Ui>,
+    chart: Res<ProjectState>,
+    chart_edit_history: Res<ChartEditHistory>,
+) {
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show_viewport(ui, |ui, _rect| {
+            for (_, entry) in chart_edit_history.0.history_descriptions().iter().enumerate() {
+                ui.label(&**entry);
+            }
+        });
 }
 #[derive(Deref, DerefMut, Resource, Default)]
 pub struct ChartEditHistory(EditHistory);

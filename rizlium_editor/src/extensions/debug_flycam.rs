@@ -336,10 +336,15 @@ fn debug_cam_tab(
     let Some(img) = images.get_mut(image.0.id()) else {
         return;
     };
-    DragValue::new(&mut setting.sensitivity)
-        .speed(0.00001)
-        .ui(ui);
-    DragValue::new(&mut setting.speed).speed(0.1).ui(ui);
+    ui.horizontal(|ui| {
+        ui.label("Sensitivity:");
+        DragValue::new(&mut setting.sensitivity)
+            .speed(0.00001)
+            .ui(ui);
+        ui.label("Speed:");
+        DragValue::new(&mut setting.speed).speed(0.1).ui(ui);
+    });
+    ui.label("Controls: WASD to move, Space/Shift to ascend/descend, G to toggle cursor grab");
     let size2d = ui.available_size_before_wrap();
     let pixel_size2d = size2d * 1.;
     let size = Extent3d {

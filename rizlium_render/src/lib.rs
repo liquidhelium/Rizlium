@@ -22,7 +22,10 @@ use theme::BackgroundThemePlugin;
 #[macro_export]
 macro_rules! chart_update {
     ($provider:ty) => {
-        P::has_chart_system().and(resource_changed::<P>.or(resource_changed::<GameTime>))
+    {
+        use crate::GameChartCache;
+        P::has_chart_system().and(resource_changed::<P>.or(resource_changed::<GameTime>)).and(resource_exists::<GameChartCache>)
+    }
     };
 }
 

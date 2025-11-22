@@ -126,6 +126,9 @@ impl Hotkey {
         let mut other_all_pressed = true;
         for code in self.key.iter().take(self.key.len() - 1).copied() {
             other_all_pressed &= input.pressed(code);
+            if !other_all_pressed {
+                break;
+            }
         }
         other_all_pressed
             .then(|| {
@@ -202,15 +205,18 @@ impl Either {
 
 fn dispatch_hotkey(world: &mut World) {
     let mut triggered = vec![];
-    world.resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyRegistry>| {for (id, listeners) in hotkeys.0.iter_mut() {
+    world.resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyRegistry>| {
+        for (id, listeners) in hotkeys.0.iter_mut() {
             for listener in listeners {
                 if let Some(trigger) = listener.trigger_result(world) {
                     let actions = world.resource::<RSystemRegistry>();
                     match (actions.construct_runner(id), actions.construct_runner(id)) {
                         (Ok(runner), Err(_)) => {
+                            info!("Hotkey {id} triggered");
                             triggered.push(Either::HasTrigger(runner, trigger));
                         },
                         (Err(_), Ok(runner)) => {
+                            info!("Hotkey {id} triggered without trigger");
                             triggered.push(Either::NoTrigger(runner));
                         },
                         (Err(e1), Err(e2)) => {
@@ -224,7 +230,6 @@ fn dispatch_hotkey(world: &mut World) {
             }
         }});
     for runner in triggered {
-        // Safety: immediately run after construction and before any world change.
         if let Err(e) = runner.run(world) {
             error!("Failed to run hotkey action: {e:?}");
         }

@@ -1,4 +1,4 @@
-use crate::prelude::{Chart, KeyPoint, Line, LinePointData, Note};
+use crate::{chart::Canvas, prelude::{Chart, KeyPoint, Line, LinePointData, Note}};
 
 use super::{ChartConflictError, Result};
 
@@ -58,7 +58,7 @@ impl From<(usize, usize)> for NotePath {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct LinePath(pub usize);
 
 impl ChartPath for LinePath {
@@ -138,6 +138,36 @@ impl ChartPath for LinePointPath {
                 line_path: self.0,
                 point: self.1,
             })
+        }
+    }
+}
+pub struct CanvasPath(pub usize);
+
+impl ChartPath for CanvasPath {
+    type Out = Canvas;
+    fn get<'c>(&self, chart: &'c Chart) -> Result<&'c Canvas> {
+        chart
+            .canvases
+            .get(self.0)
+            .ok_or(ChartConflictError::NoSuchCanvas { canvas: self.0 })
+    }
+    fn get_mut<'c>(&self, chart: &'c mut Chart) -> Result<&'c mut Canvas> {
+        chart
+            .canvases
+            .get_mut(self.0)
+            .ok_or(ChartConflictError::NoSuchCanvas { canvas: self.0 })
+    }
+    fn remove(&self, chart: &mut Chart) -> Result<Self::Out> {
+        let len = chart.canvases.len();
+        (len > self.0)
+            .then(|| chart.canvases.remove(self.0))
+            .ok_or(ChartConflictError::NoSuchCanvas { canvas: self.0 })
+    }
+    fn valid(&self, chart: &Chart) -> Result<()> {
+        if chart.canvases.len() > self.0 {
+            Ok(())
+        } else {
+            Err(ChartConflictError::NoSuchCanvas { canvas: self.0 })
         }
     }
 }

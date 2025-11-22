@@ -118,8 +118,7 @@ fn update_note<P: ChartProvider>(
             *transform = transform.with_translation(pos.extend(NOTE_Z));
             for child in child.iter() {
                 if let Ok(mut sprite) = note_bg.get_mut(child) {
-                    sprite.color =
-                        colorrgba_to_color(chart.theme_at(time).unwrap().this.color.note);
+                    sprite.color = colorrgba_to_color(chart.theme_at(time).unwrap().this.color.note);
                 }
             }
         });
@@ -145,7 +144,6 @@ fn update_note_kind<P: ChartProvider>(
         &mut CurrentNoteKind,
         &ChartNoteId,
         Option<&Children>,
-        &ViewVisibility,
     )>,
     provider: Res<P>,
 
@@ -159,8 +157,7 @@ fn update_note_kind<P: ChartProvider>(
     }
     notes
         .iter_mut()
-        .filter(|(_, _, _, _, vis)| vis.get())
-        .for_each(|(entity, mut kind, id, children, _)| {
+        .for_each(|(entity, mut kind, id, children)| {
             if let Some(line) = chart.lines.get(id.line_idx) {
                 if let Some(note) = line.notes.get(id.note_idx) {
                     if kind.0.as_ref() == Some(&note.kind) {
@@ -206,7 +203,8 @@ fn update_note_kind<P: ChartProvider>(
                             commands.spawn((
                                 Sprite {
                                     image: texture.hold_body.clone(),
-                                    custom_size: Some(Vec2::splat(64.)),
+                                    custom_size: Some(Vec2::new(50., 150.)),
+                                    anchor: bevy::sprite::Anchor::BottomCenter,
                                     ..default()
                                 },
                                 Transform::from_translation(Vec2::ZERO.extend(0.)),

@@ -101,8 +101,7 @@ impl Plugin for Game {
             ),
         )
         .add_systems(Update, scroll_time)
-        .init_resource::<ScrollTimeState>()
-        .add_plugins(crate::extensions::explorer::ExplorerPlugin);
+        .init_resource::<ScrollTimeState>();
     }
 }
 

@@ -50,7 +50,7 @@ impl ChartCommand for RemoveLine {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct EditPoint {
     pub line_path: LinePath,
     pub point_idx: usize,
