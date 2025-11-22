@@ -51,7 +51,7 @@ fn main() {
                     .or(resource_changed::<RizliumDockStateMirror>),
             ),
         )
-        .add_systems(PreUpdate, persist_dock_state)
+        .add_systems(Last, persist_dock_state)
         .run();
 }
 fn setup_persistent(mut commands: Commands) {
@@ -91,7 +91,7 @@ fn persist_dock_state(
     state: ResMut<Persistent<RizliumDockState>>,
 ) -> Result<()> {
     if !events.is_empty() {
-        debug!("AppExit event received, persisting dock state.");
+        info!("AppExit event received, persisting dock state.");
         state.persist()?;
     }
     Ok(())

@@ -141,6 +141,7 @@ impl ChartPath for LinePointPath {
         }
     }
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CanvasPath(pub usize);
 
 impl ChartPath for CanvasPath {

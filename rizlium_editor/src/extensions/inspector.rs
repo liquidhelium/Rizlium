@@ -60,57 +60,118 @@ fn logs(
         return;
     };
     let ui = &mut ui;
-    if let ChartItem::LinePoint(l) = item {
-        ui.columns(2, |columns| {
-            columns[0].label("easing:");
-            edit_scope(
-                &mut columns[1],
-                *l,
-                chart.reborrow().map_unchanged(|chart| chart.chart_mut()),
-                &mut chart_edit_history,
-                |ui, easing| enum_selector(&mut easing.ease_type, ui),
-                |path, value| {
-                    ChartCommands::EditPoint(EditPoint {
-                        line_path: path.0,
-                        point_idx: path.1,
-                        new_easing: Some(value.ease_type),
-                        ..Default::default()
-                    })
-                },
-            );
-            columns[0].label("time:");
-            edit_scope(
-                &mut columns[1],
-                *l,
-                chart.reborrow().map_unchanged(|chart| chart.chart_mut()),
-                &mut chart_edit_history,
-                |ui, point| ui.add(egui::DragValue::new(&mut point.time).speed(0.01)),
-                |path, value| {
-                    ChartCommands::EditPoint(EditPoint {
-                        line_path: path.0,
-                        point_idx: path.1,
-                        new_time: Some(value.time),
-                        ..Default::default()
-                    })
-                },
-            );
-            columns[0].label("canvas:");
-            edit_scope(
-                &mut columns[1],
-                *l,
-                chart.reborrow().map_unchanged(|chart| chart.chart_mut()),
-                &mut chart_edit_history,
-                |ui, point| ui.add(egui::DragValue::new(&mut point.relevant.canvas).speed(1)),
-                |path, value| {
-                    ChartCommands::EditPoint(EditPoint {
-                        line_path: path.0,
-                        point_idx: path.1,
-                        new_canvas: Some(value.relevant.canvas),
-                        ..Default::default()
-                    })
-                },
-            );
-        });
+    match item {
+        ChartItem::LinePoint(l) => {
+            ui.columns(2, |columns| {
+                columns[0].label("easing:");
+                edit_scope(
+                    &mut columns[1],
+                    *l,
+                    chart.reborrow().map_unchanged(|chart| chart.chart_mut()),
+                    &mut chart_edit_history,
+                    |ui, easing| enum_selector(&mut easing.ease_type, ui),
+                    |path, value| {
+                        ChartCommands::EditPoint(EditPoint {
+                            line_path: path.0,
+                            point_idx: path.1,
+                            new_easing: Some(value.ease_type),
+                            ..Default::default()
+                        })
+                    },
+                );
+                columns[0].label("time:");
+                edit_scope(
+                    &mut columns[1],
+                    *l,
+                    chart.reborrow().map_unchanged(|chart| chart.chart_mut()),
+                    &mut chart_edit_history,
+                    |ui, point| ui.add(egui::DragValue::new(&mut point.time).speed(0.01)),
+                    |path, value| {
+                        ChartCommands::EditPoint(EditPoint {
+                            line_path: path.0,
+                            point_idx: path.1,
+                            new_time: Some(value.time),
+                            ..Default::default()
+                        })
+                    },
+                );
+                columns[0].label("canvas:");
+                edit_scope(
+                    &mut columns[1],
+                    *l,
+                    chart.reborrow().map_unchanged(|chart| chart.chart_mut()),
+                    &mut chart_edit_history,
+                    |ui, point| ui.add(egui::DragValue::new(&mut point.relevant.canvas).speed(1)),
+                    |path, value| {
+                        ChartCommands::EditPoint(EditPoint {
+                            line_path: path.0,
+                            point_idx: path.1,
+                            new_canvas: Some(value.relevant.canvas),
+                            ..Default::default()
+                        })
+                    },
+                );
+            });
+        }
+        ChartItem::Line(l) => {
+            show_ui(ui, *l, &chart.chart(), |ui, line| {
+                ui.strong(format!("Line {}:", l.0));
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show_viewport(ui, |ui, _rect| {
+                        for (i, point) in line.points.iter().enumerate() {
+                            ui.label(format!(
+                                "Point {}: time = {:.2}, value = {:.2}",
+                                i, point.time, point.value
+                            ));
+                        }
+                    });
+            });
+        }
+        ChartItem::Note(n) => {
+            // show_ui(ui, *n, &chart.chart(), |ui, note| {
+            ui.strong(format!("Line {} Note {}:", n.0 .0, n.1));
+            ui.columns(2, |columns| {
+                columns[0].label("time:");
+                edit_scope(
+                    &mut columns[1],
+                    *n,
+                    chart.reborrow().map_unchanged(|chart| chart.chart_mut()),
+                    &mut chart_edit_history,
+                    |ui, note| ui.add(egui::DragValue::new(&mut note.time).speed(0.01)),
+                    |path, value| {
+                        ChartCommands::ChangeNoteTime(
+                            rizlium_chart::editing::commands::ChangeNoteTime {
+                                note_path: path,
+                                modify_to: value.time,
+                            },
+                        )
+                    },
+                );
+            });
+            // });
+        }
+        ChartItem::Canvas(c) => {
+            show_ui(ui, *c, &chart.chart(), |ui, canvas| {
+                ui.strong(format!("Canvas {}:", c.0));
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show_viewport(ui, |ui, _rect| {
+                        for (i, point) in canvas.x_pos.iter().enumerate() {
+                            ui.label(format!(
+                                "X Position Point {}: time = {:.2}, value = {:.2}",
+                                i, point.time, point.value
+                            ));
+                        }
+                        for (i, point) in canvas.speed.iter().enumerate() {
+                            ui.label(format!(
+                                "Speed Point {}: time = {:.2}, value = {:.2}",
+                                i, point.time, point.value
+                            ));
+                        }
+                    });
+            });
+        }
     }
 }
 
