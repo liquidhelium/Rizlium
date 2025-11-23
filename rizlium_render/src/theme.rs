@@ -23,10 +23,11 @@ fn change_bg<P: ChartProvider>(
     chart: Res<P>,
     time: Res<GameTime>,
     mut cam: Query<&mut Camera, With<GameCamera>>,
-) {
-    let theme = chart.chart().theme_at(**time).unwrap();
+) -> Result<()>{
+    let theme = chart.chart().theme_at(**time).map_err(|e| e.to_string())?;
     if let Ok(mut camera) = cam.single_mut() {
         camera.clear_color =
             ClearColorConfig::Custom(colorrgba_to_color(theme.this.color.background));
     }
+    Ok(())
 }

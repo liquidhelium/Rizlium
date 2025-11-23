@@ -35,6 +35,17 @@ pub struct Chart {
 }
 
 impl Chart {
+    pub fn empty() -> Self {
+        Self {
+            themes: vec![],
+            theme_control: Spline::default(),
+            lines: vec![],
+            canvases: vec![],
+            bpm: Spline::default(),
+            cam_scale: Spline::default(),
+            cam_move: Spline::default(),
+        }
+    }
     pub fn theme_at(&self, time: f32) -> Result<ThemeTransition<'_>, Whatever> {
         let (this, next) = self.theme_control.pair(time);
         let this = this.unwrap_or(
@@ -177,7 +188,7 @@ impl ChartCache {
 
     pub(crate) fn update_beat(&mut self, spline: &Spline<f32>) {
         let last = KeyPoint {
-            time: spline.points().last().unwrap().time + LARGE,
+            time: spline.points().last().map_or(0.0, |k| k.time) + LARGE,
             value: 0.,
             ease_type: EasingId::Start,
             relevant: (),

@@ -9,6 +9,7 @@ use egui::{Ui, Widget};
 use futures_lite::future::{block_on, poll_once};
 use helium_framework::{prelude::*, utils::identifier::Identifier};
 use rfd::{AsyncFileDialog, FileHandle};
+use rizlium_chart::chart::Chart;
 
 pub struct ProjectGuideExtension;
 
@@ -26,6 +27,7 @@ struct Tasks {
 fn project_guide(
     InMut(ui): InMut<Ui>,
     mut selected_path: Local<Option<String>>,
+    mut selected_song: Local<Option<String>>,
     mut tasks: Local<Tasks>,
     mut actions: Actions,
     mut toasts: ResMut<ToastsStorage>,
@@ -36,16 +38,31 @@ fn project_guide(
         ui.heading("Create a new project");
         ui.label("2. Create project structure");
         let mut song_select = FileSelectWidget::new("Select a song file");
-        song_select.ui(ui, &mut tasks.select_song);
+        song_select.ui(ui, &mut tasks.select_song, &mut selected_song);
 
         if ui
             .add_enabled(
-                song_select.selected_file.is_some(),
+                selected_song.is_some(),
                 egui::Button::new("Create Project"),
             )
             .clicked()
         {
-            if let Some(path) = selected_path.as_deref() {}
+            if let Some(path) = selected_path.as_deref() {
+                if let Some(song) = selected_song.as_deref() {
+                    match create_project_structure(path, song) {
+                        Ok(_) => {
+                            toasts.success("Project created successfully.");
+                        }
+                        Err(e) => {
+                            toasts.error(format!("Failed to create project: {}", e));
+                        }
+                    }
+                    actions.queue_action(&"project.load_path".into(), In(path.to_string()));
+                }
+            }
+            else {
+                toasts.error("No path selected.");
+            }
             actions.queue_action(&"docking.close_tab".into(), In(Identifier::from("guide")));
         }
         if ui.button("Back").clicked() {
@@ -60,11 +77,29 @@ fn create_file(path: &str, content: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-fn create_project_structure(path: &str) -> std::io::Result<()> {
+fn create_project_structure(path: &str, song: &str) -> std::io::Result<()> {
+    // Copy song file
+    let song_filename = std::path::Path::new(song)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Invalid song file name",
+        ))?;
+    std::fs::copy(song, &format!("{}/{}", path, song_filename))?;
+    // Create info.yml
     create_file(
-        &format!("{}/project.rizproj", path),
-        "name = \"New Project\"\nversion = \"0.1.0\"\n",
+        &format!("{}/info.yml", path),
+        &format!(
+            r#"name: New Project
+format: Rizlium
+chart_path: chart.rzlm
+music_path: {}"#,
+            song_filename
+        ),
     )?;
+    // Create default chart file
+    create_file(&format!("{}/chart.rzlm", path), serde_json::to_string_pretty(&Chart::empty()).unwrap().as_str())?;
     Ok(())
 }
 
@@ -107,17 +142,20 @@ fn select_path(
 
 struct FileSelectWidget {
     label: &'static str,
-    selected_file: Option<String>,
 }
 
 impl FileSelectWidget {
-    fn ui(&mut self, ui: &mut Ui, task: &mut Option<Task<Option<FileHandle>>>) {
-        let mut this = self;
+    fn ui(
+        &mut self,
+        ui: &mut Ui,
+        task: &mut Option<Task<Option<FileHandle>>>,
+        selected_file: &mut Option<String>,
+    ) {
         let mut changed = false;
         ui.horizontal(|ui| {
-            ui.label(this.label);
-            if let Some(file) = &this.selected_file {
-                ui.label(file);
+            ui.label(self.label);
+            if let Some(file) = selected_file {
+                ui.label(file.as_str());
             } else {
                 ui.label("No file selected");
             }
@@ -135,7 +173,7 @@ impl FileSelectWidget {
                     match result {
                         Some(handle) => {
                             let path = handle.path().to_string_lossy().to_string();
-                            this.selected_file = Some(path);
+                            *selected_file = Some(path);
                             changed = true;
                         }
                         _ => (),
@@ -149,9 +187,6 @@ impl FileSelectWidget {
 
 impl FileSelectWidget {
     fn new(label: &'static str) -> Self {
-        Self {
-            label,
-            selected_file: None,
-        }
+        Self { label }
     }
 }

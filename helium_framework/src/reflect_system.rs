@@ -60,7 +60,7 @@ where
         expected_type_name: meta.input.clone(),
         found_type_name: type_name::<I>().to_owned(),
     })?;
-    info!("Running system {} with input type {}", meta.id, meta.input);
+    // info!("Running system {} with input type {}", meta.id, meta.input);
     let e = world.run_system_with(system_id, input.into_inner());
     if let Ok(output) = e {
         Ok(output)

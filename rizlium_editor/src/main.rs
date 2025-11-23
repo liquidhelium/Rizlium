@@ -13,13 +13,22 @@ use rizlium_editor::{
     WindowUpdateControlPlugin,
 };
 use rizlium_render::RizliumRenderingPlugin;
+use rust_i18n::t;
+rust_i18n::i18n!();
 fn main() {
     GLOBAL_ERROR_HANDLER.set(|err, ctx| {
         error!("Encountered an error! \n ========= \n Context:\n{ctx:#?}\n ========= \n Error:\n {err:#?}")
     }).expect("Cannot set global error handler. It has been set by a library?");
     App::new()
         .add_plugins((
-            DefaultPlugins.build(),
+            DefaultPlugins.build()
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: t!("Rizlium Editor").to_string(),
+                        ..default()
+                    }),
+                    ..default()
+                }),
             EguiPlugin {
                 enable_multipass_for_primary_context: false,
             },

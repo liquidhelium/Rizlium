@@ -44,10 +44,7 @@ fn set_up_spawner(mut commands: Commands, texture: Res<NoteTexture>) {
             x: 0.0,
             y: 0.0,
             z: 40.,
-        }),
-        EffectMaterial {
-            images: vec![texture.note_bg.clone()]
-        }
+        })
     ));
 }
 

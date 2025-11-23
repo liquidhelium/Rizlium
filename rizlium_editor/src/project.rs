@@ -6,7 +6,7 @@ use bevy::{
 use bevy_kira_audio::{prelude::StaticSoundData, AudioSource};
 use futures_lite::io::AsyncWriteExt;
 use helium_framework::{
-    prelude::{Actions, ToastsStorage},
+    prelude::{Actions, ActionsExt, ToastsStorage},
     utils::identifier::Identifier,
 };
 use indexmap::IndexSet;
@@ -38,8 +38,18 @@ impl Plugin for ProjectPlugin {
                     process_loading_results,
                 ),
             );
+        app.reflect_system("project.load_path", "Load a path", load_path_action);
+        app.reflect_system("project.load_bundle", "Load a bundle", load_bundle_action);
     }
 }
+
+fn load_path_action(In(path): In<String>, mut events: EventWriter<LoadChartEvent>) {
+    events.write(LoadChartEvent::Path(path));
+}
+fn load_bundle_action(In(path): In<String>, mut events: EventWriter<LoadChartEvent>) {
+    events.write(LoadChartEvent::Bundle(path));
+}
+
 pub enum DialogPending {
     Bundle(Task<Option<String>>),
     Path(Task<Option<String>>),
@@ -239,7 +249,6 @@ fn handle_dialog_pending(mut state: ResMut<ProjectState>, mut events: EventWrite
     if !state.is_dialog_pending() {
         return;
     }
-    info!("polling dialog pending task");
     let poll_result = match *state {
         ProjectState::DialogPending(DialogPending::Bundle(ref mut task)) => {
             let result = futures_lite::future::block_on(futures_lite::future::poll_once(task));
@@ -272,7 +281,6 @@ fn handle_chart_loading(
     let ProjectState::ChartLoading(ChartLoading { ref mut task }) = *state else {
         return;
     };
-    info!("polling chart loading task");
     if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
         match result {
             Ok(loaded) => {
