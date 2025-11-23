@@ -32,6 +32,11 @@ pub enum ChartConflictError {
     NoSuchCanvas {
         canvas: usize,
     },
+    IndexOutOfBounds {
+        index: usize,
+        len: usize,
+    },
+    PreeditingInProgress,
 }
 
 type Result<T> = std::result::Result<T, ChartConflictError>;
@@ -61,6 +66,9 @@ impl PreeditData {
 
 impl EditHistory {
     pub fn push(&mut self, edit: impl Into<ChartCommands>, chart: &mut Chart) -> Result<()> {
+        if self.has_preedit() {
+            return Err(ChartConflictError::PreeditingInProgress);
+        }
         let command = edit.into();
         self.push_direct(command, chart)?;
         self.redo_cache.clear();

@@ -99,7 +99,7 @@ music_path: {}"#,
         ),
     )?;
     // Create default chart file
-    create_file(&format!("{}/chart.rzlm", path), serde_json::to_string_pretty(&Chart::empty()).unwrap().as_str())?;
+    create_file(&format!("{}/chart.rzlm", path), serde_json::to_string_pretty(&Chart::basic()).unwrap().as_str())?;
     Ok(())
 }
 

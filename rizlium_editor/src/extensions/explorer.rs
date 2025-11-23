@@ -441,7 +441,7 @@ pub fn update_explorer_state(
     mut commands: Commands,
 ) {
     let new_path = match &*project {
-        ProjectState::Loaded(LoadedProject::Folder(path, _)) => Some(path.clone()),
+        ProjectState::Loaded(LoadedProject::Folder(path, _, _)) => Some(path.clone()),
         _ => None,
     };
 

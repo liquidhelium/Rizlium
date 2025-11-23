@@ -27,6 +27,9 @@ pub enum ChartItem {
     Line(LinePath),
     Note(NotePath),
     Canvas(CanvasPath),
+    ThemeControl,
+    BpmControl,
+    CameraControl,
 }
 
 pub struct Inspector;
@@ -171,6 +174,45 @@ fn logs(
                         }
                     });
             });
+        }
+        ChartItem::ThemeControl => {
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, true])
+                .show(ui, |ui| {
+                    for data in chart.chart().themes.iter() {
+                        ui.horizontal(|ui| {
+                            ui.label("Background Color:");
+                            ui.color_edit_button_rgba_unmultiplied(&mut [
+                                data.color.background.r,
+                                data.color.background.g,
+                                data.color.background.b,
+                                data.color.background.a,
+                            ]);
+                            ui.label("FX Color:");
+                            ui.color_edit_button_rgba_unmultiplied(&mut [
+                                data.color.fx.r,
+                                data.color.fx.g,
+                                data.color.fx.b,
+                                data.color.fx.a,
+                            ]);
+                            ui.label("Note Color:");
+                            ui.color_edit_button_rgba_unmultiplied(&mut [
+                                data.color.note.r,
+                                data.color.note.g,
+                                data.color.note.b,
+                                data.color.note.a,
+                            ]);
+                        });
+                    }
+                });
+            ui.separator();
+            ui.label("View theme control points in the timeline editor.");
+        }
+        ChartItem::BpmControl => {
+            ui.label("View BPM control points in the timeline editor.");
+        }
+        ChartItem::CameraControl => {
+            ui.label("View camera control points in the timeline editor.");
         }
     }
 }

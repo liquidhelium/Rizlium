@@ -19,14 +19,32 @@ impl ChartCommand for InsertLine {
     fn apply(self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
         let Self { line, at } = self;
         let len = chart.lines.len();
-        let at_clamped = at.unwrap_or(len).clamp(0, len);
+        
+        if let Some(at) = at {
+            if at > len {
+                return Err(crate::editing::ChartConflictError::IndexOutOfBounds {
+                    index: at,
+                    len,
+                });
+            }
+        }
+        let at_clamped = at.unwrap_or(len);
         chart.lines.insert(at_clamped, line);
         Ok(RemoveLine {
             line_path: at_clamped.into(),
         }
         .into())
     }
-    fn validate(&self, _chart: &Chart) -> crate::editing::Result<()> {
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
+        let len = chart.lines.len();
+        if let Some(at) = self.at {
+            if at > len {
+                return Err(crate::editing::ChartConflictError::IndexOutOfBounds {
+                    index: at,
+                    len,
+                });
+            }
+        }
         Ok(())
     }
 }

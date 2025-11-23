@@ -5,7 +5,7 @@ mod note;
 mod theme;
 mod time;
 
-use std::sync::OnceLock;
+use std::{sync::OnceLock, vec};
 
 pub use color::*;
 pub use easing::*;
@@ -35,15 +35,51 @@ pub struct Chart {
 }
 
 impl Chart {
-    pub fn empty() -> Self {
+    pub fn basic() -> Self {
         Self {
-            themes: vec![],
-            theme_control: Spline::default(),
+            themes: vec![
+                ThemeData {
+                    is_challenge: false,color: ThemeColor {
+                        fx: ColorRGBA::WHITE,
+                        note: ColorRGBA::new(0.0, 0.3, 0.9, 1.0),
+                        background: ColorRGBA::WHITE,
+                    },
+                }
+            ],
+            theme_control: vec![
+                KeyPoint {
+                    time: 0.0,
+                    value: 0,
+                    ease_type: EasingId::Linear,
+                    relevant: (),
+                }
+            ].into(),
             lines: vec![],
             canvases: vec![],
-            bpm: Spline::default(),
-            cam_scale: Spline::default(),
-            cam_move: Spline::default(),
+            bpm: vec![
+                KeyPoint {
+                    time: 0.0,
+                    value: 120.0,
+                    ease_type: EasingId::Linear,
+                    relevant: (),
+                }
+            ].into(),
+            cam_scale: vec![
+                KeyPoint {
+                    time: 0.0,
+                    value: 1.0,
+                    ease_type: EasingId::Linear,
+                    relevant: (),
+                }
+            ].into(),
+            cam_move: vec![
+                KeyPoint {
+                    time: 0.0,
+                    value: 0.0,
+                    ease_type: EasingId::Linear,
+                    relevant: (),
+                }
+            ].into(),
         }
     }
     pub fn theme_at(&self, time: f32) -> Result<ThemeTransition<'_>, Whatever> {

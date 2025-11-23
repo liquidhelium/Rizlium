@@ -7,7 +7,8 @@ mod note;
 pub use note::*;
 mod lines;
 pub use lines::*;
-
+mod canvases;
+pub use canvases::*;
 #[enum_dispatch(ChartCommand)]
 #[derive(Debug)]
 pub enum ChartCommands {
@@ -19,6 +20,8 @@ pub enum ChartCommands {
     InsertPoint,
     EditPoint,
     RemovePoint,
+    InsertCanvas,
+    RemoveCanvas,
     CommandSequence,
     Nop,
 }

@@ -172,3 +172,9 @@ impl ChartPath for CanvasPath {
         }
     }
 }
+
+impl From<usize> for CanvasPath {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}

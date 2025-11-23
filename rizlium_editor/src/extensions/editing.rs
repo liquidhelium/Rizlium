@@ -3,7 +3,10 @@ use crate::{project::ProjectState, MainMenuContext};
 use bevy::prelude::*;
 use egui::{emath::RectTransform, vec2, Color32, Sense, Stroke, Ui, UiBuilder};
 use helium_framework::prelude::*;
-use rizlium_chart::{chart::Spline, editing::EditHistory};
+use rizlium_chart::{
+    chart::Spline,
+    editing::{ChartCommand, ChartCommands, EditHistory},
+};
 use rizlium_render::{ChartProvider, GameTime};
 use rust_i18n::t;
 use spline::SplineView;
@@ -38,16 +41,25 @@ impl Plugin for Editing {
         );
         app.add_plugins(world_view::WorldViewPlugin)
             .init_resource::<ChartEditHistory>();
-        app.reflect_system("edit.undo", t!("edit.undo.desc"), undo_redo::undo);
-        app.reflect_system("edit.redo", t!("edit.redo.desc"), undo_redo::redo);
+        app.reflect_system("edit.undo", t!("edit.undo.desc"), undo_redo::undo)
+            .reflect_system("edit.redo", t!("edit.redo.desc"), undo_redo::redo)
+            .reflect_system(
+                "edit.push_edit_command",
+                "Push an edit command to history",
+                push_edit_command,
+            );
         use KeyCode::*;
         app.register_hotkey("edit.undo", [Hotkey::new_global([ControlLeft, KeyZ])])
             .register_hotkey("edit.redo", [Hotkey::new_global([ControlLeft, KeyY])])
             .register_submenu::<MainMenuContext>("edit", t!("edit.name"))
+            .register_widget::<MainMenuContext>(
+                "edit/historylist",
+                "History",
+                "edit.history.widget",
+            )
             .register_command::<MainMenuContext>("edit/undo", t!("edit.undo.name"), "edit.undo")
             .register_command::<MainMenuContext>("edit/redo", t!("edit.redo.name"), "edit.redo")
-            .reflect_system("edit.history.widget", "history widget", history_list)
-            .register_widget::<MainMenuContext>("edit/historylist", "History", "edit.history.widget");
+            .reflect_system("edit.history.widget", "history widget", history_list);
     }
 }
 
@@ -57,12 +69,28 @@ fn history_list(
     chart_edit_history: Res<ChartEditHistory>,
 ) {
     egui::ScrollArea::vertical()
-        .auto_shrink([false; 2])
+        .auto_shrink([false, true])
         .show_viewport(ui, |ui, _rect| {
-            for (_, entry) in chart_edit_history.0.history_descriptions().iter().enumerate() {
+            for (_, entry) in chart_edit_history
+                .0
+                .history_descriptions()
+                .iter()
+                .enumerate()
+            {
                 ui.label(&**entry);
             }
         });
+}
+
+fn push_edit_command(
+    In(command): In<ChartCommands>,
+    mut chart_edit_history: ResMut<ChartEditHistory>,
+    mut chart: ResMut<ProjectState>,
+    mut toast: ResMut<ToastsStorage>,
+) {
+    if let Err(err) = chart_edit_history.push(command, &mut chart.chart_mut()) {
+        toast.error(err.to_string());
+    }
 }
 #[derive(Deref, DerefMut, Resource, Default)]
 pub struct ChartEditHistory(EditHistory);

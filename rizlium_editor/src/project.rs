@@ -71,6 +71,7 @@ pub struct LoadedChart {
     pub chart: Chart,
     pub audio_source: AudioSource,
     pub path: String,
+    pub info: ChartInfo,
 }
 #[derive(Clone)]
 pub enum SourceKind {
@@ -79,7 +80,7 @@ pub enum SourceKind {
 }
 #[derive(Debug, Clone)]
 pub enum LoadedProject {
-    Folder(PathBuf, Chart),
+    Folder(PathBuf, Chart, ChartInfo),
     Bundle(PathBuf, Chart),
 }
 #[derive(Event, Debug)]
@@ -115,14 +116,14 @@ pub enum ChartLoadingError {
         source: bevy_kira_audio::prelude::FromFileError,
     },
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ChartInfo {
     pub name: String,
     pub format: ChartFormat,
     pub chart_path: String,
     pub music_path: String,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 pub enum ChartFormat {
     Rizline,
     Rizlium,
@@ -154,7 +155,7 @@ impl ChartProvider for ProjectState {
             Self::DialogPending(_) => panic!("chart dialog is pending"),
             Self::ChartLoading(ChartLoading { .. }) => panic!("chart is loading"),
             Self::Loaded(project) => match project {
-                LoadedProject::Folder(_, chart) => chart,
+                LoadedProject::Folder(_, chart, _) => chart,
                 LoadedProject::Bundle(_, chart) => chart,
             },
         }
@@ -165,7 +166,7 @@ impl ChartProvider for ProjectState {
             Self::DialogPending(_) => panic!("chart dialog is pending"),
             Self::ChartLoading(ChartLoading { .. }) => panic!("chart is loading"),
             Self::Loaded(project) => match project {
-                LoadedProject::Folder(_, chart) => chart,
+                LoadedProject::Folder(_, chart, _) => chart,
                 LoadedProject::Bundle(_, chart) => chart,
             },
         }
@@ -181,7 +182,7 @@ impl ProjectState {
     pub fn segment_count(&self) -> usize {
         if let Self::Loaded(project) = self {
             let chart = match project {
-                LoadedProject::Folder(_, chart) => chart,
+                LoadedProject::Folder(_, chart, _) => chart,
                 LoadedProject::Bundle(_, chart) => chart,
             };
             chart
@@ -196,7 +197,7 @@ impl ProjectState {
     pub fn note_count(&self) -> usize {
         if let Self::Loaded(project) = self {
             let chart = match project {
-                LoadedProject::Folder(_, chart) => chart,
+                LoadedProject::Folder(_, chart, _) => chart,
                 LoadedProject::Bundle(_, chart) => chart,
             };
             chart.lines.iter().map(|line| line.notes.len()).sum()
@@ -290,6 +291,7 @@ fn handle_chart_loading(
                         *state = ProjectState::Loaded(LoadedProject::Folder(
                             PathBuf::from(path),
                             loaded.chart,
+                            loaded.info,
                         ));
                     }
                     SourceKind::Bundle => {
@@ -318,11 +320,11 @@ fn handle_save_chart_events(
     for _ in events.read() {
         if let ProjectState::Loaded(project) = &*state {
             let chart = match project {
-                LoadedProject::Folder(_, chart) => chart.clone(),
+                LoadedProject::Folder(_, chart, _) => chart.clone(),
                 LoadedProject::Bundle(_, chart) => chart.clone(),
             };
             let path = match project {
-                LoadedProject::Folder(p, _) => p.join("chart.rzl"),
+                LoadedProject::Folder(p, _, info) => p.join(&info.chart_path),
                 LoadedProject::Bundle(p, _) => p.with_extension("rzl"),
             };
             let task =
@@ -386,6 +388,7 @@ async fn load_chart_from_bundle(path: &str) -> Result<LoadedChart, ChartLoadingE
         chart,
         audio_source,
         path: path.to_string(),
+        info,
     })
 }
 async fn load_chart_from_path(path: &str) -> Result<LoadedChart, ChartLoadingError> {
@@ -425,6 +428,7 @@ async fn load_chart_from_path(path: &str) -> Result<LoadedChart, ChartLoadingErr
         chart,
         audio_source,
         path: path.to_string(),
+        info,
     })
 }
 async fn save_chart_to_file(

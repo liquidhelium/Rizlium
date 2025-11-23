@@ -44,4 +44,15 @@ impl ColorRGBA {
     }
     pub const BLACK: Self = Self::new(0.0, 0.0, 0.0, 1.);
     pub const WHITE: Self = Self::new(1.0, 1.0, 1.0, 1.0);
+    pub const fn from_u8(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self {
+            r: r as f32 / 255.,
+            g: g as f32 / 255.,
+            b: b as f32 / 255.,
+            a: a as f32 / 255.,
+        }
+    }
+    pub const fn from_rgb_u8(r: u8, g: u8, b: u8) -> Self {
+        Self::from_u8(r, g, b, 255)
+    }
 }
