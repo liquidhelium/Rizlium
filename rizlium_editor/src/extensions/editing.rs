@@ -39,7 +39,7 @@ impl Plugin for Editing {
             tool_config,
             ProjectState::has_chart_system(),
         );
-        app.add_plugins(world_view::WorldViewPlugin)
+        app.add_plugins((world_view::WorldViewPlugin, timeline::TimelinePlugin))
             .init_resource::<ChartEditHistory>();
         app.reflect_system("edit.undo", t!("edit.undo.desc"), undo_redo::undo)
             .reflect_system("edit.redo", t!("edit.redo.desc"), undo_redo::redo)

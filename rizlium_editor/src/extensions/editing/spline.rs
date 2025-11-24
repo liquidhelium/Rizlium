@@ -44,9 +44,10 @@ impl<'a, R> SplineView<'a, R> {
         visible_spline_area: Option<Rect>,
         orientation: Orientation,
     ) -> Self {
-        let screen_area = ui.ctx().screen_rect();
+        // Use the available rect as both screen and view area to ensure correct positioning relative to the window
         let view_area = ui.available_rect_before_wrap();
-        let view_area = view_area.translate(-view_area.left_bottom().to_vec2());
+        let screen_area = view_area;
+        
         let spline_area = {
             let rect0 = spline.rect();
             Rect::from_two_pos(rect0[0].into(), rect0[1].into())

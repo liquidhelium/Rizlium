@@ -1,8 +1,159 @@
 use std::ops::RangeInclusive;
 
+use bevy::prelude::*;
 use egui::{Align2, Color32, FontId, Id, Sense, Stroke, Ui};
+use helium_framework::prelude::*;
+use rizlium_render::ChartProvider as _;
+use rust_i18n::t;
 
-const TIME_PIXEL_GAP: f32 = 50.;
+use crate::extensions::inspector::{ChartItem, SelectedItem};
+use crate::project::ProjectState;
+
+use super::spline::{Orientation, SplineView};
+
+pub struct TimelinePlugin;
+
+impl Plugin for TimelinePlugin {
+    fn build(&self, app: &mut App) {
+        app.register_tab(
+            "edit.timeline",
+            t!("edit.timeline.tab"),
+            timeline_tab,
+            ProjectState::has_chart_system(),
+        );
+    }
+}
+
+#[derive(Default)]
+struct TimelineState {
+    time_range: Option<RangeInclusive<f32>>,
+    vertical_scroll: f32,
+}
+
+fn timeline_tab(
+    InMut(ui): InMut<Ui>,
+    chart_state: Res<ProjectState>,
+    selected_item: Res<SelectedItem>,
+    mut state: Local<TimelineState>,
+) {
+    let chart = chart_state.chart();
+    let mut tracks: Vec<(&str, &rizlium_chart::prelude::Spline<f32>)> = vec![];
+
+    if let Some(item) = &selected_item.item {
+        match item {
+            ChartItem::BpmControl => {
+                tracks.push(("BPM", &chart.bpm));
+            }
+            ChartItem::CameraControl => {
+                tracks.push(("Cam Scale", &chart.cam_scale));
+                tracks.push(("Cam Move", &chart.cam_move));
+            }
+            _ => {}
+        }
+    }
+
+    if tracks.is_empty() {
+        ui.centered_and_justified(|ui| {
+            ui.label(t!("edit.timeline.select_hint"));
+        });
+        return;
+    }
+
+    let mut time_range = state.time_range.clone().unwrap_or(0.0..=10.0);
+    let mut vertical_scroll = state.vertical_scroll;
+
+    let total_duration = 300.0; // TODO: Calculate from chart
+    let track_height = 100.0;
+    let content_height = tracks.len() as f32 * track_height;
+
+    fl_timeline::fl_timeline_ui(
+        ui,
+        &mut time_range,
+        total_duration,
+        &mut vertical_scroll,
+        content_height,
+        &Default::default(),
+        |ctx| {
+            for (i, (name, _)) in tracks.iter().enumerate() {
+                let y = i as f32 * track_height;
+                let screen_y = ctx.y_to_screen(y);
+                // Simple culling
+                if screen_y + track_height < ctx.rect.top() || screen_y > ctx.rect.bottom() {
+                    continue;
+                }
+
+                let rect = egui::Rect::from_min_size(
+                    egui::pos2(ctx.rect.left(), screen_y),
+                    egui::vec2(ctx.rect.width(), track_height),
+                );
+
+                ctx.ui
+                    .allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
+                        ui.centered_and_justified(|ui| {
+                            ui.label(*name);
+                        });
+                    });
+
+                ctx.ui.painter().line_segment(
+                    [rect.left_bottom(), rect.right_bottom()],
+                    egui::Stroke::new(1.0, Color32::GRAY),
+                );
+            }
+        },
+        |ctx| {
+            for (i, (_, spline)) in tracks.iter().enumerate() {
+                let y = i as f32 * track_height;
+                let screen_y = ctx.y_to_screen(y);
+                // Simple culling
+                if screen_y + track_height < ctx.rect.top() || screen_y > ctx.rect.bottom() {
+                    continue;
+                }
+
+                let rect = egui::Rect::from_min_size(
+                    egui::pos2(ctx.rect.left(), screen_y),
+                    egui::vec2(ctx.rect.width(), track_height),
+                );
+
+                ctx.ui.painter().line_segment(
+                    [rect.left_bottom(), rect.right_bottom()],
+                    egui::Stroke::new(1.0, Color32::GRAY),
+                );
+
+                ctx.ui
+                    .allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
+                        ui.set_clip_rect(rect);
+
+                        // Auto-fit value range
+                        let (min_val, max_val) = spline.points().iter().fold(
+                            (f32::INFINITY, f32::NEG_INFINITY),
+                            |(min, max), p| (min.min(p.value), max.max(p.value)),
+                        );
+                        let (min_val, max_val) = if min_val.is_infinite() {
+                            (0.0, 1.0)
+                        } else {
+                            (min_val, max_val)
+                        };
+
+                        let range = max_val - min_val;
+                        let margin = if range == 0.0 { 1.0 } else { range * 0.1 };
+
+                        let visible_area = egui::Rect::from_min_max(
+                            egui::pos2(*ctx.visible_time.start(), min_val - margin),
+                            egui::pos2(*ctx.visible_time.end(), max_val + margin),
+                        );
+
+                        let sv = SplineView::new(ui, spline, Some(visible_area), Orientation::Horizontal);
+                        sv.ui(ui);
+                    });
+            }
+        },
+    );
+
+    state.time_range = Some(time_range);
+    state.vertical_scroll = vertical_scroll;
+}
+
+const TIME_PIXEL_GAP: f32 = 200.;
 const MIN_TIME_GAP: f32 = 1.;
 
 pub fn timeline_horizontal(
@@ -19,16 +170,49 @@ pub fn timeline_horizontal(
     let remap = |i| egui::remap(i, anoter_time.clone(), another_range);
     let remap_reversed = |i| egui::remap(i, another_range, anoter_time.clone());
     cursor_v(ui, remap(cursor), view);
-    for (time, x) in timeline_pos_iter(*scale, time_range.clone(), range_x.into()) {
-        line_v(ui, remap(time), view, Stroke::new(1., Color32::DARK_GRAY));
+
+    let gap_time = TIME_PIXEL_GAP / *scale;
+    let gap_time_count = gap_time / MIN_TIME_GAP;
+    let power = f32_next_power_of_two(gap_time_count);
+    let sub_step = power / 4.0;
+
+    let start_k = (*time_range.start() / MIN_TIME_GAP / sub_step).floor() as i64;
+    let end_k = (*time_range.end() / MIN_TIME_GAP / sub_step).ceil() as i64;
+
+    for k in start_k..=end_k {
+        let time = k as f32 * sub_step * MIN_TIME_GAP;
+        let x = remap(time);
+
+        let spacing = if k % 4 == 0 {
+            power * MIN_TIME_GAP * *scale
+        } else if k % 2 == 0 {
+            (power / 2.0) * MIN_TIME_GAP * *scale
+        } else {
+            (power / 4.0) * MIN_TIME_GAP * *scale
+        };
+
+        let fade_start = 100.0;
+        let fade_end = 50.0;
+        let alpha = ((spacing - fade_end) / (fade_start - fade_end)).clamp(0.0, 1.0);
+
+        if alpha <= 0.0 { continue; }
+
+
+
+        let line_color = Color32::DARK_GRAY.linear_multiply(alpha);
+        let text_color = Color32::WHITE.linear_multiply(alpha);
+        let font_size = 10.0 + 4.0 * alpha;
+
+        line_v(ui, x, view, Stroke::new(1., line_color));
         ui.painter().text(
-            [x, timeline_zone.center().y].into(),
-            Align2::LEFT_BOTTOM,
-            time,
-            FontId::default(),
-            Color32::WHITE,
+            [x, timeline_zone.min.y].into(),
+            Align2::CENTER_TOP,
+            time.to_string(),
+            FontId::proportional(font_size),
+            text_color,
         );
     }
+
     let res = ui.interact(
         timeline_zone,
         Id::new("timeline_interact"),
@@ -151,4 +335,349 @@ pub struct TimeLineResponse {
     pub seek_to: Option<f32>,
     pub range_changed: bool,
     pub scale_changed: bool,
+}
+
+pub mod fl_timeline {
+    use super::*;
+    use egui::{Color32, Id, Rect, Sense, Stroke, StrokeKind, Ui, pos2, vec2};
+    use std::ops::RangeInclusive;
+
+    pub struct FlTimelineConfig {
+        pub header_width: f32,
+        pub timeline_height: f32,
+        pub scroll_bar_height: f32,
+    }
+
+    impl Default for FlTimelineConfig {
+        fn default() -> Self {
+            Self {
+                header_width: 150.0,
+                timeline_height: 30.0,
+                scroll_bar_height: 20.0,
+            }
+        }
+    }
+
+    pub struct FlLeftPanelContext<'a> {
+        pub ui: &'a mut Ui,
+        pub rect: Rect,
+        pub visible_y: RangeInclusive<f32>,
+    }
+
+    impl<'a> FlLeftPanelContext<'a> {
+        pub fn y_to_screen(&self, y: f32) -> f32 {
+            self.rect.top() + (y - self.visible_y.start())
+        }
+    }
+
+    pub struct FlContentContext<'a> {
+        pub ui: &'a mut Ui,
+        pub rect: Rect,
+        pub visible_time: RangeInclusive<f32>,
+        pub visible_y: RangeInclusive<f32>,
+    }
+
+    impl<'a> FlContentContext<'a> {
+        pub fn time_to_screen(&self, time: f32) -> f32 {
+            egui::remap(time, self.visible_time.clone(), self.rect.x_range())
+        }
+        pub fn y_to_screen(&self, y: f32) -> f32 {
+            self.rect.top() + (y - self.visible_y.start())
+        }
+        pub fn point_to_screen(&self, time: f32, y: f32) -> egui::Pos2 {
+            egui::pos2(self.time_to_screen(time), self.y_to_screen(y))
+        }
+    }
+
+    pub fn fl_timeline_ui(
+        ui: &mut Ui,
+        time_range: &mut RangeInclusive<f32>,
+        total_duration: f32,
+        vertical_scroll: &mut f32,
+        content_height: f32,
+        config: &FlTimelineConfig,
+        mut draw_left_panel: impl FnMut(FlLeftPanelContext),
+        mut draw_content: impl FnMut(FlContentContext),
+    ) {
+        let available_size = ui.available_size();
+        let top_bar_rect = Rect::from_min_size(
+            ui.cursor().min,
+            vec2(available_size.x, config.scroll_bar_height),
+        );
+
+        // 1. Top Scroll/Zoom Bar
+        let scroll_bar_rect = Rect::from_min_size(
+            top_bar_rect.min + vec2(config.header_width, 0.0),
+            vec2(
+                top_bar_rect.width() - config.header_width,
+                top_bar_rect.height(),
+            ),
+        );
+        zoom_scroll_bar(ui, scroll_bar_rect, time_range, total_duration);
+
+        let main_area_rect = Rect::from_min_size(
+            top_bar_rect.left_bottom(),
+            available_size - vec2(0.0, config.scroll_bar_height),
+        );
+
+        // Grid Layout
+        let header_width = config.header_width;
+        let timeline_height = config.timeline_height;
+
+        let corner_rect =
+            Rect::from_min_size(main_area_rect.min, vec2(header_width, timeline_height));
+        let timeline_rect = Rect::from_min_size(
+            main_area_rect.min + vec2(header_width, 0.0),
+            vec2(
+                main_area_rect.width() - header_width,
+                timeline_height,
+            ),
+        );
+        let left_panel_rect = Rect::from_min_size(
+            main_area_rect.min + vec2(0.0, timeline_height),
+            vec2(header_width, main_area_rect.height() - timeline_height),
+        );
+        let content_rect = Rect::from_min_size(
+            main_area_rect.min + vec2(header_width, timeline_height),
+            vec2(
+                main_area_rect.width() - header_width,
+                main_area_rect.height() - timeline_height,
+            ),
+        );
+
+        // Draw Corner
+        ui.painter()
+            .rect_filled(corner_rect, 0.0, ui.visuals().window_fill());
+
+        // Draw Timeline
+        {
+            ui.allocate_new_ui(egui::UiBuilder::new().max_rect(timeline_rect).layout(egui::Layout::left_to_right(egui::Align::Min)), |ui| {
+                ui.set_clip_rect(timeline_rect.union(content_rect));
+
+                let duration = time_range.end() - time_range.start();
+                let pixels_per_unit = timeline_rect.width() / duration;
+                let mut scale = pixels_per_unit;
+
+                super::timeline_horizontal(
+                    ui,
+                    0.0, // cursor (can be passed in if needed)
+                    time_range,
+                    &mut scale,
+                    timeline_rect.union(content_rect),
+                    timeline_rect,
+                );
+            });
+        }
+
+        // Handle Content Input (Scrolling)
+        let content_response = ui.interact(
+            content_rect,
+            Id::new("fl_content_area"),
+            Sense::click_and_drag(),
+        );
+        if content_response.dragged() {
+            let delta = content_response.drag_delta();
+
+            // Horizontal Scroll (Time)
+            let duration = time_range.end() - time_range.start();
+            let dt = -delta.x / content_rect.width() * duration;
+            let new_start = (*time_range.start() + dt).max(0.0);
+            let new_end = (new_start + duration).min(total_duration);
+            // Re-clamp start if end hit max
+            let new_start = (new_end - duration).max(0.0);
+            *time_range = new_start..=new_end;
+
+            // Vertical Scroll
+            *vertical_scroll -= delta.y;
+        }
+
+        // Handle Wheel Scroll
+        if content_response.hovered() {
+            let scroll_delta = ui.input(|i| i.raw_scroll_delta);
+            if scroll_delta.y != 0.0 {
+                if ui.input(|i| i.modifiers.ctrl) {
+                    // Zoom time? Or Vertical Scroll?
+                    // Usually wheel is vertical scroll. Ctrl+Wheel is zoom.
+                    // Let's do vertical scroll for now.
+                    *vertical_scroll -= scroll_delta.y;
+                } else {
+                    *vertical_scroll -= scroll_delta.y;
+                }
+            }
+            if scroll_delta.x != 0.0 {
+                let duration = time_range.end() - time_range.start();
+                let dt = -scroll_delta.x / content_rect.width() * duration;
+                let new_start = (*time_range.start() + dt).max(0.0);
+                let new_end = (new_start + duration).min(total_duration);
+                let new_start = (new_end - duration).max(0.0);
+                *time_range = new_start..=new_end;
+            }
+        }
+
+        // Clamp Vertical Scroll
+        let max_scroll = (content_height - content_rect.height()).max(0.0);
+        *vertical_scroll = vertical_scroll.clamp(0.0, max_scroll);
+
+        let visible_y_range = *vertical_scroll..=(*vertical_scroll + content_rect.height());
+
+        // Draw Left Panel
+        {
+            ui.allocate_new_ui(egui::UiBuilder::new().max_rect(left_panel_rect).layout(egui::Layout::top_down(egui::Align::Min)), |ui| {
+                ui.set_clip_rect(left_panel_rect);
+                draw_left_panel(FlLeftPanelContext {
+                    ui,
+                    rect: left_panel_rect,
+                    visible_y: visible_y_range.clone(),
+                });
+            });
+        }
+
+        // Draw Content
+        {
+            ui.allocate_new_ui(egui::UiBuilder::new().max_rect(content_rect).layout(egui::Layout::top_down(egui::Align::Min)), |ui| {
+                ui.set_clip_rect(content_rect);
+                draw_content(FlContentContext {
+                    ui,
+                    rect: content_rect,
+                    visible_time: time_range.clone(),
+                    visible_y: visible_y_range,
+                });
+            });
+        }
+    }
+
+    fn zoom_scroll_bar(
+        ui: &mut Ui,
+        rect: Rect,
+        time_range: &mut RangeInclusive<f32>,
+        total_duration: f32,
+    ) {
+        let painter = ui.painter();
+        painter.rect_filled(rect, 0.0, Color32::from_gray(30));
+
+        let start = *time_range.start();
+        let end = *time_range.end();
+        let duration = end - start;
+
+        let map_x = |t: f32| rect.left() + (t / total_duration) * rect.width();
+        let unmap_x = |x: f32| (x - rect.left()) / rect.width() * total_duration;
+
+        let mut bar_left = map_x(start);
+        let mut bar_right = map_x(end);
+
+        // Ensure minimum visual width to prevent handle overlap
+        let min_bar_width = 16.0;
+        if bar_right - bar_left < min_bar_width {
+            let center = (bar_left + bar_right) / 2.0;
+            bar_left = center - min_bar_width / 2.0;
+            bar_right = center + min_bar_width / 2.0;
+        }
+
+        // Clamp to view area
+        if bar_left < rect.left() {
+            bar_left = rect.left();
+            bar_right = (bar_left + min_bar_width).max(bar_right);
+        }
+        if bar_right > rect.right() {
+            bar_right = rect.right();
+            bar_left = (bar_right - min_bar_width).min(bar_left);
+        }
+
+        let bar_rect = Rect::from_min_max(
+            pos2(bar_left, rect.top()),
+            pos2(bar_right, rect.bottom()),
+        );
+
+        let interact_id = ui.id().with("scrollbar");
+        let response = ui.interact(rect, interact_id, Sense::click_and_drag());
+
+        #[derive(Clone, Copy, Debug)]
+        enum DragMode {
+            None,
+            Pan,
+            ResizeLeft,
+            ResizeRight,
+        }
+
+        let mode_id = interact_id.with("mode");
+        let mut mode = ui
+            .data(|d| d.get_temp(mode_id))
+            .unwrap_or(DragMode::None);
+
+        if response.drag_started() {
+            let start_pos = response.interact_pointer_pos().unwrap();
+            let edge_dist = 10.0; // Larger hit area
+            if (start_pos.x - bar_left).abs() < edge_dist {
+                mode = DragMode::ResizeLeft;
+            } else if (start_pos.x - bar_right).abs() < edge_dist {
+                mode = DragMode::ResizeRight;
+            } else if bar_rect.contains(start_pos) {
+                mode = DragMode::Pan;
+            } else {
+                mode = DragMode::Pan;
+                // Jump to click
+                let click_t = unmap_x(start_pos.x);
+                let half_dur = duration / 2.0;
+                let new_start = (click_t - half_dur).max(0.0);
+                let new_end = (new_start + duration).min(total_duration);
+                let new_start = (new_end - duration).max(0.0);
+                *time_range = new_start..=new_end;
+            }
+            ui.data_mut(|d| d.insert_temp(mode_id, mode));
+        }
+
+        if response.drag_stopped() {
+            ui.data_mut(|d| d.insert_temp(mode_id, DragMode::None));
+        }
+
+        if response.dragged() {
+            let delta_x = response.drag_delta().x;
+            let delta_t = delta_x / rect.width() * total_duration;
+
+            match mode {
+                DragMode::Pan => {
+                    let new_start = (start + delta_t).max(0.0);
+                    let new_end = (new_start + duration).min(total_duration);
+                    let new_start = (new_end - duration).max(0.0);
+                    *time_range = new_start..=new_end;
+                }
+                DragMode::ResizeLeft => {
+                    let new_start = (start + delta_t).min(end - 0.1).max(0.0);
+                    *time_range = new_start..=end;
+                }
+                DragMode::ResizeRight => {
+                    let new_end = (end + delta_t).max(start + 0.1).min(total_duration);
+                    *time_range = start..=new_end;
+                }
+                DragMode::None => {}
+            }
+        }
+
+        // Visuals
+        let color = if response.hovered() || response.dragged() {
+            Color32::from_gray(150)
+        } else {
+            Color32::from_gray(100)
+        };
+        painter.rect_filled(bar_rect, 4.0, color);
+        painter.add(egui::Shape::rect_stroke(bar_rect, 4.0, Stroke::new(1.0, Color32::WHITE),StrokeKind::Middle));
+
+        // Draw handles hints
+        // Left
+        painter.line_segment(
+            [
+                pos2(bar_left + 4.0, rect.center().y - 4.0),
+                pos2(bar_left + 4.0, rect.center().y + 4.0),
+            ],
+            Stroke::new(2.0, Color32::BLACK),
+        );
+        // Right
+        painter.line_segment(
+            [
+                pos2(bar_right - 4.0, rect.center().y - 4.0),
+                pos2(bar_right - 4.0, rect.center().y + 4.0),
+            ],
+            Stroke::new(2.0, Color32::BLACK),
+        );
+    }
 }
