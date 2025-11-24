@@ -1,10 +1,14 @@
+use crate::extensions::editing::spline::SplineListEditor;
 use bevy::{prelude::*, render::view::VisibleEntities};
 use egui::{ScrollArea, Ui};
 use rizlium_chart::{
     chart::Chart,
     editing::{
-        chart_path::{CanvasPath, ChartPath, LinePath, LinePointPath},
-        commands::EditPoint,
+        chart_path::{
+            BpmPath, CamMovePath, CamScalePath, CanvasPath, ChartPath, LinePath, LinePointPath,
+            ThemeControlPath,
+        },
+        commands::{EditGlobalPoint, EditPoint},
         ChartCommands, EditHistory, NotePath,
     },
 };
@@ -206,13 +210,86 @@ fn logs(
                     }
                 });
             ui.separator();
-            ui.label("View theme control points in the timeline editor.");
+            SplineListEditor::new(
+                |chart| &chart.theme_control,
+                |i| ThemeControlPath::new(i),
+                |path, point| {
+                    ChartCommands::EditThemePoint(EditGlobalPoint {
+                        path,
+                        new_time: Some(point.time),
+                        new_value: Some(point.value),
+                        new_easing: Some(point.ease_type),
+                    })
+                },
+                |ui, val: &mut usize| ui.add(egui::DragValue::new(val)),
+            )
+            .show(
+                ui,
+                chart.reborrow().map_unchanged(|c| c.chart_mut()),
+                &mut chart_edit_history,
+            );
         }
         ChartItem::BpmControl => {
-            ui.label("View BPM control points in the timeline editor.");
+            SplineListEditor::new(
+                |chart| &chart.bpm,
+                |i| BpmPath::new(i),
+                |path, point| {
+                    ChartCommands::EditBpmPoint(EditGlobalPoint {
+                        path,
+                        new_time: Some(point.time),
+                        new_value: Some(point.value),
+                        new_easing: Some(point.ease_type),
+                    })
+                },
+                |ui, val: &mut f32| ui.add(egui::DragValue::new(val)),
+            )
+            .show(
+                ui,
+                chart.reborrow().map_unchanged(|c| c.chart_mut()),
+                &mut chart_edit_history,
+            );
         }
         ChartItem::CameraControl => {
-            ui.label("View camera control points in the timeline editor.");
+            ui.heading("Camera Scale");
+            SplineListEditor::new(
+                |chart| &chart.cam_scale,
+                |i| CamScalePath::new(i),
+                |path, point| {
+                    ChartCommands::EditCamScalePoint(EditGlobalPoint {
+                        path,
+                        new_time: Some(point.time),
+                        new_value: Some(point.value),
+                        new_easing: Some(point.ease_type),
+                    })
+                },
+                |ui, val: &mut f32| ui.add(egui::DragValue::new(val).speed(0.01)),
+            )
+            .show(
+                ui,
+                chart.reborrow().map_unchanged(|c| c.chart_mut()),
+                &mut chart_edit_history,
+            );
+
+            ui.separator();
+            ui.heading("Camera Move");
+            SplineListEditor::new(
+                |chart| &chart.cam_move,
+                |i| CamMovePath::new(i),
+                |path, point| {
+                    ChartCommands::EditCamMovePoint(EditGlobalPoint {
+                        path,
+                        new_time: Some(point.time),
+                        new_value: Some(point.value),
+                        new_easing: Some(point.ease_type),
+                    })
+                },
+                |ui, val: &mut f32| ui.add(egui::DragValue::new(val).speed(0.01)),
+            )
+            .show(
+                ui,
+                chart.reborrow().map_unchanged(|c| c.chart_mut()),
+                &mut chart_edit_history,
+            );
         }
     }
 }

@@ -25,6 +25,7 @@ impl Plugin for ProjectPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ProjectState>()
             .init_resource::<RecentFiles>()
+            .init_resource::<PendingSave>()
             .add_event::<LoadChartEvent>()
             .add_event::<ChartLoadingEvent>()
             .add_event::<SaveChartEvent>()
@@ -35,6 +36,7 @@ impl Plugin for ProjectPlugin {
                     handle_dialog_pending,
                     handle_chart_loading,
                     handle_save_chart_events,
+                    handle_save_result,
                     process_loading_results,
                 ),
             );
@@ -315,7 +317,7 @@ fn handle_chart_loading(
 fn handle_save_chart_events(
     mut events: EventReader<SaveChartEvent>,
     state: Res<ProjectState>,
-    mut commands: Commands,
+    mut pending_save: ResMut<PendingSave>,
 ) {
     for _ in events.read() {
         if let ProjectState::Loaded(project) = &*state {
@@ -329,7 +331,27 @@ fn handle_save_chart_events(
             };
             let task =
                 IoTaskPool::get().spawn(async move { save_chart_to_file(&chart, &path).await });
-            commands.insert_resource(PendingSave { task: Some(task) });
+            pending_save.task = Some(task);
+        }
+    }
+}
+
+fn handle_save_result(mut pending_save: ResMut<PendingSave>, mut toasts: ResMut<ToastsStorage>) {
+    if let Some(mut task) = pending_save.task.take() {
+        if let Some(result) =
+            futures_lite::future::block_on(futures_lite::future::poll_once(&mut task))
+        {
+            match result {
+                Ok(_) => {
+                    toasts.info(t!("project.save.success"));
+                }
+                Err(e) => {
+                    error!("Failed to save chart: {e}");
+                    toasts.error(t!("project.save.fail", err = e));
+                }
+            }
+        } else {
+            pending_save.task = Some(task);
         }
     }
 }

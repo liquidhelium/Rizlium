@@ -32,6 +32,10 @@ pub enum ChartConflictError {
     NoSuchCanvas {
         canvas: usize,
     },
+    NoSuchGlobalSplinePoint {
+        spline: &'static str,
+        index: usize,
+    },
     IndexOutOfBounds {
         index: usize,
         len: usize,

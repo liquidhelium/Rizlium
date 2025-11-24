@@ -2,6 +2,7 @@ use std::{any::type_name, borrow::Cow, fmt::Debug};
 
 use super::Result;
 use crate::prelude::Chart;
+use crate::editing::chart_path::*;
 use enum_dispatch::enum_dispatch;
 mod note;
 pub use note::*;
@@ -9,6 +10,9 @@ mod lines;
 pub use lines::*;
 mod canvases;
 pub use canvases::*;
+mod global_spline;
+pub use global_spline::*;
+
 #[enum_dispatch(ChartCommand)]
 #[derive(Debug)]
 pub enum ChartCommands {
@@ -22,6 +26,23 @@ pub enum ChartCommands {
     RemovePoint,
     InsertCanvas,
     RemoveCanvas,
+    
+    InsertThemePoint(InsertGlobalPoint<ThemeControlSelector>),
+    RemoveThemePoint(RemoveGlobalPoint<ThemeControlSelector>),
+    EditThemePoint(EditGlobalPoint<ThemeControlSelector>),
+    
+    InsertBpmPoint(InsertGlobalPoint<BpmSelector>),
+    RemoveBpmPoint(RemoveGlobalPoint<BpmSelector>),
+    EditBpmPoint(EditGlobalPoint<BpmSelector>),
+    
+    InsertCamScalePoint(InsertGlobalPoint<CamScaleSelector>),
+    RemoveCamScalePoint(RemoveGlobalPoint<CamScaleSelector>),
+    EditCamScalePoint(EditGlobalPoint<CamScaleSelector>),
+    
+    InsertCamMovePoint(InsertGlobalPoint<CamMoveSelector>),
+    RemoveCamMovePoint(RemoveGlobalPoint<CamMoveSelector>),
+    EditCamMovePoint(EditGlobalPoint<CamMoveSelector>),
+
     CommandSequence,
     Nop,
 }

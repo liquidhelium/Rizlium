@@ -11,7 +11,7 @@ use rizlium_render::{ChartProvider, GameTime};
 use rust_i18n::t;
 use spline::SplineView;
 pub mod note;
-mod spline;
+pub mod spline;
 pub mod timeline;
 mod tool_config_window;
 mod tool_select_bar;

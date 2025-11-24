@@ -28,6 +28,8 @@ impl Plugin for TimelinePlugin {
 struct TimelineState {
     time_range: Option<RangeInclusive<f32>>,
     vertical_scroll: f32,
+    follow_cursor: bool,
+    lock_ratio: Option<f32>,
 }
 
 fn timeline_tab(
@@ -35,6 +37,9 @@ fn timeline_tab(
     chart_state: Res<ProjectState>,
     selected_item: Res<SelectedItem>,
     mut state: Local<TimelineState>,
+    game_time: Res<rizlium_render::GameTime>,
+    mut time_control: EventWriter<crate::time_and_audio::TimeControlEvent>,
+    chart_cache: Res<rizlium_render::GameChartCache>,
 ) {
     let chart = chart_state.chart();
     let mut tracks: Vec<(&str, &rizlium_chart::prelude::Spline<f32>)> = vec![];
@@ -61,19 +66,31 @@ fn timeline_tab(
 
     let mut time_range = state.time_range.clone().unwrap_or(0.0..=10.0);
     let mut vertical_scroll = state.vertical_scroll;
+    let cursor_time = **game_time;
 
     let total_duration = 300.0; // TODO: Calculate from chart
     let track_height = 100.0;
     let content_height = tracks.len() as f32 * track_height;
 
-    fl_timeline::fl_timeline_ui(
+    let old_range = time_range.clone();
+    let old_follow = state.follow_cursor;
+
+    let (interacted, seek_to) = fl_timeline::fl_timeline_ui(
         ui,
         &mut time_range,
         total_duration,
         &mut vertical_scroll,
         content_height,
         &Default::default(),
+        cursor_time,
+        &mut state.follow_cursor,
         |ctx| {
+            // Draw separator line on the right side of the left panel
+            ctx.ui.painter().line_segment(
+                [ctx.rect.right_top(), ctx.rect.right_bottom()],
+                ctx.ui.style().visuals.window_stroke,
+            );
+
             for (i, (name, _)) in tracks.iter().enumerate() {
                 let y = i as f32 * track_height;
                 let screen_y = ctx.y_to_screen(y);
@@ -96,7 +113,7 @@ fn timeline_tab(
 
                 ctx.ui.painter().line_segment(
                     [rect.left_bottom(), rect.right_bottom()],
-                    egui::Stroke::new(1.0, Color32::GRAY),
+                    egui::Stroke::new(1.0, ctx.ui.visuals().extreme_bg_color),
                 );
             }
         },
@@ -116,7 +133,7 @@ fn timeline_tab(
 
                 ctx.ui.painter().line_segment(
                     [rect.left_bottom(), rect.right_bottom()],
-                    egui::Stroke::new(1.0, Color32::GRAY),
+                    egui::Stroke::new(1.0, ctx.ui.visuals().extreme_bg_color),
                 );
 
                 ctx.ui
@@ -124,10 +141,12 @@ fn timeline_tab(
                         ui.set_clip_rect(rect);
 
                         // Auto-fit value range
-                        let (min_val, max_val) = spline.points().iter().fold(
-                            (f32::INFINITY, f32::NEG_INFINITY),
-                            |(min, max), p| (min.min(p.value), max.max(p.value)),
-                        );
+                        let (min_val, max_val) = spline
+                            .points()
+                            .iter()
+                            .fold((f32::INFINITY, f32::NEG_INFINITY), |(min, max), p| {
+                                (min.min(p.value), max.max(p.value))
+                            });
                         let (min_val, max_val) = if min_val.is_infinite() {
                             (0.0, 1.0)
                         } else {
@@ -142,18 +161,50 @@ fn timeline_tab(
                             egui::pos2(*ctx.visible_time.end(), max_val + margin),
                         );
 
-                        let sv = SplineView::new(ui, spline, Some(visible_area), Orientation::Horizontal);
+                        let sv = SplineView::new(
+                            ui,
+                            spline,
+                            Some(visible_area),
+                            Orientation::Horizontal,
+                        );
                         sv.ui(ui);
                     });
             }
         },
     );
 
+    // Logic for follow cursor
+    let view_width = time_range.end() - time_range.start();
+
+    let mut cursor_time = game_time.0;
+    if let Some(seek_time) = seek_to {
+        let real_time = chart_cache.remap_beat(seek_time);
+        time_control.write(crate::time_and_audio::TimeControlEvent::Seek(real_time));
+        cursor_time = seek_time;
+    }
+
+    let current_ratio = (cursor_time - time_range.start()) / view_width;
+
+    if interacted {
+        // User manually scrolled/zoomed or seeked
+        state.lock_ratio = Some(current_ratio);
+    } else if state.follow_cursor {
+        if !old_follow {
+            state.lock_ratio = Some(current_ratio);
+        }
+        let lock_ratio = state.lock_ratio.unwrap_or(current_ratio);
+
+        let target_start = cursor_time - lock_ratio * view_width;
+        let new_start = target_start.clamp(0.0, total_duration - view_width);
+        let new_end = new_start + view_width;
+        time_range = new_start..=new_end;
+    }
+
     state.time_range = Some(time_range);
     state.vertical_scroll = vertical_scroll;
 }
 
-const TIME_PIXEL_GAP: f32 = 200.;
+const TIME_PIXEL_GAP: f32 = 100.;
 const MIN_TIME_GAP: f32 = 1.;
 
 pub fn timeline_horizontal(
@@ -192,12 +243,12 @@ pub fn timeline_horizontal(
         };
 
         let fade_start = 100.0;
-        let fade_end = 50.0;
+        let fade_end = 20.0;
         let alpha = ((spacing - fade_end) / (fade_start - fade_end)).clamp(0.0, 1.0);
 
-        if alpha <= 0.0 { continue; }
-
-
+        if alpha <= 0.0 {
+            continue;
+        }
 
         let line_color = Color32::DARK_GRAY.linear_multiply(alpha);
         let text_color = Color32::WHITE.linear_multiply(alpha);
@@ -339,7 +390,7 @@ pub struct TimeLineResponse {
 
 pub mod fl_timeline {
     use super::*;
-    use egui::{Color32, Id, Rect, Sense, Stroke, StrokeKind, Ui, pos2, vec2};
+    use egui::{pos2, vec2, Color32, Id, Rect, Sense, Stroke, StrokeKind, Ui};
     use std::ops::RangeInclusive;
 
     pub struct FlTimelineConfig {
@@ -396,10 +447,30 @@ pub mod fl_timeline {
         vertical_scroll: &mut f32,
         content_height: f32,
         config: &FlTimelineConfig,
+        cursor_time: f32,
+        follow_cursor: &mut bool,
         mut draw_left_panel: impl FnMut(FlLeftPanelContext),
         mut draw_content: impl FnMut(FlContentContext),
-    ) {
-        let available_size = ui.available_size();
+    ) -> (bool, Option<f32>) {
+        let mut available_size = ui.available_size();
+        let clip_rect = ui.clip_rect();
+        let mut interacted = false;
+        let mut seek_to = None;
+
+        // If inside a ScrollArea, available_size might be infinite or very large.
+        // We need to constrain it to the visible area (clip_rect) because fl_timeline_ui
+        // implements its own virtual scrolling and assumes content_rect represents the visible viewport.
+
+        // Constrain width
+        if available_size.x.is_infinite() || available_size.x > clip_rect.width() {
+            available_size.x = clip_rect.width();
+        }
+
+        // Constrain height
+        if available_size.y.is_infinite() || available_size.y > clip_rect.height() {
+            available_size.y = (clip_rect.bottom() - ui.cursor().min.y).max(100.0);
+        }
+
         let top_bar_rect = Rect::from_min_size(
             ui.cursor().min,
             vec2(available_size.x, config.scroll_bar_height),
@@ -413,7 +484,9 @@ pub mod fl_timeline {
                 top_bar_rect.height(),
             ),
         );
-        zoom_scroll_bar(ui, scroll_bar_rect, time_range, total_duration);
+        if zoom_scroll_bar(ui, scroll_bar_rect, time_range, total_duration) {
+            interacted = true;
+        }
 
         let main_area_rect = Rect::from_min_size(
             top_bar_rect.left_bottom(),
@@ -424,14 +497,22 @@ pub mod fl_timeline {
         let header_width = config.header_width;
         let timeline_height = config.timeline_height;
 
-        let corner_rect =
-            Rect::from_min_size(main_area_rect.min, vec2(header_width, timeline_height));
+        let corner_rect = Rect::from_min_size(
+            top_bar_rect.min,
+            vec2(header_width, timeline_height + config.scroll_bar_height),
+        );
+
+        ui.allocate_new_ui(egui::UiBuilder::new().max_rect(corner_rect), |ui| {
+            ui.centered_and_justified(|ui| {
+                if ui.selectable_label(*follow_cursor, "S").clicked() {
+                    *follow_cursor = !*follow_cursor;
+                }
+            });
+        });
+
         let timeline_rect = Rect::from_min_size(
             main_area_rect.min + vec2(header_width, 0.0),
-            vec2(
-                main_area_rect.width() - header_width,
-                timeline_height,
-            ),
+            vec2(main_area_rect.width() - header_width, timeline_height),
         );
         let left_panel_rect = Rect::from_min_size(
             main_area_rect.min + vec2(0.0, timeline_height),
@@ -445,28 +526,48 @@ pub mod fl_timeline {
             ),
         );
 
-        // Draw Corner
-        ui.painter()
-            .rect_filled(corner_rect, 0.0, ui.visuals().window_fill());
-
         // Draw Timeline
         {
-            ui.allocate_new_ui(egui::UiBuilder::new().max_rect(timeline_rect).layout(egui::Layout::left_to_right(egui::Align::Min)), |ui| {
-                ui.set_clip_rect(timeline_rect.union(content_rect));
+            // Draw timeline background (top and bottom borders and fill only)
+            ui.painter().line_segment(
+                [timeline_rect.left_top(), timeline_rect.right_top()],
+                egui::Stroke::new(1.0, ui.visuals().extreme_bg_color),
+            );
+            ui.painter().line_segment(
+                [timeline_rect.left_bottom(), timeline_rect.right_bottom()],
+                egui::Stroke::new(1.0, ui.visuals().extreme_bg_color),
+            );
+            ui.painter()
+                .rect_filled(timeline_rect, 0.0, ui.visuals().extreme_bg_color);
 
-                let duration = time_range.end() - time_range.start();
-                let pixels_per_unit = timeline_rect.width() / duration;
-                let mut scale = pixels_per_unit;
+            let response = ui
+                .allocate_new_ui(
+                    egui::UiBuilder::new()
+                        .max_rect(timeline_rect)
+                        .layout(egui::Layout::left_to_right(egui::Align::Min)),
+                    |ui| {
+                        ui.set_clip_rect(timeline_rect.union(content_rect));
 
-                super::timeline_horizontal(
-                    ui,
-                    0.0, // cursor (can be passed in if needed)
-                    time_range,
-                    &mut scale,
-                    timeline_rect.union(content_rect),
-                    timeline_rect,
-                );
-            });
+                        let duration = time_range.end() - time_range.start();
+                        let pixels_per_unit = timeline_rect.width() / duration;
+                        let mut scale = pixels_per_unit;
+
+                        super::timeline_horizontal(
+                            ui,
+                            cursor_time,
+                            time_range,
+                            &mut scale,
+                            timeline_rect.union(content_rect),
+                            timeline_rect,
+                        )
+                    },
+                )
+                .inner;
+
+            if let Some(t) = response.seek_to {
+                seek_to = Some(t);
+                interacted = true;
+            }
         }
 
         // Handle Content Input (Scrolling)
@@ -486,6 +587,7 @@ pub mod fl_timeline {
             // Re-clamp start if end hit max
             let new_start = (new_end - duration).max(0.0);
             *time_range = new_start..=new_end;
+            interacted = true;
 
             // Vertical Scroll
             *vertical_scroll -= delta.y;
@@ -500,8 +602,19 @@ pub mod fl_timeline {
                     // Usually wheel is vertical scroll. Ctrl+Wheel is zoom.
                     // Let's do vertical scroll for now.
                     *vertical_scroll -= scroll_delta.y;
+                    interacted = true;
+                } else if ui.input(|i| i.modifiers.shift) {
+                    // Horizontal Scroll (Shift + Wheel)
+                    let duration = time_range.end() - time_range.start();
+                    let dt = -scroll_delta.y / content_rect.width() * duration;
+                    let new_start = (*time_range.start() + dt).max(0.0);
+                    let new_end = (new_start + duration).min(total_duration);
+                    let new_start = (new_end - duration).max(0.0);
+                    *time_range = new_start..=new_end;
+                    interacted = true;
                 } else {
                     *vertical_scroll -= scroll_delta.y;
+                    interacted = true;
                 }
             }
             if scroll_delta.x != 0.0 {
@@ -511,6 +624,7 @@ pub mod fl_timeline {
                 let new_end = (new_start + duration).min(total_duration);
                 let new_start = (new_end - duration).max(0.0);
                 *time_range = new_start..=new_end;
+                interacted = true;
             }
         }
 
@@ -522,28 +636,39 @@ pub mod fl_timeline {
 
         // Draw Left Panel
         {
-            ui.allocate_new_ui(egui::UiBuilder::new().max_rect(left_panel_rect).layout(egui::Layout::top_down(egui::Align::Min)), |ui| {
-                ui.set_clip_rect(left_panel_rect);
-                draw_left_panel(FlLeftPanelContext {
-                    ui,
-                    rect: left_panel_rect,
-                    visible_y: visible_y_range.clone(),
-                });
-            });
+            ui.allocate_new_ui(
+                egui::UiBuilder::new()
+                    .max_rect(left_panel_rect)
+                    .layout(egui::Layout::top_down(egui::Align::Min)),
+                |ui| {
+                    ui.set_clip_rect(left_panel_rect);
+                    draw_left_panel(FlLeftPanelContext {
+                        ui,
+                        rect: left_panel_rect,
+                        visible_y: visible_y_range.clone(),
+                    });
+                },
+            );
         }
 
         // Draw Content
         {
-            ui.allocate_new_ui(egui::UiBuilder::new().max_rect(content_rect).layout(egui::Layout::top_down(egui::Align::Min)), |ui| {
-                ui.set_clip_rect(content_rect);
-                draw_content(FlContentContext {
-                    ui,
-                    rect: content_rect,
-                    visible_time: time_range.clone(),
-                    visible_y: visible_y_range,
-                });
-            });
+            ui.allocate_new_ui(
+                egui::UiBuilder::new()
+                    .max_rect(content_rect)
+                    .layout(egui::Layout::top_down(egui::Align::Min)),
+                |ui| {
+                    ui.set_clip_rect(content_rect);
+                    draw_content(FlContentContext {
+                        ui,
+                        rect: content_rect,
+                        visible_time: time_range.clone(),
+                        visible_y: visible_y_range,
+                    });
+                },
+            );
         }
+        (interacted, seek_to)
     }
 
     fn zoom_scroll_bar(
@@ -551,13 +676,14 @@ pub mod fl_timeline {
         rect: Rect,
         time_range: &mut RangeInclusive<f32>,
         total_duration: f32,
-    ) {
+    ) -> bool {
         let painter = ui.painter();
         painter.rect_filled(rect, 0.0, Color32::from_gray(30));
 
         let start = *time_range.start();
         let end = *time_range.end();
         let duration = end - start;
+        let mut changed = false;
 
         let map_x = |t: f32| rect.left() + (t / total_duration) * rect.width();
         let unmap_x = |x: f32| (x - rect.left()) / rect.width() * total_duration;
@@ -583,15 +709,13 @@ pub mod fl_timeline {
             bar_left = (bar_right - min_bar_width).min(bar_left);
         }
 
-        let bar_rect = Rect::from_min_max(
-            pos2(bar_left, rect.top()),
-            pos2(bar_right, rect.bottom()),
-        );
+        let bar_rect =
+            Rect::from_min_max(pos2(bar_left, rect.top()), pos2(bar_right, rect.bottom()));
 
         let interact_id = ui.id().with("scrollbar");
         let response = ui.interact(rect, interact_id, Sense::click_and_drag());
 
-        #[derive(Clone, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
         enum DragMode {
             None,
             Pan,
@@ -600,9 +724,20 @@ pub mod fl_timeline {
         }
 
         let mode_id = interact_id.with("mode");
-        let mut mode = ui
-            .data(|d| d.get_temp(mode_id))
-            .unwrap_or(DragMode::None);
+        let mut mode = ui.data(|d| d.get_temp(mode_id)).unwrap_or(DragMode::None);
+
+        if mode == DragMode::ResizeLeft || mode == DragMode::ResizeRight {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
+        } else if response.hovered() {
+            if let Some(hover_pos) = response.hover_pos() {
+                let edge_dist = 10.0;
+                if (hover_pos.x - bar_left).abs() < edge_dist
+                    || (hover_pos.x - bar_right).abs() < edge_dist
+                {
+                    ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
+                }
+            }
+        }
 
         if response.drag_started() {
             let start_pos = response.interact_pointer_pos().unwrap();
@@ -622,6 +757,7 @@ pub mod fl_timeline {
                 let new_end = (new_start + duration).min(total_duration);
                 let new_start = (new_end - duration).max(0.0);
                 *time_range = new_start..=new_end;
+                changed = true;
             }
             ui.data_mut(|d| d.insert_temp(mode_id, mode));
         }
@@ -640,14 +776,17 @@ pub mod fl_timeline {
                     let new_end = (new_start + duration).min(total_duration);
                     let new_start = (new_end - duration).max(0.0);
                     *time_range = new_start..=new_end;
+                    changed = true;
                 }
                 DragMode::ResizeLeft => {
                     let new_start = (start + delta_t).min(end - 0.1).max(0.0);
                     *time_range = new_start..=end;
+                    changed = true;
                 }
                 DragMode::ResizeRight => {
                     let new_end = (end + delta_t).max(start + 0.1).min(total_duration);
                     *time_range = start..=new_end;
+                    changed = true;
                 }
                 DragMode::None => {}
             }
@@ -660,7 +799,12 @@ pub mod fl_timeline {
             Color32::from_gray(100)
         };
         painter.rect_filled(bar_rect, 4.0, color);
-        painter.add(egui::Shape::rect_stroke(bar_rect, 4.0, Stroke::new(1.0, Color32::WHITE),StrokeKind::Middle));
+        painter.add(egui::Shape::rect_stroke(
+            bar_rect,
+            4.0,
+            Stroke::new(1.0, Color32::WHITE),
+            StrokeKind::Middle,
+        ));
 
         // Draw handles hints
         // Left
@@ -679,5 +823,6 @@ pub mod fl_timeline {
             ],
             Stroke::new(2.0, Color32::BLACK),
         );
+        changed
     }
 }

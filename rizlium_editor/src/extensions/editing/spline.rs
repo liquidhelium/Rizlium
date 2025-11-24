@@ -1,9 +1,12 @@
+use crate::extensions::inspector::edit_scope;
+use bevy::prelude::Mut;
 use egui::{
     emath::RectTransform, epaint::PathShape, pos2, remap, Color32, Pos2, Rect, Response, Sense,
     Stroke, Ui,
 };
 use rizlium_chart::{
-    chart::invlerp,
+    chart::{invlerp, Chart, KeyPoint},
+    editing::{chart_path::ChartPath, ChartCommands, EditHistory},
     prelude::{Spline, Tween},
 };
 
@@ -47,7 +50,7 @@ impl<'a, R> SplineView<'a, R> {
         // Use the available rect as both screen and view area to ensure correct positioning relative to the window
         let view_area = ui.available_rect_before_wrap();
         let screen_area = view_area;
-        
+
         let spline_area = {
             let rect0 = spline.rect();
             Rect::from_two_pos(rect0[0].into(), rect0[1].into())
@@ -66,7 +69,7 @@ impl<'a, R> SplineView<'a, R> {
     }
 
     pub fn ui(&self, ui: &mut Ui) -> Response {
-        let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
+        let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
         if self.spline.is_empty() {
             return response;
         }
@@ -166,5 +169,133 @@ impl<'a, R> SplineView<'a, R> {
     }
     pub fn spline_area(&self) -> Rect {
         self.spline_area
+    }
+}
+
+pub struct SplineListEditor<P, T: Tween, R, F, C, V, Rel, G> {
+    get_spline: G,
+    path_builder: F,
+    command_builder: C,
+    value_ui: V,
+    relevant_ui: Rel,
+    _phantom: std::marker::PhantomData<(P, T, R)>,
+}
+
+impl<P, T: Tween, R, F, C, V, G>
+    SplineListEditor<P, T, R, F, C, V, fn(&mut Ui, &mut R) -> Response, G>
+where
+    P: ChartPath<Out = KeyPoint<T, R>> + Copy,
+    T: Tween + Clone + std::fmt::Debug + PartialEq + 'static,
+    R: Clone + std::fmt::Debug + PartialEq + 'static,
+    F: Fn(usize) -> P,
+    C: Fn(P, KeyPoint<T, R>) -> ChartCommands + Clone,
+    V: Fn(&mut Ui, &mut T) -> Response,
+    G: Fn(&Chart) -> &Spline<T, R>,
+{
+    pub fn new(get_spline: G, path_builder: F, command_builder: C, value_ui: V) -> Self {
+        Self {
+            get_spline,
+            path_builder,
+            command_builder,
+            value_ui,
+            relevant_ui: |ui, _| ui.label("N/A"),
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<P, T: Tween, R, F, C, V, Rel, G> SplineListEditor<P, T, R, F, C, V, Rel, G>
+where
+    P: ChartPath<Out = KeyPoint<T, R>> + Copy,
+    T: Tween + Clone + std::fmt::Debug + PartialEq + 'static,
+    R: Clone + std::fmt::Debug + PartialEq + 'static,
+    F: Fn(usize) -> P,
+    C: Fn(P, KeyPoint<T, R>) -> ChartCommands + Clone,
+    V: Fn(&mut Ui, &mut T) -> Response,
+    Rel: Fn(&mut Ui, &mut R) -> Response,
+    G: Fn(&Chart) -> &Spline<T, R>,
+{
+    pub fn new_relevant(
+        get_spline: G,
+        path_builder: F,
+        command_builder: C,
+        value_ui: V,
+        relevant_ui: Rel,
+    ) -> Self {
+        Self {
+            get_spline,
+            path_builder,
+            command_builder,
+            value_ui,
+            relevant_ui,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+    pub fn show(&self, ui: &mut Ui, mut chart: Mut<Chart>, history: &mut EditHistory) {
+        let len = (self.get_spline)(&chart).len();
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            for i in 0..len {
+                ui.push_id(i, |ui| {
+                    ui.group(|ui| {
+                        ui.horizontal(|ui| {
+                            ui.label(format!("Point {}", i));
+                        });
+
+                        let path = (self.path_builder)(i);
+
+                        ui.horizontal(|ui| {
+                            ui.label("Time:");
+                            edit_scope(
+                                ui,
+                                path,
+                                chart.reborrow(),
+                                history,
+                                |ui, point| {
+                                    ui.add(egui::DragValue::new(&mut point.time).speed(0.01))
+                                },
+                                self.command_builder.clone(),
+                            );
+                        });
+
+                        ui.horizontal(|ui| {
+                            ui.label("Value:");
+                            edit_scope(
+                                ui,
+                                path,
+                                chart.reborrow(),
+                                history,
+                                |ui, point| (self.value_ui)(ui, &mut point.value),
+                                self.command_builder.clone(),
+                            );
+                        });
+
+                        ui.horizontal(|ui| {
+                            ui.label("Easing:");
+                            edit_scope(
+                                ui,
+                                path,
+                                chart.reborrow(),
+                                history,
+                                |ui, point| crate::widgets::enum_selector(&mut point.ease_type, ui),
+                                self.command_builder.clone(),
+                            );
+                        });
+                        if !std::mem::size_of::<R>() == 0 {
+                            ui.horizontal(|ui| {
+                                // ui.label("Relevant:");
+                                edit_scope(
+                                    ui,
+                                    path,
+                                    chart.reborrow(),
+                                    history,
+                                    |ui, point| (self.relevant_ui)(ui, &mut point.relevant),
+                                    self.command_builder.clone(),
+                                );
+                            });
+                        }
+                    });
+                });
+            }
+        });
     }
 }
