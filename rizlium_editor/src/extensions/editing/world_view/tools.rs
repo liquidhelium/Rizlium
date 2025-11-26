@@ -196,12 +196,12 @@ fn handle_discard(
     discard_events: &mut EventReader<DiscardPreeditEvent>,
     current_edit: &mut Option<PencilToolEditData>,
     history: &mut ChartEditHistory,
-    chart: &mut rizlium_chart::chart::Chart,
+    chart: &mut Mut<rizlium_chart::chart::Chart>,
 ) {
     if !discard_events.is_empty() {
         discard_events.clear();
         *current_edit = None;
-        history.discard_preedit(chart).unwrap();
+        history.discard_preedit(&mut **chart).unwrap();
         history.submit_preedit();
     }
 }
@@ -211,7 +211,7 @@ fn handle_editing_state(
     line_idx: usize,
     point_idx: usize,
     history: &mut ChartEditHistory,
-    chart: &mut rizlium_chart::chart::Chart,
+    chart: &mut Mut<rizlium_chart::chart::Chart>,
     to_game: &WorldToGame,
     world_config: &WorldViewConfig,
     pencil_config: &PencilToolConfig,
@@ -238,10 +238,10 @@ fn handle_editing_state(
                         },
                     },
                 },
-                chart,
+                &mut **chart,
             )
             .unwrap();
-        history.push_preedit(Nop, chart).unwrap();
+        history.push_preedit(Nop, &mut **chart).unwrap();
         *current_edit = Some(PencilToolEditData {
             line_idx,
             point_idx: chart.lines[line_idx].points.len() - 1,
@@ -276,12 +276,12 @@ fn handle_editing_state(
                     CommandSequence {
                         commands: vec![prev_point_edit.into(), current_point_edit.into()],
                     },
-                    chart,
+                    &mut **chart,
                 )
                 .unwrap();
         } else {
             history
-                .replace_last_preedit(current_point_edit, chart)
+                .replace_last_preedit(current_point_edit, &mut **chart)
                 .unwrap();
         }
     }
@@ -293,7 +293,7 @@ fn handle_new_line_creation(
     world_config: &WorldViewConfig,
     to_game: &WorldToGame,
     history: &mut ChartEditHistory,
-    chart: &mut rizlium_chart::chart::Chart,
+    chart: &mut Mut<rizlium_chart::chart::Chart>,
     toast: &mut ToastsStorage,
     current_edit: &mut Option<PencilToolEditData>,
 ) {
@@ -306,10 +306,10 @@ fn handle_new_line_creation(
                     line: Line::from_iter(vec![point; 2]),
                     at: None,
                 },
-                chart,
+                &mut **chart,
             )
             .unwrap();
-        history.push_preedit(Nop, chart).unwrap();
+        history.push_preedit(Nop, &mut **chart).unwrap();
         *current_edit = Some(PencilToolEditData {
             line_idx: chart.lines.len() - 1,
             point_idx: 1,
@@ -358,12 +358,12 @@ fn pencil_tool(
     let Some(mut chart) = chart else {
         return;
     };
-    let chart = chart.chart_mut();
+    let mut chart = chart.map_unchanged(|p| p.chart_mut());
     if !history.has_preedit() {
         *current_edit = None;
     }
 
-    handle_discard(&mut discard_events, &mut *current_edit, &mut history, chart);
+    handle_discard(&mut discard_events, &mut *current_edit, &mut history, &mut chart);
 
     for event in mouse_events.read() {
         if let Some(data) = current_edit.as_ref() {
@@ -372,7 +372,7 @@ fn pencil_tool(
                 data.line_idx,
                 data.point_idx,
                 &mut history,
-                chart,
+                &mut chart,
                 &to_game,
                 &world_config,
                 &pencil_config,
@@ -387,7 +387,7 @@ fn pencil_tool(
                 &world_config,
                 &to_game,
                 &mut history,
-                chart,
+                &mut chart,
                 &mut toast,
                 &mut *current_edit,
             );

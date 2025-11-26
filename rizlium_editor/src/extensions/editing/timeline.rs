@@ -85,12 +85,6 @@ fn timeline_tab(
         cursor_time,
         &mut state.follow_cursor,
         |ctx| {
-            // Draw separator line on the right side of the left panel
-            ctx.ui.painter().line_segment(
-                [ctx.rect.right_top(), ctx.rect.right_bottom()],
-                ctx.ui.style().visuals.window_stroke,
-            );
-
             for (i, (name, _)) in tracks.iter().enumerate() {
                 let y = i as f32 * track_height;
                 let screen_y = ctx.y_to_screen(y);
@@ -110,10 +104,10 @@ fn timeline_tab(
                             ui.label(*name);
                         });
                     });
-
+                use fl_timeline::rgb;
                 ctx.ui.painter().line_segment(
                     [rect.left_bottom(), rect.right_bottom()],
-                    egui::Stroke::new(1.0, ctx.ui.visuals().extreme_bg_color),
+                    egui::Stroke::new(0.5, rgb("303030")),
                 );
             }
         },
@@ -130,10 +124,10 @@ fn timeline_tab(
                     egui::pos2(ctx.rect.left(), screen_y),
                     egui::vec2(ctx.rect.width(), track_height),
                 );
-
+                use fl_timeline::rgb;
                 ctx.ui.painter().line_segment(
                     [rect.left_bottom(), rect.right_bottom()],
-                    egui::Stroke::new(1.0, ctx.ui.visuals().extreme_bg_color),
+                    egui::Stroke::new(0.5, rgb("303030")),
                 );
 
                 ctx.ui
@@ -254,10 +248,10 @@ pub fn timeline_horizontal(
         let text_color = Color32::WHITE.linear_multiply(alpha);
         let font_size = 10.0 + 4.0 * alpha;
 
-        line_v(ui, x, view, Stroke::new(1., line_color));
+        line_v(ui, x, view, Stroke::new(0.5, line_color));
         ui.painter().text(
-            [x, timeline_zone.min.y].into(),
-            Align2::CENTER_TOP,
+            [x + 2.0, timeline_zone.min.y].into(),
+            Align2::LEFT_TOP,
             time.to_string(),
             FontId::proportional(font_size),
             text_color,
@@ -393,6 +387,13 @@ pub mod fl_timeline {
     use egui::{pos2, vec2, Color32, Id, Rect, Sense, Stroke, StrokeKind, Ui};
     use std::ops::RangeInclusive;
 
+    pub(super) fn rgb(str: &str) -> Color32 {
+        Color32::from_rgb(
+            u8::from_str_radix(&str[0..2], 16).unwrap_or(0),
+            u8::from_str_radix(&str[2..4], 16).unwrap_or(0),
+            u8::from_str_radix(&str[4..6], 16).unwrap_or(0),
+        )
+    }
     pub struct FlTimelineConfig {
         pub header_width: f32,
         pub timeline_height: f32,
@@ -402,9 +403,9 @@ pub mod fl_timeline {
     impl Default for FlTimelineConfig {
         fn default() -> Self {
             Self {
-                header_width: 150.0,
-                timeline_height: 30.0,
-                scroll_bar_height: 20.0,
+                header_width: 238.0,
+                timeline_height: 32.0,
+                scroll_bar_height: 32.0,
             }
         }
     }
@@ -484,6 +485,13 @@ pub mod fl_timeline {
                 top_bar_rect.height(),
             ),
         );
+        ui.painter().rect(
+            scroll_bar_rect,
+            0.0,
+            rgb("1F1F1F"),
+            egui::Stroke::NONE,
+            egui::epaint::StrokeKind::Middle,
+        );
         if zoom_scroll_bar(ui, scroll_bar_rect, time_range, total_duration) {
             interacted = true;
         }
@@ -503,10 +511,13 @@ pub mod fl_timeline {
         );
 
         ui.allocate_new_ui(egui::UiBuilder::new().max_rect(corner_rect), |ui| {
-            ui.centered_and_justified(|ui| {
-                if ui.selectable_label(*follow_cursor, "S").clicked() {
-                    *follow_cursor = !*follow_cursor;
-                }
+            egui::Frame::NONE.fill(rgb("171717")).show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    if ui.selectable_label(*follow_cursor, "S").clicked() {
+                        *follow_cursor = !*follow_cursor;
+                    }
+                });
+                ui.allocate_space(ui.available_size());
             });
         });
 
@@ -526,19 +537,26 @@ pub mod fl_timeline {
             ),
         );
 
+        // Draw Backgrounds
+        ui.painter().rect(
+            left_panel_rect,
+            0.0,
+            rgb("1f1f1f"),
+            (1.0, rgb("1b1b1b")),
+            StrokeKind::Middle,
+        );
+
+        ui.painter().rect_filled(content_rect, 0.0, rgb("282828"));
+
         // Draw Timeline
         {
-            // Draw timeline background (top and bottom borders and fill only)
-            ui.painter().line_segment(
-                [timeline_rect.left_top(), timeline_rect.right_top()],
-                egui::Stroke::new(1.0, ui.visuals().extreme_bg_color),
+            ui.painter().rect(
+                timeline_rect,
+                0.0,
+                rgb("1F1F1F"),
+                egui::Stroke::new(1.0, rgb("000000")),
+                egui::epaint::StrokeKind::Middle,
             );
-            ui.painter().line_segment(
-                [timeline_rect.left_bottom(), timeline_rect.right_bottom()],
-                egui::Stroke::new(1.0, ui.visuals().extreme_bg_color),
-            );
-            ui.painter()
-                .rect_filled(timeline_rect, 0.0, ui.visuals().extreme_bg_color);
 
             let response = ui
                 .allocate_new_ui(
@@ -576,22 +594,6 @@ pub mod fl_timeline {
             Id::new("fl_content_area"),
             Sense::click_and_drag(),
         );
-        if content_response.dragged() {
-            let delta = content_response.drag_delta();
-
-            // Horizontal Scroll (Time)
-            let duration = time_range.end() - time_range.start();
-            let dt = -delta.x / content_rect.width() * duration;
-            let new_start = (*time_range.start() + dt).max(0.0);
-            let new_end = (new_start + duration).min(total_duration);
-            // Re-clamp start if end hit max
-            let new_start = (new_end - duration).max(0.0);
-            *time_range = new_start..=new_end;
-            interacted = true;
-
-            // Vertical Scroll
-            *vertical_scroll -= delta.y;
-        }
 
         // Handle Wheel Scroll
         if content_response.hovered() {
@@ -709,8 +711,10 @@ pub mod fl_timeline {
             bar_left = (bar_right - min_bar_width).min(bar_left);
         }
 
-        let bar_rect =
-            Rect::from_min_max(pos2(bar_left, rect.top()), pos2(bar_right, rect.bottom()));
+        let bar_rect = Rect::from_min_max(
+            pos2(bar_left, rect.top() + 1.0),
+            pos2(bar_right, rect.bottom() - 1.0),
+        );
 
         let interact_id = ui.id().with("scrollbar");
         let response = ui.interact(rect, interact_id, Sense::click_and_drag());
@@ -794,35 +798,12 @@ pub mod fl_timeline {
 
         // Visuals
         let color = if response.hovered() || response.dragged() {
-            Color32::from_gray(150)
+            rgb("3a3a3a")
         } else {
-            Color32::from_gray(100)
+            rgb("292929")
         };
         painter.rect_filled(bar_rect, 4.0, color);
-        painter.add(egui::Shape::rect_stroke(
-            bar_rect,
-            4.0,
-            Stroke::new(1.0, Color32::WHITE),
-            StrokeKind::Middle,
-        ));
 
-        // Draw handles hints
-        // Left
-        painter.line_segment(
-            [
-                pos2(bar_left + 4.0, rect.center().y - 4.0),
-                pos2(bar_left + 4.0, rect.center().y + 4.0),
-            ],
-            Stroke::new(2.0, Color32::BLACK),
-        );
-        // Right
-        painter.line_segment(
-            [
-                pos2(bar_right - 4.0, rect.center().y - 4.0),
-                pos2(bar_right - 4.0, rect.center().y + 4.0),
-            ],
-            Stroke::new(2.0, Color32::BLACK),
-        );
         changed
     }
 }

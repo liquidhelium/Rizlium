@@ -388,12 +388,12 @@ fn update_shape(
     chart: Res<ProjectState>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
-    mut lines: Query<(&mut Stroke, &PointIndicatorId, &mut Transform)>,
+    mut lines: Query<(&mut Stroke, &PointIndicatorId, &mut Transform, &mut Visibility)>,
 ) {
     lines
         .iter_mut()
         // .batching_strategy(BatchingStrategy::new().batches_per_thread(100))
-        .for_each(|(_, id, mut transform)| {
+        .for_each(|(_, id, mut transform, mut visibility)| {
             let line_idx = id.line_idx;
             let keypoint_idx = id.keypoint_idx;
             let Some(pos1) = chart.chart().with_cache(&cache).pos_for_linepoint_at(
@@ -401,10 +401,12 @@ fn update_shape(
                 keypoint_idx,
                 **time,
             ) else {
+                *visibility = Visibility::Hidden;
                 return;
             };
             let pos1: Vec2 = pos1.into();
             transform.translation = pos1.extend(transform.translation.z);
+            *visibility = Visibility::Visible;
         });
 }
 

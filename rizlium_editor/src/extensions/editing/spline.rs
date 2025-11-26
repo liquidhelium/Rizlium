@@ -233,32 +233,29 @@ where
     }
     pub fn show(&self, ui: &mut Ui, mut chart: Mut<Chart>, history: &mut EditHistory) {
         let len = (self.get_spline)(&chart).len();
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            for i in 0..len {
-                ui.push_id(i, |ui| {
-                    ui.group(|ui| {
+        ui.group(|ui| {
+            egui::ScrollArea::vertical().auto_shrink([false, true]).show(ui, |ui| {
+                for i in 0..len {
+                    ui.push_id(i, |ui| {
                         ui.horizontal(|ui| {
                             ui.label(format!("Point {}", i));
-                        });
 
-                        let path = (self.path_builder)(i);
+                            let path = (self.path_builder)(i);
 
-                        ui.horizontal(|ui| {
-                            ui.label("Time:");
-                            edit_scope(
-                                ui,
-                                path,
-                                chart.reborrow(),
-                                history,
-                                |ui, point| {
-                                    ui.add(egui::DragValue::new(&mut point.time).speed(0.01))
-                                },
-                                self.command_builder.clone(),
-                            );
-                        });
+                            ui.horizontal(|ui| {
+                                ui.label("Time:");
+                                edit_scope(
+                                    ui,
+                                    path,
+                                    chart.reborrow(),
+                                    history,
+                                    |ui, point| {
+                                        ui.add(egui::DragValue::new(&mut point.time).speed(0.01))
+                                    },
+                                    self.command_builder.clone(),
+                                );
+                            });
 
-                        ui.horizontal(|ui| {
-                            ui.label("Value:");
                             edit_scope(
                                 ui,
                                 path,
@@ -267,10 +264,7 @@ where
                                 |ui, point| (self.value_ui)(ui, &mut point.value),
                                 self.command_builder.clone(),
                             );
-                        });
 
-                        ui.horizontal(|ui| {
-                            ui.label("Easing:");
                             edit_scope(
                                 ui,
                                 path,
@@ -279,23 +273,23 @@ where
                                 |ui, point| crate::widgets::enum_selector(&mut point.ease_type, ui),
                                 self.command_builder.clone(),
                             );
+                            if !std::mem::size_of::<R>() == 0 {
+                                ui.horizontal(|ui| {
+                                    // ui.label("Relevant:");
+                                    edit_scope(
+                                        ui,
+                                        path,
+                                        chart.reborrow(),
+                                        history,
+                                        |ui, point| (self.relevant_ui)(ui, &mut point.relevant),
+                                        self.command_builder.clone(),
+                                    );
+                                });
+                            }
                         });
-                        if !std::mem::size_of::<R>() == 0 {
-                            ui.horizontal(|ui| {
-                                // ui.label("Relevant:");
-                                edit_scope(
-                                    ui,
-                                    path,
-                                    chart.reborrow(),
-                                    history,
-                                    |ui, point| (self.relevant_ui)(ui, &mut point.relevant),
-                                    self.command_builder.clone(),
-                                );
-                            });
-                        }
                     });
-                });
-            }
+                }
+            })
         });
     }
 }

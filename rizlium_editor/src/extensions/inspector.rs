@@ -355,7 +355,7 @@ pub fn edit_scope<P, T, F, C>(
 
 fn debug_window(
     InMut(ui): InMut<Ui>,
-    // history: Res<ChartEditHistory>,
+    history: Res<ChartEditHistory>,
     // mut event: EventReader<WorldMouseEvent>,
     mirror: Res<RizliumDockStateMirror>,
     camera: Query<&VisibleEntities, With<GameCamera>>,
@@ -368,10 +368,10 @@ fn debug_window(
             // for it in history.history_descriptions() {
             //     ui.label(it.clone());
             // }
-            // ui.heading("Preedits");
-            // for ed in history.preedit_datas() {
-            //     ui.label(format!("{:#?}", ed.inverse()));
-            // }
+            ui.heading("Preedits");
+            for ed in history.preedit_datas() {
+                ui.label(format!("{:#?}", ed.inverse()));
+            }
             let cam = camera.single()?;
             let sorted_entities: Vec<_> = cam
                 .entities
