@@ -36,21 +36,37 @@ use super::tool_select_bar;
 
 pub mod cam_response;
 pub(super) mod tools;
+
+#[derive(Resource, Default)]
+pub struct WorldViewConfig {
+    pub canvas_index: usize,
+}
+
+#[derive(Default, Reflect, GizmoConfigGroup)]
+struct WorldViewGizmos;
+
 pub struct WorldViewPlugin;
 
 impl Plugin for WorldViewPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            PreStartup,
-            setup_world_cam.after(bevy_egui::EguiStartupSet::InitContexts),
-        )
-        .add_plugins((RaycastPlugin, ToolsPlugin, PointIndicatorPlugin))
-        .register_tab(
-            "edit.world_view",
-            t!("edit.world_view.tab"),
-            world_tab,
-            || true,
-        );
+        app.init_resource::<WorldViewConfig>()
+            .init_gizmo_group::<WorldViewGizmos>()
+            .add_systems(Startup, setup_world_view_gizmos)
+            .add_systems(
+                Update,
+                draw_gizmo.run_if(ProjectState::has_chart_system()),
+            )
+            .add_systems(
+                PreStartup,
+                setup_world_cam.after(bevy_egui::EguiStartupSet::InitContexts),
+            )
+            .add_plugins((RaycastPlugin, ToolsPlugin, PointIndicatorPlugin))
+            .register_tab(
+                "edit.world_view",
+                t!("edit.world_view.tab"),
+                world_tab,
+                || true,
+            );
     }
 }
 
@@ -142,6 +158,7 @@ fn world_tab(
     mut center: Local<Vec3>,
     mut event_writer: EventWriter<ScreenMouseEvent>,
     mut tool: ResMut<Tool>,
+    mut config: ResMut<WorldViewConfig>,
 ) {
     let (mut projection, mut transform) = camera.single_mut().unwrap();
     let Projection::Orthographic(projection) = &mut *projection else {
@@ -162,6 +179,8 @@ fn world_tab(
             changed |= ui.add(egui::DragValue::new(&mut center.x)).changed();
             ui.label("y");
             changed |= ui.add(egui::DragValue::new(&mut center.y)).changed();
+            ui.label("Canvas");
+            ui.add(egui::DragValue::new(&mut config.canvas_index));
             if changed {
                 transform.translation = *center;
             }
@@ -387,4 +406,38 @@ fn update_shape(
             let pos1: Vec2 = pos1.into();
             transform.translation = pos1.extend(transform.translation.z);
         });
+}
+
+fn setup_world_view_gizmos(mut config: ResMut<GizmoConfigStore>) {
+    let (config, _) = config.config_mut::<WorldViewGizmos>();
+    config.render_layers = RenderLayers::from_layers(&[114]);
+}
+
+fn draw_gizmo(
+    mut gizmos: Gizmos<WorldViewGizmos>,
+    config: Res<WorldViewConfig>,
+    chart: Res<ProjectState>,
+    cache: Res<GameChartCache>,
+    current_time: Res<GameTime>,
+) {
+    let canvas_idx = config.canvas_index;
+    if canvas_idx >= chart.chart().canvases.len() {
+        return;
+    }
+
+    for t in 0..300 {
+        let time = t as f32;
+        if let Some(y) = (|| {
+            Some(
+                cache.canvas_y_at(canvas_idx, time)?
+                    - cache.canvas_y_at(canvas_idx, current_time.0)?,
+            )
+        })() {
+            gizmos.line_2d(
+                Vec2::new(-10000.0, y as f32),
+                Vec2::new(10000., y as f32),
+                bevy::color::palettes::tailwind::GRAY_400,
+            );
+        }
+    }
 }

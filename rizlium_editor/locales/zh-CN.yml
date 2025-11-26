@@ -33,3 +33,5 @@ tab.logs.select_to_inspect: 选择一个对象来查看
 debugger.tab: 调试
 hierarchy.tab: 层级检查器
 Rizlium Editor: Rizlium 编辑器
+edit.world_view.pencil_tool.unsupported_canvas: 该画布有两种方向，不可插入点
+edit.world_view.pencil_tool.out_of_bounds: 请选择一个存在的画布

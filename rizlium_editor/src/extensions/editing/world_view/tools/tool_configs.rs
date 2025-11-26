@@ -62,7 +62,7 @@ impl ToolConfig for PencilToolConfig {
 
 #[derive(Resource, Default)]
 pub struct PencilToolConfig {
-    pub canvas: usize,
+    // pub canvas: usize,
     pub pen_color: egui::Color32,
     pub easing: EasingId,
 }
@@ -74,11 +74,11 @@ impl PencilToolConfig {
                 // must be two
                 return;
             };
-            uil.label("Canvas index:");
-            uir.add(Slider::new(
-                &mut this.canvas,
-                0..=(chart.chart().canvases.len() - 1),
-            ));
+            // uil.label("Canvas index:");
+            // uir.add(Slider::new(
+            //     &mut this.canvas,
+            //     0..=(chart.chart().canvases.len() - 1),
+            // ));
             uil.label("Color: ");
             uir.color_edit_button_srgba(&mut this.pen_color);
             uil.label("Easing");

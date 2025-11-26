@@ -7,7 +7,7 @@ use rizlium_chart::{
     chart::{ColorRGBA, KeyPoint, Line, LinePointData},
     editing::{
         chart_path::{LinePath, LinePointPath},
-        commands::{EditPoint, InsertLine, InsertPoint, Nop},
+        commands::{CommandSequence, EditPoint, InsertLine, InsertPoint, Nop},
     },
 };
 use rizlium_render::{ChartLineId, ChartProvider as _};
@@ -15,7 +15,7 @@ use rizlium_render::{ChartLineId, ChartProvider as _};
 use self::tool_configs::{PencilToolConfig, ToolConfigExt};
 use crate::{
     extensions::{
-        editing::ChartEditHistory,
+        editing::{world_view::WorldViewConfig, ChartEditHistory},
         inspector::{ChartItem, SelectedItem},
     },
     project::ProjectState,
@@ -192,17 +192,163 @@ struct PencilToolEditData {
     line_idx: usize,
     point_idx: usize,
 }
+fn handle_discard(
+    discard_events: &mut EventReader<DiscardPreeditEvent>,
+    current_edit: &mut Option<PencilToolEditData>,
+    history: &mut ChartEditHistory,
+    chart: &mut rizlium_chart::chart::Chart,
+) {
+    if !discard_events.is_empty() {
+        discard_events.clear();
+        *current_edit = None;
+        history.discard_preedit(chart).unwrap();
+        history.submit_preedit();
+    }
+}
+
+fn handle_editing_state(
+    event: &WorldMouseEvent,
+    line_idx: usize,
+    point_idx: usize,
+    history: &mut ChartEditHistory,
+    chart: &mut rizlium_chart::chart::Chart,
+    to_game: &WorldToGame,
+    world_config: &WorldViewConfig,
+    pencil_config: &PencilToolConfig,
+    current_edit: &mut Option<PencilToolEditData>,
+) {
+    let mouse_event = &event.event;
+    if matches!(mouse_event.event_type, MouseEventType::Click(_)) {
+        history.submit_preedit_squash();
+        // 已经编辑时, 点击可进行下一个的编辑
+        history
+            .push_preedit(
+                InsertPoint {
+                    line_path: line_idx.into(),
+                    point_idx: None,
+                    point: KeyPoint {
+                        time: to_game
+                            .time_at_y(mouse_event.pos.y, world_config.canvas_index)
+                            .unwrap(),
+                        value: mouse_event.pos.x,
+                        ease_type: pencil_config.easing,
+                        relevant: LinePointData {
+                            canvas: world_config.canvas_index,
+                            color: color32_to_colorrgba(pencil_config.pen_color),
+                        },
+                    },
+                },
+                chart,
+            )
+            .unwrap();
+        history.push_preedit(Nop, chart).unwrap();
+        *current_edit = Some(PencilToolEditData {
+            line_idx,
+            point_idx: chart.lines[line_idx].points.len() - 1,
+        })
+    } else {
+        let current_point_edit = EditPoint {
+            line_path: line_idx.into(),
+            point_idx,
+            new_time: Some(
+                to_game
+                    .time_at_y(mouse_event.pos.y, world_config.canvas_index)
+                    .unwrap(),
+            ),
+            new_x: Some(mouse_event.pos.x),
+            new_canvas: Some(world_config.canvas_index),
+            new_color: Some(color32_to_colorrgba(pencil_config.pen_color)),
+            new_easing: Some(pencil_config.easing),
+        };
+
+        if point_idx > 0 {
+            let prev_point_edit = EditPoint {
+                line_path: line_idx.into(),
+                point_idx: point_idx - 1,
+                new_time: None,
+                new_x: None,
+                new_canvas: None,
+                new_color: None,
+                new_easing: Some(pencil_config.easing),
+            };
+            history
+                .replace_last_preedit(
+                    CommandSequence {
+                        commands: vec![prev_point_edit.into(), current_point_edit.into()],
+                    },
+                    chart,
+                )
+                .unwrap();
+        } else {
+            history
+                .replace_last_preedit(current_point_edit, chart)
+                .unwrap();
+        }
+    }
+}
+
+fn handle_new_line_creation(
+    event: &WorldMouseEvent,
+    pencil_config: &PencilToolConfig,
+    world_config: &WorldViewConfig,
+    to_game: &WorldToGame,
+    history: &mut ChartEditHistory,
+    chart: &mut rizlium_chart::chart::Chart,
+    toast: &mut ToastsStorage,
+    current_edit: &mut Option<PencilToolEditData>,
+) {
+    let mouse_event = &event.event;
+    let point = get_point(mouse_event.pos, pencil_config, world_config, to_game);
+    if let Some(point) = point {
+        history
+            .push_preedit(
+                InsertLine {
+                    line: Line::from_iter(vec![point; 2]),
+                    at: None,
+                },
+                chart,
+            )
+            .unwrap();
+        history.push_preedit(Nop, chart).unwrap();
+        *current_edit = Some(PencilToolEditData {
+            line_idx: chart.lines.len() - 1,
+            point_idx: 1,
+        })
+    } else if chart.canvases.get(world_config.canvas_index).is_some() {
+        toast.error(t!("edit.world_view.pencil_tool.unsupported_canvas"));
+    } else {
+        toast.error(t!("edit.world_view.pencil_tool.out_of_bounds"));
+    }
+}
+
+fn handle_resume_editing(
+    event: &WorldMouseEvent,
+    entities: &Query<(Entity, &PointIndicatorId)>,
+    current_edit: &mut Option<PencilToolEditData>,
+) {
+    if let Some(entity) = event.casted_entity {
+        if let Some(entity) = entities.iter().find(|e| e.0 == entity).map(|e| e.1) {
+            debug!("clicking on points");
+            *current_edit = Some(PencilToolEditData {
+                line_idx: entity.line_idx,
+                point_idx: entity.keypoint_idx,
+            });
+        }
+    }
+}
 
 fn pencil_tool(
     mut mouse_events: EventReader<WorldMouseEvent>,
     mut discard_events: EventReader<DiscardPreeditEvent>,
     tool: Res<Tool>,
     pencil_config: Res<PencilToolConfig>,
+    world_config: Res<WorldViewConfig>,
     chart: Option<ResMut<ProjectState>>,
     mut history: ResMut<ChartEditHistory>,
     to_game: WorldToGame,
     mut current_edit: Local<Option<PencilToolEditData>>,
     entities: Query<(Entity, &PointIndicatorId)>,
+    mut toast: ResMut<ToastsStorage>,
 ) {
     if *tool != Tool::Pencil || !to_game.avalible() {
         mouse_events.clear();
@@ -216,95 +362,37 @@ fn pencil_tool(
     if !history.has_preedit() {
         *current_edit = None;
     }
-    // discard key was pressed, so just discard the preedit
-    if !discard_events.is_empty() {
-        discard_events.clear();
-        *current_edit = None;
-        history.discard_preedit(chart).unwrap();
-        history.submit_preedit();
-    }
+
+    handle_discard(&mut discard_events, &mut *current_edit, &mut history, chart);
+
     for event in mouse_events.read() {
         if let Some(data) = current_edit.as_ref() {
-            let event = &event.event;
-            if matches!(event.event_type, MouseEventType::Click(_)) {
-                history.submit_preedit_squash();
-                // 已经编辑时, 点击可进行下一个的编辑
-                history
-                    .push_preedit(
-                        InsertPoint {
-                            line_path: data.line_idx.into(),
-                            point_idx: None,
-                            point: KeyPoint {
-                                time: to_game
-                                    .time_at_y(event.pos.y, pencil_config.canvas)
-                                    .unwrap(),
-                                value: event.pos.x,
-                                ease_type: pencil_config.easing,
-                                relevant: LinePointData {
-                                    canvas: pencil_config.canvas,
-                                    color: color32_to_colorrgba(pencil_config.pen_color),
-                                },
-                            },
-                        },
-                        chart,
-                    )
-                    .unwrap();
-                history.push_preedit(Nop, chart).unwrap();
-                *current_edit = Some(PencilToolEditData {
-                    line_idx: data.line_idx,
-                    point_idx: chart.lines[data.line_idx].points.len() - 1,
-                })
-            } else {
-                history
-                    .replace_last_preedit(
-                        EditPoint {
-                            line_path: data.line_idx.into(),
-                            point_idx: data.point_idx,
-                            new_time: Some(
-                                to_game
-                                    .time_at_y(event.pos.y, pencil_config.canvas)
-                                    .unwrap(),
-                            ),
-                            new_x: Some(event.pos.x),
-                            new_canvas: Some(pencil_config.canvas),
-                            new_color: Some(color32_to_colorrgba(pencil_config.pen_color)),
-                            new_easing: Some(pencil_config.easing),
-                        },
-                        chart,
-                    )
-                    .unwrap();
-            }
+            handle_editing_state(
+                event,
+                data.line_idx,
+                data.point_idx,
+                &mut history,
+                chart,
+                &to_game,
+                &world_config,
+                &pencil_config,
+                &mut *current_edit,
+            );
         } else if event.casted_entity.is_none()
             && matches!(event.event.event_type, MouseEventType::Click(_))
         {
-            let event = &event.event;
-            history
-                .push_preedit(
-                    InsertLine {
-                        line: Line::from_iter(vec![
-                            get_point(event.pos, &pencil_config, &to_game,);
-                            2
-                        ]),
-                        at: None,
-                    },
-                    chart,
-                )
-                .unwrap();
-            history.push_preedit(Nop, chart).unwrap();
-            *current_edit = Some(PencilToolEditData {
-                line_idx: chart.lines.len() - 1,
-                point_idx: 1,
-            })
+            handle_new_line_creation(
+                event,
+                &pencil_config,
+                &world_config,
+                &to_game,
+                &mut history,
+                chart,
+                &mut toast,
+                &mut *current_edit,
+            );
         } else if matches!(event.event.event_type, MouseEventType::Click(_)) {
-            if let Some(entity) = event.casted_entity {
-                if let Some(entity) = entities.iter().find(|e| e.0 == entity).map(|e| e.1) {
-                    debug!("clicking on points");
-                    *current_edit = Some(PencilToolEditData {
-                        line_idx: entity.line_idx,
-                        point_idx: entity.keypoint_idx,
-                    });
-                }
-            }
+            handle_resume_editing(event, &entities, &mut *current_edit);
         }
     }
 }
@@ -321,17 +409,18 @@ fn color32_to_colorrgba(color: egui::Color32) -> ColorRGBA {
 fn get_point(
     pos: Vec3,
     pencil_config: &PencilToolConfig,
+    world_config: &WorldViewConfig,
     to_game: &WorldToGame,
-) -> KeyPoint<f32, LinePointData> {
-    KeyPoint {
-        time: to_game.time_at_y(pos.y, pencil_config.canvas).unwrap(),
+) -> Option<KeyPoint<f32, LinePointData>> {
+    Some(KeyPoint {
+        time: to_game.time_at_y(pos.y, world_config.canvas_index)?,
         value: pos.x,
         ease_type: pencil_config.easing,
         relevant: LinePointData {
             color: color32_to_colorrgba(pencil_config.pen_color),
-            canvas: pencil_config.canvas,
+            canvas: world_config.canvas_index,
         },
-    }
+    })
 }
 
 fn select_tool(
