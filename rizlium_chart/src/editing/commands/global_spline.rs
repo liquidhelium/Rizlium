@@ -28,6 +28,16 @@ pub struct InsertGlobalPoint<S: ChartSplineSelector> {
     pub _phantom: PhantomData<S>,
 }
 
+impl<S: ChartSplineSelector> Clone for InsertGlobalPoint<S> {
+    fn clone(&self) -> Self {
+        Self {
+            point: self.point.clone(),
+            index: self.index,
+            _phantom: PhantomData,
+        }
+    }
+}
+
 impl<S: ChartSplineSelector> InsertGlobalPoint<S> {
     pub fn new(point: KeyPoint<S::Value>, index: Option<usize>) -> Self {
         Self {
@@ -74,6 +84,14 @@ pub struct RemoveGlobalPoint<S: ChartSplineSelector> {
     pub path: GlobalSplinePath<S>,
 }
 
+impl<S: ChartSplineSelector> Clone for RemoveGlobalPoint<S> {
+    fn clone(&self) -> Self {
+        Self {
+            path: self.path.clone(),
+        }
+    }
+}
+
 impl<S: ChartSplineSelector + GlobalSplineCommandWrapper> ChartCommand for RemoveGlobalPoint<S> {
     fn apply(self, chart: &mut Chart) -> Result<ChartCommands> {
         let point = self.path.remove(chart)?;
@@ -101,6 +119,16 @@ pub struct EditGlobalPoint<S: ChartSplineSelector> {
     pub new_easing: Option<EasingId>,
 }
 
+impl<S: ChartSplineSelector> Clone for EditGlobalPoint<S> {
+    fn clone(&self) -> Self {
+        Self {
+            path: self.path.clone(),
+            new_time: self.new_time,
+            new_value: self.new_value.clone(),
+            new_easing: self.new_easing,
+        }
+    }
+}
 impl<S: ChartSplineSelector + GlobalSplineCommandWrapper> ChartCommand for EditGlobalPoint<S> {
     fn apply(mut self, chart: &mut Chart) -> Result<ChartCommands> {
         let spline = S::get_spline_mut(chart);

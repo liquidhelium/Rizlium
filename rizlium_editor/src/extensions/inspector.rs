@@ -491,6 +491,16 @@ fn debug_window(
             for ed in history.preedit_datas() {
                 ui.label(format!("{:#?}", ed.inverse()));
             }
+            ui.separator();
+            ui.heading("History");
+            for ed in history.inverse(){
+                ui.label(format!("{:#?}", ed));
+            }
+            ui.separator();
+            ui.heading("Redo cache");
+            for ed in history.redo_inverse(){
+                ui.label(format!("{:#?}", ed));
+            }
             let cam = camera.single()?;
             let sorted_entities: Vec<_> = cam
                 .entities

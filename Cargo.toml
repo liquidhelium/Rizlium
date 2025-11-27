@@ -39,9 +39,9 @@ opt-level = 3
 
 [profile.release]
 opt-level = 1
-lto = "off"
-debug = 0
-strip = "debuginfo"
+# lto = "off"
+# debug = 0
+# strip = "debuginfo"
 
 [profile.release.package."*"]
 opt-level = 3

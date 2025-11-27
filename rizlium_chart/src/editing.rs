@@ -14,34 +14,43 @@ pub mod commands;
 
 #[derive(Snafu, Debug)]
 pub enum ChartConflictError {
+    #[snafu(display("Invalid note path: {note_path:?}"))]
     InvalidNotePath {
         note_path: NotePath,
     },
+    #[snafu(display("Invalid line path: {line_path:?}"))]
     InvalidLinePath {
         line_path: LinePath,
     },
+    #[snafu(display("No such point {point} in line {line_path:?}"))]
     NoSuchPoint {
         line_path: LinePath,
         point: usize,
     },
+    #[snafu(display("Time {time} out of bound for point {point} in line {line_path:?}"))]
     TimeOutBound {
         line_path: LinePath,
         point: usize,
         time: f32,
     },
+    #[snafu(display("No such canvas {canvas}"))]
     NoSuchCanvas {
         canvas: usize,
     },
+    #[snafu(display("No such global spline point {index} in spline {spline}"))]
     NoSuchGlobalSplinePoint {
         spline: &'static str,
         index: usize,
     },
+    #[snafu(display("Index {index} out of bounds (len: {len})"))]
     IndexOutOfBounds {
         index: usize,
         len: usize,
     },
+    #[snafu(display("Preediting in progress"))]
     PreeditingInProgress,
 }
+
 
 type Result<T> = std::result::Result<T, ChartConflictError>;
 
@@ -127,7 +136,7 @@ impl EditHistory {
     }
     pub fn discard_preedit(&mut self, chart: &mut Chart) -> Result<()> {
         self.preedit_data.drain(..).rev().try_for_each(|data| {
-            dbg!(data.inverse).apply(chart)?;
+            data.inverse.apply(chart)?;
             Ok(())
         })?;
         Ok(())
@@ -148,6 +157,9 @@ impl EditHistory {
             .preedit_data
             .drain(..)
             .map(|data| data.inverse)
+            // reverse to ensure inversed commands get processed in the correct order
+            // logic here is similar to CommandSequence::apply
+            .rev()
             .collect();
         let squashed_command = commands::CommandSequence {
             commands: v1,
@@ -164,6 +176,14 @@ impl EditHistory {
 
     pub fn preedit_datas(&self) -> &[PreeditData] {
         self.preedit_data.as_slice()
+    }
+
+    pub fn inverse(&self) -> &[ChartCommands] {
+        self.inverse_history.as_slice()
+    }
+
+    pub fn redo_inverse(&self) -> &[ChartCommands] {
+        self.redo_cache.as_slice()
     }
 
     pub fn gen_redo_descriptions(&self) -> impl ExactSizeIterator<Item = Cow<'static, str>> + '_ {

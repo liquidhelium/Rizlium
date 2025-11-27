@@ -118,7 +118,7 @@ fn add_segments<P: ChartProvider>(
     let chart = provider.chart();
     let segment_count = chart.segment_count();
     let now_count = lines.iter().count();
-    let delta = segment_count - now_count;
+    let delta = segment_count.saturating_sub(now_count);
     debug!("attempting to add {delta} segments");
     for _ in now_count..segment_count {
         commands.spawn(ChartLineBundle::default());

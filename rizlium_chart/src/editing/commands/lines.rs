@@ -9,7 +9,7 @@ use crate::{
 };
 
 use super::ChartCommand;
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InsertLine {
     pub line: Line,
     pub at: Option<usize>,
@@ -19,7 +19,7 @@ impl ChartCommand for InsertLine {
     fn apply(self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
         let Self { line, at } = self;
         let len = chart.lines.len();
-        
+
         if let Some(at) = at {
             if at > len {
                 return Err(crate::editing::ChartConflictError::IndexOutOfBounds {
@@ -49,7 +49,7 @@ impl ChartCommand for InsertLine {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RemoveLine {
     pub line_path: LinePath,
 }
@@ -68,7 +68,7 @@ impl ChartCommand for RemoveLine {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct EditPoint {
     pub line_path: LinePath,
     pub point_idx: usize,
@@ -83,12 +83,15 @@ impl ChartCommand for EditPoint {
     fn apply(mut self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
         let len = chart.canvases.len();
         let line = self.line_path.get_mut(chart)?;
-        let prev_time = line
-            .points
-            .points
-            .get(self.point_idx - 1)
-            .map(|point| point.time)
-            .unwrap_or(f32::NEG_INFINITY);
+        let prev_time = if self.point_idx > 0 {
+            line.points
+                .points
+                .get(self.point_idx - 1)
+                .map(|point| point.time)
+                .unwrap_or(f32::NEG_INFINITY)
+        } else {
+            f32::NEG_INFINITY
+        };
         let next_time = line
             .points
             .points
@@ -149,7 +152,7 @@ impl ChartCommand for EditPoint {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InsertPoint {
     pub line_path: LinePath,
     pub point_idx: Option<usize>,
@@ -195,7 +198,7 @@ impl ChartCommand for InsertPoint {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RemovePoint {
     pub line_path: LinePath,
     pub point_idx: usize,

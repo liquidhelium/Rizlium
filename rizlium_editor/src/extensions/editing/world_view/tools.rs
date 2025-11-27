@@ -202,7 +202,6 @@ fn handle_discard(
         discard_events.clear();
         *current_edit = None;
         history.discard_preedit(&mut **chart).unwrap();
-        history.submit_preedit();
     }
 }
 

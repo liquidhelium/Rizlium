@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::editing::chart_path::{CanvasPath, ChartPath as _};
 use crate::prelude::Chart;
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RemoveCanvas {
     pub canvas_path: CanvasPath,
 }
@@ -18,7 +18,7 @@ impl super::ChartCommand for RemoveCanvas {
         format!("Remove Canvas {}", self.canvas_path.0).into()
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InsertCanvas {
     pub canvas: crate::prelude::Canvas,
     pub at: Option<usize>,

@@ -7,7 +7,7 @@ use crate::editing::{
     Result,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ChangeNoteTime {
     pub modify_to: f32,
     pub note_path: NotePath,
@@ -29,7 +29,7 @@ impl ChartCommand for ChangeNoteTime {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InsertNote {
     pub note: Note,
     pub line: LinePath,
@@ -52,7 +52,7 @@ impl ChartCommand for InsertNote {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RemoveNote {
     pub note_path: NotePath,
 }
