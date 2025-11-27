@@ -376,7 +376,7 @@ fn associate_segment(
 ) {
     debug!("running system assocate_segment");
     // return_nothing_change!(chart);
-    for (entity, (line_idx, keypoint_idx)) in lines.iter().zip(chart.iter_segment()) {
+    for (entity, (line_idx, keypoint_idx)) in lines.iter().zip(chart.iter_point()) {
         commands.entity(entity).insert(PointIndicatorId {
             line_idx,
             keypoint_idx,

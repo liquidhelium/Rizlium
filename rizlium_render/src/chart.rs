@@ -21,6 +21,14 @@ pub trait ChartProvider: Resource {
             .enumerate()
             .flat_map(|(i, l)| std::iter::repeat(i).zip(0..l.points.points().len() - 1))
     }
+    /// Iterate over all points in the chart
+    fn iter_point(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+        self.chart()
+            .lines
+            .iter()
+            .enumerate()
+            .flat_map(|(i, l)| std::iter::repeat(i).zip(0..l.points.points().len()))
+    }
 
     /// Iterate over all notes in the chart
     fn iter_note(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
