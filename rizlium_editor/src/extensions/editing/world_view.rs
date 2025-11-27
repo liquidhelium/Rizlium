@@ -35,6 +35,7 @@ use self::{
 use super::tool_select_bar;
 
 pub mod cam_response;
+pub mod snapping;
 pub(super) mod tools;
 
 #[derive(Resource, Default)]
@@ -50,6 +51,7 @@ pub struct WorldViewPlugin;
 impl Plugin for WorldViewPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<WorldViewConfig>()
+            .init_resource::<snapping::SnappingConfig>()
             .init_gizmo_group::<WorldViewGizmos>()
             .add_systems(Startup, setup_world_view_gizmos)
             .add_systems(

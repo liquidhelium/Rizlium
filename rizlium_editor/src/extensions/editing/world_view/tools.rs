@@ -25,7 +25,7 @@ use helium_framework::prelude::*;
 
 use super::{
     cam_response::{DragEventType, MouseEvent, MouseEventType, ScreenMouseEvent, WorldMouseEvent},
-    edit_view_or_tool_focused, PointIndicatorId, WorldCam,
+    edit_view_or_tool_focused, snapping::{SnappingConfig, SnappingContext}, PointIndicatorId, WorldCam,
 };
 
 pub fn is_tool(tool: Tool) -> impl Condition<()> {
@@ -214,9 +214,17 @@ fn handle_editing_state(
     to_game: &WorldToGame,
     world_config: &WorldViewConfig,
     pencil_config: &PencilToolConfig,
+    snapping_config: &SnappingConfig,
     current_edit: &mut Option<PencilToolEditData>,
 ) {
     let mouse_event = &event.event;
+    let snapping_context = SnappingContext::new(snapping_config, Some(&**chart));
+    let raw_time = to_game
+        .time_at_y(mouse_event.pos.y, world_config.canvas_index)
+        .unwrap();
+    let raw_value = mouse_event.pos.x;
+    let (snapped_time, snapped_value) = snapping_context.snap_point(raw_time, raw_value);
+
     if matches!(mouse_event.event_type, MouseEventType::Click(_)) {
         history.submit_preedit_squash("Edit Point");
         // 已经编辑时, 点击可进行下一个的编辑
@@ -226,10 +234,8 @@ fn handle_editing_state(
                     line_path: line_idx.into(),
                     point_idx: None,
                     point: KeyPoint {
-                        time: to_game
-                            .time_at_y(mouse_event.pos.y, world_config.canvas_index)
-                            .unwrap(),
-                        value: mouse_event.pos.x,
+                        time: snapped_time,
+                        value: snapped_value,
                         ease_type: pencil_config.easing,
                         relevant: LinePointData {
                             canvas: world_config.canvas_index,
@@ -249,12 +255,8 @@ fn handle_editing_state(
         let current_point_edit = EditPoint {
             line_path: line_idx.into(),
             point_idx,
-            new_time: Some(
-                to_game
-                    .time_at_y(mouse_event.pos.y, world_config.canvas_index)
-                    .unwrap(),
-            ),
-            new_x: Some(mouse_event.pos.x),
+            new_time: Some(snapped_time),
+            new_x: Some(snapped_value),
             new_canvas: Some(world_config.canvas_index),
             new_color: Some(color32_to_colorrgba(pencil_config.pen_color)),
             new_easing: Some(pencil_config.easing),
@@ -291,6 +293,7 @@ fn handle_new_line_creation(
     event: &WorldMouseEvent,
     pencil_config: &PencilToolConfig,
     world_config: &WorldViewConfig,
+    snapping_config: &SnappingConfig,
     to_game: &WorldToGame,
     history: &mut ChartEditHistory,
     chart: &mut Mut<rizlium_chart::chart::Chart>,
@@ -298,7 +301,13 @@ fn handle_new_line_creation(
     current_edit: &mut Option<PencilToolEditData>,
 ) {
     let mouse_event = &event.event;
-    let point = get_point(mouse_event.pos, pencil_config, world_config, to_game);
+    let point = get_point(
+        mouse_event.pos,
+        pencil_config,
+        world_config,
+        snapping_config,
+        to_game,
+    );
     if let Some(point) = point {
         history
             .push_preedit(
@@ -343,6 +352,7 @@ fn pencil_tool(
     tool: Res<Tool>,
     pencil_config: Res<PencilToolConfig>,
     world_config: Res<WorldViewConfig>,
+    snapping_config: Res<SnappingConfig>,
     chart: Option<ResMut<ProjectState>>,
     mut history: ResMut<ChartEditHistory>,
     to_game: WorldToGame,
@@ -376,6 +386,7 @@ fn pencil_tool(
                 &to_game,
                 &world_config,
                 &pencil_config,
+                &snapping_config,
                 &mut *current_edit,
             );
         } else if event.casted_entity.is_none()
@@ -385,6 +396,7 @@ fn pencil_tool(
                 event,
                 &pencil_config,
                 &world_config,
+                &snapping_config,
                 &to_game,
                 &mut history,
                 &mut chart,
@@ -410,11 +422,17 @@ fn get_point(
     pos: Vec3,
     pencil_config: &PencilToolConfig,
     world_config: &WorldViewConfig,
+    snapping_config: &SnappingConfig,
     to_game: &WorldToGame,
 ) -> Option<KeyPoint<f32, LinePointData>> {
+    let snapping_context = SnappingContext::new(snapping_config, None);
+    let raw_time = to_game.time_at_y(pos.y, world_config.canvas_index)?;
+    let raw_value = pos.x;
+    let (snapped_time, snapped_value) = snapping_context.snap_point(raw_time, raw_value);
+
     Some(KeyPoint {
-        time: to_game.time_at_y(pos.y, world_config.canvas_index)?,
-        value: pos.x,
+        time: snapped_time,
+        value: snapped_value,
         ease_type: pencil_config.easing,
         relevant: LinePointData {
             color: color32_to_colorrgba(pencil_config.pen_color),

@@ -7,6 +7,8 @@ use egui::{Slider, Ui, UiBuilder};
 
 use crate::{project::ProjectState, widgets::enum_selector};
 
+use super::super::snapping::SnappingConfig;
+
 pub(crate) fn show_window<T: ToolConfig>(ui: &mut Ui, world: &mut World) {
     let child = {
         let max_rect = ui.available_rect_before_wrap();
@@ -68,7 +70,12 @@ pub struct PencilToolConfig {
 }
 
 impl PencilToolConfig {
-    pub(crate) fn system(In(mut ui): In<Ui>, mut this: ResMut<Self>, chart: Res<ProjectState>) {
+    pub(crate) fn system(
+        In(mut ui): In<Ui>,
+        mut this: ResMut<Self>,
+        mut snapping: ResMut<SnappingConfig>,
+        chart: Res<ProjectState>,
+    ) {
         ui.columns(2, |uis| {
             let [uil, uir] = uis else {
                 // must be two
@@ -83,6 +90,20 @@ impl PencilToolConfig {
             uir.color_edit_button_srgba(&mut this.pen_color);
             uil.label("Easing");
             enum_selector(&mut this.easing, uir);
+
+            uil.label("Snap Time");
+            uir.checkbox(&mut snapping.enable_time_snap, "");
+            if snapping.enable_time_snap {
+                uil.label("Divisor");
+                uir.add(egui::DragValue::new(&mut snapping.time_divisor).prefix("1/"));
+            }
+
+            uil.label("Snap Value");
+            uir.checkbox(&mut snapping.enable_value_snap, "");
+            if snapping.enable_value_snap {
+                uil.label("Step");
+                uir.add(egui::DragValue::new(&mut snapping.value_step));
+            }
         })
     }
 }
