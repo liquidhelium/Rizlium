@@ -15,8 +15,8 @@ impl Default for SnappingConfig {
         Self {
             enable_time_snap: true,
             time_divisor: 4,
-            enable_value_snap: false,
-            value_step: 0.1,
+            enable_value_snap: true,
+            value_step: 100.0,
         }
     }
 }

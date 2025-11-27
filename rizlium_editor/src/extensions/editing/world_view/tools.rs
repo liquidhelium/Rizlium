@@ -25,7 +25,9 @@ use helium_framework::prelude::*;
 
 use super::{
     cam_response::{DragEventType, MouseEvent, MouseEventType, ScreenMouseEvent, WorldMouseEvent},
-    edit_view_or_tool_focused, snapping::{SnappingConfig, SnappingContext}, PointIndicatorId, WorldCam,
+    edit_view_or_tool_focused,
+    snapping::{SnappingConfig, SnappingContext},
+    PointIndicatorId, WorldCam,
 };
 
 pub fn is_tool(tool: Tool) -> impl Condition<()> {
@@ -216,13 +218,24 @@ fn handle_editing_state(
     pencil_config: &PencilToolConfig,
     snapping_config: &SnappingConfig,
     current_edit: &mut Option<PencilToolEditData>,
+    toast: &mut ToastsStorage,
 ) {
     let mouse_event = &event.event;
     let snapping_context = SnappingContext::new(snapping_config, Some(&**chart));
-    let raw_time = to_game
-        .time_at_y(mouse_event.pos.y, world_config.canvas_index)
-        .unwrap();
-    let raw_value = mouse_event.pos.x;
+    let Some(raw_time) = to_game.time_at_y(mouse_event.pos.y, world_config.canvas_index) else {
+        toast.error(t!("edit.world_view.pencil_tool.out_of_bounds"));
+        return;
+    };
+
+    let Some(raw_value) = chart
+        .canvases
+        .get(world_config.canvas_index)
+        .map(|c| Some(mouse_event.pos.x - c.x_pos.value_padding(to_game.time.as_ref()?.0)?))
+        .flatten()
+    else {
+        toast.error(t!("edit.world_view.pencil_tool.empty_x_pos"));
+        return;
+    };
     let (snapped_time, snapped_value) = snapping_context.snap_point(raw_time, raw_value);
 
     if matches!(mouse_event.event_type, MouseEventType::Click(_)) {
@@ -307,6 +320,8 @@ fn handle_new_line_creation(
         world_config,
         snapping_config,
         to_game,
+        chart,
+        toast,
     );
     if let Some(point) = point {
         history
@@ -373,7 +388,12 @@ fn pencil_tool(
         *current_edit = None;
     }
 
-    handle_discard(&mut discard_events, &mut *current_edit, &mut history, &mut chart);
+    handle_discard(
+        &mut discard_events,
+        &mut *current_edit,
+        &mut history,
+        &mut chart,
+    );
 
     for event in mouse_events.read() {
         if let Some(data) = current_edit.as_ref() {
@@ -388,6 +408,7 @@ fn pencil_tool(
                 &pencil_config,
                 &snapping_config,
                 &mut *current_edit,
+                &mut toast,
             );
         } else if event.casted_entity.is_none()
             && matches!(event.event.event_type, MouseEventType::Click(_))
@@ -424,10 +445,24 @@ fn get_point(
     world_config: &WorldViewConfig,
     snapping_config: &SnappingConfig,
     to_game: &WorldToGame,
+    chart: &Mut<rizlium_chart::chart::Chart>,
+    toast: &mut ToastsStorage
 ) -> Option<KeyPoint<f32, LinePointData>> {
-    let snapping_context = SnappingContext::new(snapping_config, None);
-    let raw_time = to_game.time_at_y(pos.y, world_config.canvas_index)?;
-    let raw_value = pos.x;
+    let snapping_context = SnappingContext::new(snapping_config, Some(&**chart));
+    let Some(raw_time) = to_game.time_at_y(pos.y, world_config.canvas_index) else {
+        toast.error(t!("edit.world_view.pencil_tool.out_of_bounds"));
+        return None;
+    };
+
+    let Some(raw_value) = chart
+        .canvases
+        .get(world_config.canvas_index)
+        .map(|c| Some(pos.x - c.x_pos.value_padding(to_game.time.as_ref()?.0)?))
+        .flatten()
+    else {
+        toast.error(t!("edit.world_view.pencil_tool.empty_x_pos"));
+        return None;
+    };
     let (snapped_time, snapped_value) = snapping_context.snap_point(raw_time, raw_value);
 
     Some(KeyPoint {

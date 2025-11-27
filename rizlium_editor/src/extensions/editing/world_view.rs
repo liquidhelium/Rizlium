@@ -1,7 +1,7 @@
 use core::panic;
 use std::ops::ControlFlow;
 
-use crate::project::ProjectState;
+use crate::{project::ProjectState, time_and_audio::GameAudioSource};
 use bevy::{
     core_pipeline::{fxaa::Fxaa, oit::OrderIndependentTransparencySettings},
     math::vec2,
@@ -15,6 +15,7 @@ use bevy::{
     },
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
+use bevy_kira_audio::AudioSource;
 use bevy_prototype_lyon::{
     draw::Stroke, entity::ShapeBundle, prelude::GeometryBuilder, shapes::Circle as Circle0,
 };
@@ -54,10 +55,7 @@ impl Plugin for WorldViewPlugin {
             .init_resource::<snapping::SnappingConfig>()
             .init_gizmo_group::<WorldViewGizmos>()
             .add_systems(Startup, setup_world_view_gizmos)
-            .add_systems(
-                Update,
-                draw_gizmo.run_if(ProjectState::has_chart_system()),
-            )
+            .add_systems(Update, draw_gizmo.run_if(ProjectState::has_chart_system()))
             .add_systems(
                 PreStartup,
                 setup_world_cam.after(bevy_egui::EguiStartupSet::InitContexts),
@@ -390,7 +388,12 @@ fn update_shape(
     chart: Res<ProjectState>,
     cache: Res<GameChartCache>,
     time: Res<GameTime>,
-    mut lines: Query<(&mut Stroke, &PointIndicatorId, &mut Transform, &mut Visibility)>,
+    mut lines: Query<(
+        &mut Stroke,
+        &PointIndicatorId,
+        &mut Transform,
+        &mut Visibility,
+    )>,
 ) {
     lines
         .iter_mut()
@@ -415,6 +418,7 @@ fn update_shape(
 fn setup_world_view_gizmos(mut config: ResMut<GizmoConfigStore>) {
     let (config, _) = config.config_mut::<WorldViewGizmos>();
     config.render_layers = RenderLayers::from_layers(&[114]);
+    config.line.width = 0.5;
 }
 
 fn draw_gizmo(
@@ -423,25 +427,69 @@ fn draw_gizmo(
     chart: Res<ProjectState>,
     cache: Res<GameChartCache>,
     current_time: Res<GameTime>,
+    snapping: Res<snapping::SnappingConfig>,
+    audio_datas: Res<Assets<AudioSource>>,
+    audio_data: Res<GameAudioSource>,
 ) {
     let canvas_idx = config.canvas_index;
     if canvas_idx >= chart.chart().canvases.len() {
         return;
     }
-
-    for t in 0..300 {
-        let time = t as f32;
-        if let Some(y) = (|| {
-            Some(
-                cache.canvas_y_at(canvas_idx, time)?
-                    - cache.canvas_y_at(canvas_idx, current_time.0)?,
-            )
-        })() {
+    let Some(audio) = audio_datas.get(&audio_data.0) else {
+        return;
+    };
+    let max_realtime = audio.sound.duration().as_secs_f32();
+    let max_time = cache.map_time(max_realtime).floor() as u32;
+    if snapping.time_divisor != 0 && snapping.enable_time_snap {
+        for t in 0..(max_time * snapping.time_divisor) {
+            let time = t as f32 / snapping.time_divisor as f32;
+            if let Some(y) = (|| {
+                Some(
+                    cache.canvas_y_at(canvas_idx, time)?
+                        - cache.canvas_y_at(canvas_idx, current_time.0)?,
+                )
+            })() {
+                gizmos.line_2d(
+                    Vec2::new(-10000.0, y as f32),
+                    Vec2::new(10000., y as f32),
+                    bevy::color::palettes::tailwind::GRAY_400,
+                );
+            }
+        }
+    }
+    if snapping.enable_value_snap && snapping.value_step > 0.0 {
+        // select current canvas
+        let Some(Some(origin)) = chart
+            .chart()
+            .canvases
+            .get(canvas_idx)
+            .map(|c| c.x_pos.value_padding(current_time.0))
+        else {
+            return;
+        };
+        // draw vertical lines
+        let mut line_x = origin + snapping.value_step;
+        while line_x + snapping.value_step < origin + 2000.0 {
             gizmos.line_2d(
-                Vec2::new(-10000.0, y as f32),
-                Vec2::new(10000., y as f32),
+                Vec2::new(line_x, -10000.0),
+                Vec2::new(line_x, 10000.0),
                 bevy::color::palettes::tailwind::GRAY_400,
             );
+            line_x += snapping.value_step;
         }
+        line_x = origin - snapping.value_step;
+        while line_x - snapping.value_step > origin - 2000.0 {
+            gizmos.line_2d(
+                Vec2::new(line_x, -10000.0),
+                Vec2::new(line_x, 10000.0),
+                bevy::color::palettes::tailwind::GRAY_400,
+            );
+            line_x -= snapping.value_step;
+        }
+        gizmos.line_2d(
+            Vec2::new(origin, -10000.0),
+            Vec2::new(origin, 10000.0),
+            bevy::color::palettes::tailwind::CYAN_500,
+        );
     }
 }
