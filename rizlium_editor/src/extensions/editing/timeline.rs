@@ -1,6 +1,7 @@
 use std::ops::RangeInclusive;
 
 use bevy::prelude::*;
+use bevy_prototype_lyon::path;
 use egui::{Align2, Color32, FontId, Id, Sense, Stroke, Ui};
 use helium_framework::prelude::*;
 use rizlium_render::ChartProvider as _;
@@ -52,6 +53,14 @@ fn timeline_tab(
             ChartItem::CameraControl => {
                 tracks.push(("Cam Scale", &chart.cam_scale));
                 tracks.push(("Cam Move", &chart.cam_move));
+            },
+            ChartItem::Canvas(path) => {
+                let canvas = match chart.canvases.get(path.0) {
+                    Some(c) => c,
+                    None => return,
+                };
+                tracks.push(("Canvas X Position", &canvas.x_pos));
+                tracks.push(("Canvas Speed", &canvas.speed));
             }
             _ => {}
         }

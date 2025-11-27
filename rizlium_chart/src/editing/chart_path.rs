@@ -284,3 +284,137 @@ pub type ThemeControlPath = GlobalSplinePath<ThemeControlSelector>;
 pub type BpmPath = GlobalSplinePath<BpmSelector>;
 pub type CamScalePath = GlobalSplinePath<CamScaleSelector>;
 pub type CamMovePath = GlobalSplinePath<CamMoveSelector>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct CanvasXPosPath(pub usize, pub usize);
+
+impl CanvasXPosPath {
+    pub fn new(canvas_idx: usize, point_idx: usize) -> Self {
+        Self(canvas_idx, point_idx)
+    }
+}
+
+impl ChartPath for CanvasXPosPath {
+    type Out = KeyPoint<f32>;
+    fn get<'c>(&self, chart: &'c Chart) -> Result<&'c Self::Out> {
+        chart
+            .canvases
+            .get(self.0)
+            .ok_or(ChartConflictError::NoSuchCanvas { canvas: self.0 })?
+            .x_pos
+            .points()
+            .get(self.1)
+            .ok_or(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "CanvasXPos",
+                index: self.1,
+            })
+    }
+    fn get_mut<'c>(&self, chart: &'c mut Chart) -> Result<&'c mut Self::Out> {
+        chart
+            .canvases
+            .get_mut(self.0)
+            .ok_or(ChartConflictError::NoSuchCanvas { canvas: self.0 })?
+            .x_pos
+            .points
+            .get_mut(self.1)
+            .ok_or(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "CanvasXPos",
+                index: self.1,
+            })
+    }
+    fn remove(&self, chart: &mut Chart) -> Result<Self::Out> {
+        let canvas = chart
+            .canvases
+            .get_mut(self.0)
+            .ok_or(ChartConflictError::NoSuchCanvas { canvas: self.0 })?;
+        if canvas.x_pos.points().len() > self.1 {
+            Ok(canvas.x_pos.points.remove(self.1))
+        } else {
+            Err(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "CanvasXPos",
+                index: self.1,
+            })
+        }
+    }
+    fn valid(&self, chart: &Chart) -> Result<()> {
+        let canvas = chart
+            .canvases
+            .get(self.0)
+            .ok_or(ChartConflictError::NoSuchCanvas { canvas: self.0 })?;
+        if canvas.x_pos.points().len() > self.1 {
+            Ok(())
+        } else {
+            Err(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "CanvasXPos",
+                index: self.1,
+            })
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct CanvasSpeedPath(pub usize, pub usize);
+
+impl CanvasSpeedPath {
+    pub fn new(canvas_idx: usize, point_idx: usize) -> Self {
+        Self(canvas_idx, point_idx)
+    }
+}
+
+impl ChartPath for CanvasSpeedPath {
+    type Out = KeyPoint<f32>;
+    fn get<'c>(&self, chart: &'c Chart) -> Result<&'c Self::Out> {
+        chart
+            .canvases
+            .get(self.0)
+            .ok_or(ChartConflictError::NoSuchCanvas { canvas: self.0 })?
+            .speed
+            .points()
+            .get(self.1)
+            .ok_or(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "CanvasSpeed",
+                index: self.1,
+            })
+    }
+    fn get_mut<'c>(&self, chart: &'c mut Chart) -> Result<&'c mut Self::Out> {
+        chart
+            .canvases
+            .get_mut(self.0)
+            .ok_or(ChartConflictError::NoSuchCanvas { canvas: self.0 })?
+            .speed
+            .points
+            .get_mut(self.1)
+            .ok_or(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "CanvasSpeed",
+                index: self.1,
+            })
+    }
+    fn remove(&self, chart: &mut Chart) -> Result<Self::Out> {
+        let canvas = chart
+            .canvases
+            .get_mut(self.0)
+            .ok_or(ChartConflictError::NoSuchCanvas { canvas: self.0 })?;
+        if canvas.speed.points().len() > self.1 {
+            Ok(canvas.speed.points.remove(self.1))
+        } else {
+            Err(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "CanvasSpeed",
+                index: self.1,
+            })
+        }
+    }
+    fn valid(&self, chart: &Chart) -> Result<()> {
+        let canvas = chart
+            .canvases
+            .get(self.0)
+            .ok_or(ChartConflictError::NoSuchCanvas { canvas: self.0 })?;
+        if canvas.speed.points().len() > self.1 {
+            Ok(())
+        } else {
+            Err(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "CanvasSpeed",
+                index: self.1,
+            })
+        }
+    }
+}

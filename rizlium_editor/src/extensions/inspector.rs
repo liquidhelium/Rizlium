@@ -6,10 +6,14 @@ use rizlium_chart::{
     chart::{Chart, KeyPoint, Spline},
     editing::{
         chart_path::{
-            BpmPath, CamMovePath, CamScalePath, CanvasPath, ChartPath, GlobalSplinePath, LinePath,
-            LinePointPath, ThemeControlPath,
+            BpmPath, CamMovePath, CamScalePath, CanvasPath, CanvasSpeedPath, CanvasXPosPath,
+            ChartPath, GlobalSplinePath, LinePath, LinePointPath, ThemeControlPath,
         },
-        commands::{EditGlobalPoint, EditPoint, InsertGlobalPoint, RemoveGlobalPoint},
+        commands::{
+            EditCanvasSpeedPoint, EditCanvasXPosPoint, EditGlobalPoint, EditPoint,
+            InsertCanvasSpeedPoint, InsertCanvasXPosPoint, InsertGlobalPoint, RemoveCanvasSpeedPoint,
+            RemoveCanvasXPosPoint, RemoveGlobalPoint,
+        },
         ChartCommands, EditHistory, NotePath,
     },
     prelude::Tween,
@@ -165,25 +169,24 @@ fn logs(
             // });
         }
         ChartItem::Canvas(c) => {
-            show_ui(ui, *c, &chart.chart(), |ui, canvas| {
+            if let Err(e) = c.valid(chart.chart()) {
+                ui.colored_label(egui::Color32::RED, e.to_string());
+            } else {
                 ui.strong(format!("Canvas {}:", c.0));
-                egui::ScrollArea::vertical()
-                    .auto_shrink([false; 2])
-                    .show_viewport(ui, |ui, _rect| {
-                        for (i, point) in canvas.x_pos.iter().enumerate() {
-                            ui.label(format!(
-                                "X Position Point {}: time = {:.2}, value = {:.2}",
-                                i, point.time, point.value
-                            ));
-                        }
-                        for (i, point) in canvas.speed.iter().enumerate() {
-                            ui.label(format!(
-                                "Speed Point {}: time = {:.2}, value = {:.2}",
-                                i, point.time, point.value
-                            ));
-                        }
-                    });
-            });
+                ui.heading("X Position");
+                SplineListEditor::new(CanvasXPosAdapter { canvas_index: c.0 }).show(
+                    ui,
+                    chart.reborrow().map_unchanged(|c| c.chart_mut()),
+                    &mut chart_edit_history,
+                );
+                ui.separator();
+                ui.heading("Speed");
+                SplineListEditor::new(CanvasSpeedAdapter { canvas_index: c.0 }).show(
+                    ui,
+                    chart.reborrow().map_unchanged(|c| c.chart_mut()),
+                    &mut chart_edit_history,
+                );
+            }
         }
         ChartItem::ThemeControl => {
             egui::ScrollArea::vertical()
@@ -405,6 +408,102 @@ impl SplineEditorAdapter for CamMoveAdapter {
     fn remove_command(&self, index: usize) -> ChartCommands {
         ChartCommands::RemoveCamMovePoint(RemoveGlobalPoint {
             path: GlobalSplinePath::new(index),
+        })
+    }
+    fn value_ui(&self, ui: &mut Ui, value: &mut Self::Tween) -> egui::Response {
+        ui.add(egui::DragValue::new(value).speed(0.01))
+    }
+}
+
+struct CanvasXPosAdapter {
+    canvas_index: usize,
+}
+
+impl SplineEditorAdapter for CanvasXPosAdapter {
+    type Tween = f32;
+    type Relevant = ();
+    type Path = CanvasXPosPath;
+
+    fn get_spline<'a>(&self, chart: &'a Chart) -> &'a Spline<Self::Tween, Self::Relevant> {
+        &chart.canvases[self.canvas_index].x_pos
+    }
+    fn path(&self, index: usize) -> Self::Path {
+        CanvasXPosPath::new(self.canvas_index, index)
+    }
+    fn edit_command(
+        &self,
+        path: Self::Path,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::EditCanvasXPosPoint(EditCanvasXPosPoint {
+            path,
+            new_time: Some(point.time),
+            new_value: Some(point.value),
+            new_easing: Some(point.ease_type),
+        })
+    }
+    fn add_command(
+        &self,
+        index: usize,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::InsertCanvasXPosPoint(InsertCanvasXPosPoint {
+            point,
+            at: Some(index),
+            canvas_index: self.canvas_index,
+        })
+    }
+    fn remove_command(&self, index: usize) -> ChartCommands {
+        ChartCommands::RemoveCanvasXPosPoint(RemoveCanvasXPosPoint {
+            path: CanvasXPosPath::new(self.canvas_index, index),
+        })
+    }
+    fn value_ui(&self, ui: &mut Ui, value: &mut Self::Tween) -> egui::Response {
+        ui.add(egui::DragValue::new(value).speed(0.01))
+    }
+}
+
+struct CanvasSpeedAdapter {
+    canvas_index: usize,
+}
+
+impl SplineEditorAdapter for CanvasSpeedAdapter {
+    type Tween = f32;
+    type Relevant = ();
+    type Path = CanvasSpeedPath;
+
+    fn get_spline<'a>(&self, chart: &'a Chart) -> &'a Spline<Self::Tween, Self::Relevant> {
+        &chart.canvases[self.canvas_index].speed
+    }
+    fn path(&self, index: usize) -> Self::Path {
+        CanvasSpeedPath::new(self.canvas_index, index)
+    }
+    fn edit_command(
+        &self,
+        path: Self::Path,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::EditCanvasSpeedPoint(EditCanvasSpeedPoint {
+            path,
+            new_time: Some(point.time),
+            new_value: Some(point.value),
+            new_easing: Some(point.ease_type),
+        })
+    }
+    fn add_command(
+        &self,
+        index: usize,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::InsertCanvasSpeedPoint(InsertCanvasSpeedPoint {
+            point,
+            at: Some(index),
+            canvas_index: self.canvas_index,
+        })
+    }
+    fn remove_command(&self, index: usize) -> ChartCommands {
+        ChartCommands::RemoveCanvasSpeedPoint(RemoveCanvasSpeedPoint {
+            path: CanvasSpeedPath::new(self.canvas_index, index),
         })
     }
     fn value_ui(&self, ui: &mut Ui, value: &mut Self::Tween) -> egui::Response {

@@ -27,6 +27,14 @@ pub enum ChartCommands {
     InsertCanvas,
     RemoveCanvas,
 
+    InsertCanvasXPosPoint(InsertCanvasXPosPoint),
+    RemoveCanvasXPosPoint(RemoveCanvasXPosPoint),
+    EditCanvasXPosPoint(EditCanvasXPosPoint),
+
+    InsertCanvasSpeedPoint(InsertCanvasSpeedPoint),
+    RemoveCanvasSpeedPoint(RemoveCanvasSpeedPoint),
+    EditCanvasSpeedPoint(EditCanvasSpeedPoint),
+
     InsertThemePoint(InsertGlobalPoint<ThemeControlSelector>),
     RemoveThemePoint(RemoveGlobalPoint<ThemeControlSelector>),
     EditThemePoint(EditGlobalPoint<ThemeControlSelector>),
