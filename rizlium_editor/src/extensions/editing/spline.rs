@@ -75,8 +75,8 @@ impl<'a, R> SplineView<'a, R> {
         }
         let mut circles_view = Vec::<Pos2>::new();
         let mut linepoints_view = Vec::<Pos2>::new();
-        let mut current_segment_index = 0;
-        let mut current_t = self.view2visible.map_x(current_segment_index as f32);
+        let mut current_screen_x = self.view_area.min.x;
+        let mut current_t = self.view2visible.map_x(current_screen_x);
         let mut current_keypoint_idx = match self.spline.keypoint_at(current_t) {
             Ok(idx) => {
                 let point = self.spline.points().get(idx).unwrap();
@@ -99,8 +99,8 @@ impl<'a, R> SplineView<'a, R> {
                     circles_view.push(point_view);
                     linepoints_view.push(point_view);
                     current_t = point.time + 0.01;
-                    current_segment_index =
-                        self.view2visible.inverse().map_x(current_t).ceil() as usize + 2;
+                    current_screen_x =
+                        self.view2visible.inverse().map_x(current_t).ceil() + 2.0;
                     idx
                 } else {
                     return response;
@@ -124,8 +124,8 @@ impl<'a, R> SplineView<'a, R> {
                     .inverse()
                     .transform_pos(pos2(current_t, value));
                 linepoints_view.push(point_view);
-                current_segment_index += 1;
-                current_t = self.view2visible.map_x(current_segment_index as f32);
+                current_screen_x += 1.0;
+                current_t = self.view2visible.map_x(current_screen_x);
             }
             let point_view = self
                 .view2visible
@@ -133,7 +133,7 @@ impl<'a, R> SplineView<'a, R> {
                 .transform_pos(pos2(next_point.time, next_point.value));
             circles_view.push(point_view);
             linepoints_view.push(point_view);
-            if current_segment_index > self.view_area.width().ceil() as usize {
+            if current_screen_x > self.view_area.max.x {
                 break;
             }
             current_keypoint_idx += 1;

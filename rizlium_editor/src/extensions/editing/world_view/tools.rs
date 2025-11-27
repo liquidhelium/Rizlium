@@ -425,6 +425,7 @@ fn pencil_tool(
                 &mut *current_edit,
             );
         } else if matches!(event.event.event_type, MouseEventType::Click(_)) {
+            info!("trying to resume editing");
             handle_resume_editing(event, &entities, &mut *current_edit);
         }
     }
