@@ -143,13 +143,16 @@ impl EditHistory {
         self.redo_cache.clear();
     }
     /// Like `submit_preedit`, but also squash preedits into a single command.
-    pub fn submit_preedit_squash(&mut self) {
+    pub fn submit_preedit_squash(&mut self, description: impl Into<Cow<'static, str>>) {
         let v1: Vec<_> = self
             .preedit_data
             .drain(..)
             .map(|data| data.inverse)
             .collect();
-        let squashed_command = commands::CommandSequence { commands: v1 };
+        let squashed_command = commands::CommandSequence {
+            commands: v1,
+            description: description.into(),
+        };
         let desc = squashed_command.description();
         self.inverse_history.push(squashed_command.into());
         self.history_descriptions.push(desc);

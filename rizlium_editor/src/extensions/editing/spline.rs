@@ -172,124 +172,157 @@ impl<'a, R> SplineView<'a, R> {
     }
 }
 
-pub struct SplineListEditor<P, T: Tween, R, F, C, V, Rel, G> {
-    get_spline: G,
-    path_builder: F,
-    command_builder: C,
-    value_ui: V,
-    relevant_ui: Rel,
-    _phantom: std::marker::PhantomData<(P, T, R)>,
-}
+pub trait SplineEditorAdapter {
+    type Tween: Tween + Clone + std::fmt::Debug + PartialEq + Default + 'static;
+    type Relevant: Clone + std::fmt::Debug + PartialEq + Default + 'static;
+    type Path: ChartPath<Out = KeyPoint<Self::Tween, Self::Relevant>> + Copy;
 
-impl<P, T: Tween, R, F, C, V, G>
-    SplineListEditor<P, T, R, F, C, V, fn(&mut Ui, &mut R) -> Response, G>
-where
-    P: ChartPath<Out = KeyPoint<T, R>> + Copy,
-    T: Tween + Clone + std::fmt::Debug + PartialEq + 'static,
-    R: Clone + std::fmt::Debug + PartialEq + 'static,
-    F: Fn(usize) -> P,
-    C: Fn(P, KeyPoint<T, R>) -> ChartCommands + Clone,
-    V: Fn(&mut Ui, &mut T) -> Response,
-    G: Fn(&Chart) -> &Spline<T, R>,
-{
-    pub fn new(get_spline: G, path_builder: F, command_builder: C, value_ui: V) -> Self {
-        Self {
-            get_spline,
-            path_builder,
-            command_builder,
-            value_ui,
-            relevant_ui: |ui, _| ui.label("N/A"),
-            _phantom: std::marker::PhantomData,
-        }
+    fn get_spline<'a>(&self, chart: &'a Chart) -> &'a Spline<Self::Tween, Self::Relevant>;
+    fn path(&self, index: usize) -> Self::Path;
+
+    fn edit_command(
+        &self,
+        path: Self::Path,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands;
+    fn add_command(
+        &self,
+        index: usize,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands;
+    fn remove_command(&self, index: usize) -> ChartCommands;
+
+    fn value_ui(&self, ui: &mut Ui, value: &mut Self::Tween) -> Response;
+    fn relevant_ui(&self, ui: &mut Ui, _relevant: &mut Self::Relevant) -> Response {
+        ui.label("N/A")
     }
 }
 
-impl<P, T: Tween, R, F, C, V, Rel, G> SplineListEditor<P, T, R, F, C, V, Rel, G>
-where
-    P: ChartPath<Out = KeyPoint<T, R>> + Copy,
-    T: Tween + Clone + std::fmt::Debug + PartialEq + 'static,
-    R: Clone + std::fmt::Debug + PartialEq + 'static,
-    F: Fn(usize) -> P,
-    C: Fn(P, KeyPoint<T, R>) -> ChartCommands + Clone,
-    V: Fn(&mut Ui, &mut T) -> Response,
-    Rel: Fn(&mut Ui, &mut R) -> Response,
-    G: Fn(&Chart) -> &Spline<T, R>,
-{
-    pub fn new_relevant(
-        get_spline: G,
-        path_builder: F,
-        command_builder: C,
-        value_ui: V,
-        relevant_ui: Rel,
-    ) -> Self {
-        Self {
-            get_spline,
-            path_builder,
-            command_builder,
-            value_ui,
-            relevant_ui,
-            _phantom: std::marker::PhantomData,
-        }
+pub struct SplineListEditor<A> {
+    adapter: A,
+}
+
+impl<A: SplineEditorAdapter> SplineListEditor<A> {
+    pub fn new(adapter: A) -> Self {
+        Self { adapter }
     }
+
     pub fn show(&self, ui: &mut Ui, mut chart: Mut<Chart>, history: &mut EditHistory) {
-        let len = (self.get_spline)(&chart).len();
+        let spline = self.adapter.get_spline(&chart);
+        let len = spline.len();
+        let points = spline.points().clone();
         ui.group(|ui| {
-            egui::ScrollArea::vertical().auto_shrink([false, true]).show(ui, |ui| {
-                for i in 0..len {
-                    ui.push_id(i, |ui| {
-                        ui.horizontal(|ui| {
-                            ui.label(format!("Point {}", i));
-
-                            let path = (self.path_builder)(i);
-
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, true])
+                .show(ui, |ui| {
+                    for i in 0..=len {
+                        ui.push_id(i, |ui| {
                             ui.horizontal(|ui| {
-                                ui.label("Time:");
-                                edit_scope(
-                                    ui,
-                                    path,
-                                    chart.reborrow(),
-                                    history,
-                                    |ui, point| {
-                                        ui.add(egui::DragValue::new(&mut point.time).speed(0.01))
-                                    },
-                                    self.command_builder.clone(),
-                                );
+                                if ui.button("+").clicked() {
+                                    let new_point = if i > 0 {
+                                        let mut p = points[i - 1].clone();
+                                        if i < len {
+                                            let next = &points[i];
+                                            p.time = (p.time + next.time) / 2.0;
+                                        } else {
+                                            p.time += 1.0;
+                                        }
+                                        p
+                                    } else if len > 0 {
+                                        let mut p = points[0].clone();
+                                        p.time -= 1.0;
+                                        p
+                                    } else {
+                                        KeyPoint {
+                                            time: 0.0,
+                                            value: A::Tween::default(),
+                                            ease_type: Default::default(),
+                                            relevant: A::Relevant::default(),
+                                        }
+                                    };
+                                    let _ = history.push(
+                                        self.adapter.add_command(i, new_point),
+                                        &mut *chart,
+                                    );
+                                }
+                                ui.separator();
                             });
 
-                            edit_scope(
-                                ui,
-                                path,
-                                chart.reborrow(),
-                                history,
-                                |ui, point| (self.value_ui)(ui, &mut point.value),
-                                self.command_builder.clone(),
-                            );
-
-                            edit_scope(
-                                ui,
-                                path,
-                                chart.reborrow(),
-                                history,
-                                |ui, point| crate::widgets::enum_selector(&mut point.ease_type, ui),
-                                self.command_builder.clone(),
-                            );
-                            if !std::mem::size_of::<R>() == 0 {
+                            if i < len {
                                 ui.horizontal(|ui| {
-                                    // ui.label("Relevant:");
+                                    ui.label(format!("Point {}", i));
+
+                                    let path = self.adapter.path(i);
+
+                                    ui.horizontal(|ui| {
+                                        ui.label("Time:");
+                                        edit_scope(
+                                            ui,
+                                            path,
+                                            chart.reborrow(),
+                                            history,
+                                            "Edit Spline Point Time",
+                                            |ui, point| {
+                                                ui.add(
+                                                    egui::DragValue::new(&mut point.time)
+                                                        .speed(0.01),
+                                                )
+                                            },
+                                            |path, point| self.adapter.edit_command(path, point),
+                                        );
+                                    });
+
                                     edit_scope(
                                         ui,
                                         path,
                                         chart.reborrow(),
                                         history,
-                                        |ui, point| (self.relevant_ui)(ui, &mut point.relevant),
-                                        self.command_builder.clone(),
+                                        "Edit Spline Point Value",
+                                        |ui, point| self.adapter.value_ui(ui, &mut point.value),
+                                        |path, point| self.adapter.edit_command(path, point),
                                     );
+
+                                    edit_scope(
+                                        ui,
+                                        path,
+                                        chart.reborrow(),
+                                        history,
+                                        "Edit Spline Point Easing",
+                                        |ui, point| {
+                                            crate::widgets::enum_selector(&mut point.ease_type, ui)
+                                        },
+                                        |path, point| self.adapter.edit_command(path, point),
+                                    );
+                                    if !std::mem::size_of::<A::Relevant>() == 0 {
+                                        ui.horizontal(|ui| {
+                                            // ui.label("Relevant:");
+                                            edit_scope(
+                                                ui,
+                                                path,
+                                                chart.reborrow(),
+                                                history,
+                                                "Edit Spline Point Relevant",
+                                                |ui, point| {
+                                                    self.adapter
+                                                        .relevant_ui(ui, &mut point.relevant)
+                                                },
+                                                |path, point| {
+                                                    self.adapter.edit_command(path, point)
+                                                },
+                                            );
+                                        });
+                                    }
+                                    if ui.button("🗑").clicked() {
+                                        let _ = history.push(
+                                            self.adapter.remove_command(i),
+                                            &mut *chart,
+                                        );
+                                    }
                                 });
                             }
                         });
-                    });
-                }
-            })
+                    }
+                })
         });
     }
 }

@@ -219,7 +219,7 @@ fn handle_editing_state(
 ) {
     let mouse_event = &event.event;
     if matches!(mouse_event.event_type, MouseEventType::Click(_)) {
-        history.submit_preedit_squash();
+        history.submit_preedit_squash("Edit Point");
         // 已经编辑时, 点击可进行下一个的编辑
         history
             .push_preedit(
@@ -275,6 +275,7 @@ fn handle_editing_state(
                 .replace_last_preedit(
                     CommandSequence {
                         commands: vec![prev_point_edit.into(), current_point_edit.into()],
+                        description: "Edit Point".into(),
                     },
                     &mut **chart,
                 )

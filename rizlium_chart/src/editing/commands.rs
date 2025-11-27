@@ -59,6 +59,7 @@ pub trait ChartCommand: Debug {
 #[derive(Debug)]
 pub struct CommandSequence {
     pub commands: Vec<ChartCommands>,
+    pub description: Cow<'static, str>,
 }
 
 impl ChartCommand for CommandSequence {
@@ -71,6 +72,7 @@ impl ChartCommand for CommandSequence {
                 .rev()
                 .map(|command| command.apply(chart))
                 .collect::<Result<Vec<_>>>()?,
+            description: self.description,
         }
         .into())
     }
@@ -78,6 +80,9 @@ impl ChartCommand for CommandSequence {
         self.commands
             .iter()
             .try_for_each(|command| command.validate(chart))
+    }
+    fn description(&self) -> Cow<'static, str> {
+        self.description.clone()
     }
 }
 

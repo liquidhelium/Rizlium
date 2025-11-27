@@ -1,16 +1,18 @@
-use crate::extensions::editing::spline::SplineListEditor;
+use crate::extensions::editing::spline::{SplineEditorAdapter, SplineListEditor};
+use std::borrow::Cow;
 use bevy::{prelude::*, render::view::VisibleEntities};
 use egui::{ScrollArea, Ui};
 use rizlium_chart::{
-    chart::Chart,
+    chart::{Chart, KeyPoint, Spline},
     editing::{
         chart_path::{
-            BpmPath, CamMovePath, CamScalePath, CanvasPath, ChartPath, LinePath, LinePointPath,
-            ThemeControlPath,
+            BpmPath, CamMovePath, CamScalePath, CanvasPath, ChartPath, GlobalSplinePath, LinePath,
+            LinePointPath, ThemeControlPath,
         },
-        commands::{EditGlobalPoint, EditPoint},
+        commands::{EditGlobalPoint, EditPoint, InsertGlobalPoint, RemoveGlobalPoint},
         ChartCommands, EditHistory, NotePath,
     },
+    prelude::Tween,
 };
 use rizlium_render::{ChartProvider, GameCamera};
 use rust_i18n::t;
@@ -76,6 +78,7 @@ fn logs(
                     *l,
                     chart.reborrow().map_unchanged(|chart| chart.chart_mut()),
                     &mut chart_edit_history,
+                    "Edit Point Easing",
                     |ui, easing| enum_selector(&mut easing.ease_type, ui),
                     |path, value| {
                         ChartCommands::EditPoint(EditPoint {
@@ -92,6 +95,7 @@ fn logs(
                     *l,
                     chart.reborrow().map_unchanged(|chart| chart.chart_mut()),
                     &mut chart_edit_history,
+                    "Edit Point Time",
                     |ui, point| ui.add(egui::DragValue::new(&mut point.time).speed(0.01)),
                     |path, value| {
                         ChartCommands::EditPoint(EditPoint {
@@ -108,6 +112,7 @@ fn logs(
                     *l,
                     chart.reborrow().map_unchanged(|chart| chart.chart_mut()),
                     &mut chart_edit_history,
+                    "Edit Point Canvas",
                     |ui, point| ui.add(egui::DragValue::new(&mut point.relevant.canvas).speed(1)),
                     |path, value| {
                         ChartCommands::EditPoint(EditPoint {
@@ -145,6 +150,7 @@ fn logs(
                     *n,
                     chart.reborrow().map_unchanged(|chart| chart.chart_mut()),
                     &mut chart_edit_history,
+                    "Edit Note Time",
                     |ui, note| ui.add(egui::DragValue::new(&mut note.time).speed(0.01)),
                     |path, value| {
                         ChartCommands::ChangeNoteTime(
@@ -210,40 +216,14 @@ fn logs(
                     }
                 });
             ui.separator();
-            SplineListEditor::new(
-                |chart| &chart.theme_control,
-                |i| ThemeControlPath::new(i),
-                |path, point| {
-                    ChartCommands::EditThemePoint(EditGlobalPoint {
-                        path,
-                        new_time: Some(point.time),
-                        new_value: Some(point.value),
-                        new_easing: Some(point.ease_type),
-                    })
-                },
-                |ui, val: &mut usize| ui.add(egui::DragValue::new(val)),
-            )
-            .show(
+            SplineListEditor::new(ThemeControlAdapter).show(
                 ui,
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
             );
         }
         ChartItem::BpmControl => {
-            SplineListEditor::new(
-                |chart| &chart.bpm,
-                |i| BpmPath::new(i),
-                |path, point| {
-                    ChartCommands::EditBpmPoint(EditGlobalPoint {
-                        path,
-                        new_time: Some(point.time),
-                        new_value: Some(point.value),
-                        new_easing: Some(point.ease_type),
-                    })
-                },
-                |ui, val: &mut f32| ui.add(egui::DragValue::new(val)),
-            )
-            .show(
+            SplineListEditor::new(BpmControlAdapter).show(
                 ui,
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
@@ -251,20 +231,7 @@ fn logs(
         }
         ChartItem::CameraControl => {
             ui.heading("Camera Scale");
-            SplineListEditor::new(
-                |chart| &chart.cam_scale,
-                |i| CamScalePath::new(i),
-                |path, point| {
-                    ChartCommands::EditCamScalePoint(EditGlobalPoint {
-                        path,
-                        new_time: Some(point.time),
-                        new_value: Some(point.value),
-                        new_easing: Some(point.ease_type),
-                    })
-                },
-                |ui, val: &mut f32| ui.add(egui::DragValue::new(val).speed(0.01)),
-            )
-            .show(
+            SplineListEditor::new(CamScaleAdapter).show(
                 ui,
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
@@ -272,25 +239,176 @@ fn logs(
 
             ui.separator();
             ui.heading("Camera Move");
-            SplineListEditor::new(
-                |chart| &chart.cam_move,
-                |i| CamMovePath::new(i),
-                |path, point| {
-                    ChartCommands::EditCamMovePoint(EditGlobalPoint {
-                        path,
-                        new_time: Some(point.time),
-                        new_value: Some(point.value),
-                        new_easing: Some(point.ease_type),
-                    })
-                },
-                |ui, val: &mut f32| ui.add(egui::DragValue::new(val).speed(0.01)),
-            )
-            .show(
+            SplineListEditor::new(CamMoveAdapter).show(
                 ui,
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
             );
         }
+    }
+}
+
+struct ThemeControlAdapter;
+impl SplineEditorAdapter for ThemeControlAdapter {
+    type Tween = usize;
+    type Relevant = ();
+    type Path = ThemeControlPath;
+
+    fn get_spline<'a>(&self, chart: &'a Chart) -> &'a Spline<Self::Tween, Self::Relevant> {
+        &chart.theme_control
+    }
+    fn path(&self, index: usize) -> Self::Path {
+        ThemeControlPath::new(index)
+    }
+    fn edit_command(
+        &self,
+        path: Self::Path,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::EditThemePoint(EditGlobalPoint {
+            path,
+            new_time: Some(point.time),
+            new_value: Some(point.value),
+            new_easing: Some(point.ease_type),
+        })
+    }
+    fn add_command(
+        &self,
+        index: usize,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::InsertThemePoint(InsertGlobalPoint::new(point, Some(index)))
+    }
+    fn remove_command(&self, index: usize) -> ChartCommands {
+        ChartCommands::RemoveThemePoint(RemoveGlobalPoint {
+            path: GlobalSplinePath::new(index),
+        })
+    }
+    fn value_ui(&self, ui: &mut Ui, value: &mut Self::Tween) -> egui::Response {
+        ui.add(egui::DragValue::new(value))
+    }
+}
+
+struct BpmControlAdapter;
+impl SplineEditorAdapter for BpmControlAdapter {
+    type Tween = f32;
+    type Relevant = ();
+    type Path = BpmPath;
+
+    fn get_spline<'a>(&self, chart: &'a Chart) -> &'a Spline<Self::Tween, Self::Relevant> {
+        &chart.bpm
+    }
+    fn path(&self, index: usize) -> Self::Path {
+        BpmPath::new(index)
+    }
+    fn edit_command(
+        &self,
+        path: Self::Path,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::EditBpmPoint(EditGlobalPoint {
+            path,
+            new_time: Some(point.time),
+            new_value: Some(point.value),
+            new_easing: Some(point.ease_type),
+        })
+    }
+    fn add_command(
+        &self,
+        index: usize,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::InsertBpmPoint(InsertGlobalPoint::new(point, Some(index)))
+    }
+    fn remove_command(&self, index: usize) -> ChartCommands {
+        ChartCommands::RemoveBpmPoint(RemoveGlobalPoint {
+            path: GlobalSplinePath::new(index),
+        })
+    }
+    fn value_ui(&self, ui: &mut Ui, value: &mut Self::Tween) -> egui::Response {
+        ui.add(egui::DragValue::new(value))
+    }
+}
+
+struct CamScaleAdapter;
+impl SplineEditorAdapter for CamScaleAdapter {
+    type Tween = f32;
+    type Relevant = ();
+    type Path = CamScalePath;
+
+    fn get_spline<'a>(&self, chart: &'a Chart) -> &'a Spline<Self::Tween, Self::Relevant> {
+        &chart.cam_scale
+    }
+    fn path(&self, index: usize) -> Self::Path {
+        CamScalePath::new(index)
+    }
+    fn edit_command(
+        &self,
+        path: Self::Path,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::EditCamScalePoint(EditGlobalPoint {
+            path,
+            new_time: Some(point.time),
+            new_value: Some(point.value),
+            new_easing: Some(point.ease_type),
+        })
+    }
+    fn add_command(
+        &self,
+        index: usize,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::InsertCamScalePoint(InsertGlobalPoint::new(point, Some(index)))
+    }
+    fn remove_command(&self, index: usize) -> ChartCommands {
+        ChartCommands::RemoveCamScalePoint(RemoveGlobalPoint {
+            path: GlobalSplinePath::new(index),
+        })
+    }
+    fn value_ui(&self, ui: &mut Ui, value: &mut Self::Tween) -> egui::Response {
+        ui.add(egui::DragValue::new(value).speed(0.01))
+    }
+}
+
+struct CamMoveAdapter;
+impl SplineEditorAdapter for CamMoveAdapter {
+    type Tween = f32;
+    type Relevant = ();
+    type Path = CamMovePath;
+
+    fn get_spline<'a>(&self, chart: &'a Chart) -> &'a Spline<Self::Tween, Self::Relevant> {
+        &chart.cam_move
+    }
+    fn path(&self, index: usize) -> Self::Path {
+        CamMovePath::new(index)
+    }
+    fn edit_command(
+        &self,
+        path: Self::Path,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::EditCamMovePoint(EditGlobalPoint {
+            path,
+            new_time: Some(point.time),
+            new_value: Some(point.value),
+            new_easing: Some(point.ease_type),
+        })
+    }
+    fn add_command(
+        &self,
+        index: usize,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::InsertCamMovePoint(InsertGlobalPoint::new(point, Some(index)))
+    }
+    fn remove_command(&self, index: usize) -> ChartCommands {
+        ChartCommands::RemoveCamMovePoint(RemoveGlobalPoint {
+            path: GlobalSplinePath::new(index),
+        })
+    }
+    fn value_ui(&self, ui: &mut Ui, value: &mut Self::Tween) -> egui::Response {
+        ui.add(egui::DragValue::new(value).speed(0.01))
     }
 }
 
@@ -313,6 +431,7 @@ pub fn edit_scope<P, T, F, C>(
     path: P,
     mut chart: Mut<Chart>,
     history: &mut EditHistory,
+    description: impl Into<Cow<'static, str>>,
     draw_ui: F,
     to_command: C,
 ) where
@@ -349,7 +468,7 @@ pub fn edit_scope<P, T, F, C>(
     // drag_released: 拖拽结束
     // lost_focus: 输入框失去焦点 (回车或点击别处)
     if response.drag_stopped() || response.lost_focus() {
-        history.submit_preedit_squash();
+        history.submit_preedit_squash(description);
     }
 }
 
