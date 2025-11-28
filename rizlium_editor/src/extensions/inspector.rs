@@ -32,6 +32,12 @@ pub struct SelectedItem {
     pub item: Option<ChartItem>,
 }
 
+#[derive(Event)]
+pub struct ScrollToPointEvent {
+    pub spline_id: String,
+    pub point_index: usize,
+}
+
 pub enum ChartItem {
     LinePoint(LinePointPath),
     Line(LinePath),
@@ -52,7 +58,8 @@ impl Plugin for Inspector {
             logs,
             ProjectState::has_chart_system(),
         )
-        .init_resource::<SelectedItem>();
+        .init_resource::<SelectedItem>()
+        .add_event::<ScrollToPointEvent>();
         app.register_tab(
             "debugger",
             t!("debugger.tab"),
@@ -67,7 +74,13 @@ fn logs(
     mut chart: ResMut<ProjectState>,
     selected: Res<SelectedItem>,
     mut chart_edit_history: ResMut<ChartEditHistory>,
+    mut scroll_events: EventReader<ScrollToPointEvent>,
 ) {
+    let scroll_targets: std::collections::HashMap<_, _> = scroll_events
+        .read()
+        .map(|e| (e.spline_id.clone(), e.point_index))
+        .collect();
+
     let Some(ref item) = selected.item else {
         ui.weak(t!("tab.logs.select_to_inspect"));
         return;
@@ -174,17 +187,23 @@ fn logs(
             } else {
                 ui.strong(format!("Canvas {}:", c.0));
                 ui.heading("X Position");
+                let scroll = scroll_targets.get(&format!("CanvasXPos{}", c.0)).copied();
                 SplineListEditor::new(CanvasXPosAdapter { canvas_index: c.0 }).show(
                     ui,
                     chart.reborrow().map_unchanged(|c| c.chart_mut()),
                     &mut chart_edit_history,
+                    scroll,
+                    &format!("CanvasXPos{}", c.0)
                 );
                 ui.separator();
                 ui.heading("Speed");
+                let scroll = scroll_targets.get(&format!("CanvasSpeed{}", c.0)).copied();
                 SplineListEditor::new(CanvasSpeedAdapter { canvas_index: c.0 }).show(
                     ui,
                     chart.reborrow().map_unchanged(|c| c.chart_mut()),
                     &mut chart_edit_history,
+                    scroll,
+                    &format!("CanvasSpeed{}", c.0)
                 );
             }
         }
@@ -219,33 +238,45 @@ fn logs(
                     }
                 });
             ui.separator();
+            let scroll = scroll_targets.get("Theme").copied();
             SplineListEditor::new(ThemeControlAdapter).show(
                 ui,
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
+                scroll,
+                "Theme"
             );
         }
         ChartItem::BpmControl => {
+            let scroll = scroll_targets.get("BPM").copied();
             SplineListEditor::new(BpmControlAdapter).show(
                 ui,
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
+                scroll,
+                "BPM"
             );
         }
         ChartItem::CameraControl => {
             ui.heading("Camera Scale");
+            let scroll = scroll_targets.get("CamScale").copied();
             SplineListEditor::new(CamScaleAdapter).show(
                 ui,
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
+                scroll,
+                "CamScale"
             );
 
             ui.separator();
             ui.heading("Camera Move");
+            let scroll = scroll_targets.get("CamMove").copied();
             SplineListEditor::new(CamMoveAdapter).show(
                 ui,
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
+                scroll,
+                "CamMove"
             );
         }
     }

@@ -66,10 +66,20 @@ impl<'a, R> SplineView<'a, R> {
         }
     }
 
-    pub fn ui(&self, ui: &mut Ui) -> Response {
+    pub fn ui(&self, ui: &mut Ui) -> (Response, Option<usize>) {
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
+        let mut clicked_index = None;
+        if response.clicked() {
+            if let Some(pos) = response.interact_pointer_pos() {
+                let t = self.view_to_spline.map_x(pos.x);
+                if let Ok(idx) = self.spline.keypoint_at(t) {
+                    clicked_index = Some(idx);
+                }
+            }
+        }
+
         if self.spline.is_empty() {
-            return response;
+            return (response, None);
         }
         let mut circles_view = Vec::<Pos2>::new();
         let mut linepoints_view = Vec::<Pos2>::new();
@@ -101,7 +111,7 @@ impl<'a, R> SplineView<'a, R> {
                         self.view_to_spline.inverse().map_x(current_t).ceil() + 2.0;
                     idx
                 } else {
-                    return response;
+                    return (response, None);
                 }
             }
         };
@@ -148,7 +158,7 @@ impl<'a, R> SplineView<'a, R> {
                 Stroke::new(2.0, Color32::YELLOW),
             );
         }
-        response
+        (response, clicked_index)
     }
     pub fn view_to_spline(&self) -> &RectTransform {
         &self.view_to_spline
@@ -199,49 +209,46 @@ impl<A: SplineEditorAdapter> SplineListEditor<A> {
         Self { adapter }
     }
 
-    pub fn show(&self, ui: &mut Ui, mut chart: Mut<Chart>, history: &mut EditHistory) {
+    pub fn show(
+        &self,
+        ui: &mut Ui,
+        mut chart: Mut<Chart>,
+        history: &mut EditHistory,
+        scroll_to: Option<usize>,
+        id: impl std::hash::Hash,
+    ) {
         let spline = self.adapter.get_spline(&chart);
         let len = spline.len();
         let points = spline.points().clone();
         ui.group(|ui| {
             egui::ScrollArea::vertical()
+                .id_salt(ui.id().with(id))
                 .auto_shrink([false, true])
+                .max_height(300.0)
                 .show(ui, |ui| {
-                    for i in 0..=len {
-                        ui.push_id(i, |ui| {
-                            ui.horizontal(|ui| {
-                                if ui.button("+").clicked() {
-                                    let new_point = if i > 0 {
-                                        let mut p = points[i - 1].clone();
-                                        if i < len {
-                                            let next = &points[i];
-                                            p.time = (p.time + next.time) / 2.0;
-                                        } else {
-                                            p.time += 1.0;
-                                        }
-                                        p
-                                    } else if len > 0 {
-                                        let mut p = points[0].clone();
-                                        p.time -= 1.0;
-                                        p
-                                    } else {
-                                        KeyPoint {
-                                            time: 0.0,
-                                            value: A::Tween::default(),
-                                            ease_type: Default::default(),
-                                            relevant: A::Relevant::default(),
-                                        }
-                                    };
-                                    let _ = history.push(
-                                        self.adapter.add_command(i, new_point),
-                                        &mut *chart,
-                                    );
+                    ui.vertical_centered_justified(|ui| {
+                        if ui.button("+").clicked() {
+                            let new_point = if len > 0 {
+                                let mut p = points[0].clone();
+                                p.time -= 1.0;
+                                p
+                            } else {
+                                KeyPoint {
+                                    time: 0.0,
+                                    value: A::Tween::default(),
+                                    ease_type: Default::default(),
+                                    relevant: A::Relevant::default(),
                                 }
-                                ui.separator();
-                            });
+                            };
+                            let _ = history
+                                .push(self.adapter.add_command(0, new_point), &mut *chart);
+                        }
+                    });
 
-                            if i < len {
-                                ui.horizontal(|ui| {
+                    for i in 0..len {
+                        ui.push_id(i, |ui| {
+                            let response = ui
+                                .horizontal(|ui| {
                                     ui.label(format!("Point {}", i));
 
                                     let path = self.adapter.path(i);
@@ -310,7 +317,25 @@ impl<A: SplineEditorAdapter> SplineListEditor<A> {
                                             &mut *chart,
                                         );
                                     }
-                                });
+                                    if ui.button("+").clicked() {
+                                        let target_idx = i + 1;
+                                        let mut p = points[i].clone();
+                                        if target_idx < len {
+                                            let next = &points[target_idx];
+                                            p.time = (p.time + next.time) / 2.0;
+                                        } else {
+                                            p.time += 1.0;
+                                        }
+                                        let _ = history.push(
+                                            self.adapter.add_command(target_idx, p),
+                                            &mut *chart,
+                                        );
+                                    }
+                                })
+                                .response;
+
+                            if Some(i) == scroll_to {
+                                response.scroll_to_me(Some(egui::Align::TOP));
                             }
                         });
                     }

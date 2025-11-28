@@ -159,7 +159,7 @@ pub fn spline_edit(
             let spline = &chart.chart().canvases[*current].speed;
             let spline_view =
                 SplineView::new(ui, spline, *visible_rect, spline::Orientation::Horizontal);
-            let response = spline_view.ui(ui);
+            let (response, _) = spline_view.ui(ui);
             let spline_area = spline_view.spline_area();
             const WIDTH: f32 = 80.0;
             const RATIO: f32 = 9. / 16.;

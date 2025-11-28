@@ -7,7 +7,7 @@ use helium_framework::prelude::*;
 use rizlium_render::ChartProvider as _;
 use rust_i18n::t;
 
-use crate::extensions::inspector::{ChartItem, SelectedItem};
+use crate::extensions::inspector::{ChartItem, ScrollToPointEvent, SelectedItem};
 use crate::project::ProjectState;
 
 use super::spline::{Orientation, SplineView};
@@ -41,26 +41,27 @@ fn timeline_tab(
     game_time: Res<rizlium_render::GameTime>,
     mut time_control: EventWriter<crate::time_and_audio::TimeControlEvent>,
     chart_cache: Res<rizlium_render::GameChartCache>,
+    mut scroll_events: EventWriter<ScrollToPointEvent>,
 ) {
     let chart = chart_state.chart();
-    let mut tracks: Vec<(&str, &rizlium_chart::prelude::Spline<f32>)> = vec![];
+    let mut tracks: Vec<(&str, &rizlium_chart::prelude::Spline<f32>, String)> = vec![];
 
     if let Some(item) = &selected_item.item {
         match item {
             ChartItem::BpmControl => {
-                tracks.push(("BPM", &chart.bpm));
+                tracks.push(("BPM", &chart.bpm, "BPM".to_string()));
             }
             ChartItem::CameraControl => {
-                tracks.push(("Cam Scale", &chart.cam_scale));
-                tracks.push(("Cam Move", &chart.cam_move));
+                tracks.push(("Cam Scale", &chart.cam_scale, "CamScale".to_string()));
+                tracks.push(("Cam Move", &chart.cam_move, "CamMove".to_string()));
             },
             ChartItem::Canvas(path) => {
                 let canvas = match chart.canvases.get(path.0) {
                     Some(c) => c,
                     None => return,
                 };
-                tracks.push(("Canvas X Position", &canvas.x_pos));
-                tracks.push(("Canvas Speed", &canvas.speed));
+                tracks.push(("Canvas X Position", &canvas.x_pos, format!("CanvasXPos{}", path.0)));
+                tracks.push(("Canvas Speed", &canvas.speed, format!("CanvasSpeed{}", path.0)));
             }
             _ => {}
         }
@@ -94,7 +95,7 @@ fn timeline_tab(
         cursor_time,
         &mut state.follow_cursor,
         |ctx| {
-            for (i, (name, _)) in tracks.iter().enumerate() {
+            for (i, (name, _, _)) in tracks.iter().enumerate() {
                 let y = i as f32 * track_height;
                 let screen_y = ctx.y_to_screen(y);
                 // Simple culling
@@ -121,7 +122,7 @@ fn timeline_tab(
             }
         },
         |ctx| {
-            for (i, (_, spline)) in tracks.iter().enumerate() {
+            for (i, (_, spline, id)) in tracks.iter().enumerate() {
                 let y = i as f32 * track_height;
                 let screen_y = ctx.y_to_screen(y);
                 // Simple culling
@@ -170,7 +171,13 @@ fn timeline_tab(
                             Some(visible_area),
                             Orientation::Horizontal,
                         );
-                        sv.ui(ui);
+                        let (_, clicked) = sv.ui(ui);
+                        if let Some(idx) = clicked {
+                            scroll_events.write(ScrollToPointEvent {
+                                spline_id: id.clone(),
+                                point_index: idx,
+                            });
+                        }
                     });
             }
         },
