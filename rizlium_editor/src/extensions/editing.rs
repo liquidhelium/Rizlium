@@ -203,7 +203,7 @@ pub fn spline_edit(
     }
     .inner;
     if res.dragged() {
-        let scale = spline_view.view2visible().scale();
+        let scale = spline_view.view_to_spline().scale();
         let delta = (-res.drag_delta()) * scale;
         let rect = visible_rect.unwrap_or(spline_view.visible_spline_area());
         *visible_rect = Some(rect.translate(delta));

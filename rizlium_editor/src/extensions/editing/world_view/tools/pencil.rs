@@ -2,10 +2,8 @@ use bevy::prelude::*;
 use rust_i18n::t;
 use helium_framework::prelude::*;
 use rizlium_chart::{
-    chart::{ColorRGBA, KeyPoint, Line, LinePointData},
-    editing::{
-        commands::{CommandSequence, EditPoint, InsertLine, InsertPoint, Nop},
-    },
+    chart::{Chart, ColorRGBA, KeyPoint, Line, LinePointData},
+    editing::commands::{CommandSequence, EditPoint, InsertLine, InsertPoint, Nop},
 };
 use rizlium_render::ChartProvider as _;
 
@@ -64,7 +62,7 @@ pub(super) fn pencil_tool(
         pencil_config: &pencil_config,
         world_config: &world_config,
         snapping_config: &snapping_config,
-        chart: &mut chart,
+        chart: chart,
         history: &mut history,
         to_game: &to_game,
         current_edit: &mut current_edit,
@@ -82,7 +80,7 @@ struct PencilContext<'a, 'w> {
     pencil_config: &'a PencilToolConfig,
     world_config: &'a WorldViewConfig,
     snapping_config: &'a SnappingConfig,
-    chart: &'a mut rizlium_chart::chart::Chart,
+    chart: Mut<'a, Chart>,
     history: &'a mut ChartEditHistory,
     to_game: &'a WorldToGame<'w>,
     current_edit: &'a mut Option<PencilToolEditData>,
@@ -94,7 +92,7 @@ impl<'a, 'w> PencilContext<'a, 'w> {
         if !discard_events.is_empty() {
             discard_events.clear();
             *self.current_edit = None;
-            self.history.discard_preedit(self.chart).unwrap();
+            self.history.discard_preedit(&mut self.chart).unwrap();
         }
     }
 
@@ -157,10 +155,10 @@ impl<'a, 'w> PencilContext<'a, 'w> {
                         point_idx: None,
                         point,
                     },
-                    self.chart,
+                    &mut self.chart,
                 )
                 .unwrap();
-            self.history.push_preedit(Nop, self.chart).unwrap();
+            self.history.push_preedit(Nop, &mut self.chart).unwrap();
             *self.current_edit = Some(PencilToolEditData {
                 line_idx,
                 point_idx: self.chart.lines[line_idx].points.len() - 1,
@@ -204,12 +202,12 @@ impl<'a, 'w> PencilContext<'a, 'w> {
                         commands: vec![prev_point_edit.into(), current_point_edit.into()],
                         description: "Edit Point".into(),
                     },
-                    self.chart,
+                    &mut self.chart,
                 )
                 .unwrap();
         } else {
             self.history
-                .replace_last_preedit(current_point_edit, self.chart)
+                .replace_last_preedit(current_point_edit, &mut self.chart)
                 .unwrap();
         }
     }
@@ -224,10 +222,10 @@ impl<'a, 'w> PencilContext<'a, 'w> {
                         line: Line::from_iter(vec![point; 2]),
                         at: None,
                     },
-                    self.chart,
+                    &mut self.chart,
                 )
                 .unwrap();
-            self.history.push_preedit(Nop, self.chart).unwrap();
+            self.history.push_preedit(Nop, &mut self.chart).unwrap();
             *self.current_edit = Some(PencilToolEditData {
                 line_idx: self.chart.lines.len() - 1,
                 point_idx: 1,
@@ -250,7 +248,7 @@ impl<'a, 'w> PencilContext<'a, 'w> {
         if let Some(entity) = event.casted_entity {
             if let Some(entity) = entities.iter().find(|e| e.0 == entity).map(|e| e.1) {
                 debug!("clicking on points");
-                self.history.push_preedit(Nop, self.chart).unwrap();
+                self.history.push_preedit(Nop, &mut self.chart).unwrap();
                 *self.current_edit = Some(PencilToolEditData {
                     line_idx: entity.line_idx,
                     point_idx: entity.keypoint_idx,

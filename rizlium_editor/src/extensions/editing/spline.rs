@@ -35,8 +35,7 @@ pub struct SplineView<'a, R> {
     view_area: Rect,
     spline_area: Rect,
     visible_spline_area: Rect,
-    screen2view: RectTransform,
-    view2visible: RectTransform,
+    view_to_spline: RectTransform,
     orientation: Orientation,
 }
 
@@ -62,8 +61,7 @@ impl<'a, R> SplineView<'a, R> {
             view_area,
             spline_area,
             visible_spline_area,
-            screen2view: RectTransform::from_to(screen_area, view_area),
-            view2visible: RectTransform::from_to(view_area, visible_spline_area),
+            view_to_spline: RectTransform::from_to(view_area, visible_spline_area),
             orientation,
         }
     }
@@ -76,12 +74,12 @@ impl<'a, R> SplineView<'a, R> {
         let mut circles_view = Vec::<Pos2>::new();
         let mut linepoints_view = Vec::<Pos2>::new();
         let mut current_screen_x = self.view_area.min.x;
-        let mut current_t = self.view2visible.map_x(current_screen_x);
+        let mut current_t = self.view_to_spline.map_x(current_screen_x);
         let mut current_keypoint_idx = match self.spline.keypoint_at(current_t) {
             Ok(idx) => {
                 let point = self.spline.points().get(idx).unwrap();
                 let point_view = self
-                    .view2visible
+                    .view_to_spline
                     .inverse()
                     .transform_pos(pos2(point.time, point.value));
                 circles_view.push(point_view);
@@ -93,14 +91,14 @@ impl<'a, R> SplineView<'a, R> {
                     // clamp segment_point_index to first one
                     let point = self.spline.points().get(idx).unwrap();
                     let point_view = self
-                        .view2visible
+                        .view_to_spline
                         .inverse()
                         .transform_pos(pos2(point.time, point.value));
                     circles_view.push(point_view);
                     linepoints_view.push(point_view);
                     current_t = point.time + 0.01;
                     current_screen_x =
-                        self.view2visible.inverse().map_x(current_t).ceil() + 2.0;
+                        self.view_to_spline.inverse().map_x(current_t).ceil() + 2.0;
                     idx
                 } else {
                     return response;
@@ -120,15 +118,15 @@ impl<'a, R> SplineView<'a, R> {
                     this_point.ease_type,
                 );
                 let point_view = self
-                    .view2visible
+                    .view_to_spline
                     .inverse()
                     .transform_pos(pos2(current_t, value));
                 linepoints_view.push(point_view);
                 current_screen_x += 1.0;
-                current_t = self.view2visible.map_x(current_screen_x);
+                current_t = self.view_to_spline.map_x(current_screen_x);
             }
             let point_view = self
-                .view2visible
+                .view_to_spline
                 .inverse()
                 .transform_pos(pos2(next_point.time, next_point.value));
             circles_view.push(point_view);
@@ -139,27 +137,21 @@ impl<'a, R> SplineView<'a, R> {
             current_keypoint_idx += 1;
         }
         let line = PathShape::line(
-            linepoints_view
-                .into_iter()
-                .map(|p| self.screen2view.inverse().transform_pos(p))
-                .collect(),
+            linepoints_view,
             Stroke::new(2.0, Color32::BLUE),
         );
         painter.add(line);
         for cir in circles_view {
             painter.circle_stroke(
-                self.screen2view.inverse().transform_pos(cir),
+                cir,
                 2.0,
                 Stroke::new(2.0, Color32::YELLOW),
             );
         }
         response
     }
-    pub fn screen2view(&self) -> &RectTransform {
-        &self.screen2view
-    }
-    pub fn view2visible(&self) -> &RectTransform {
-        &self.view2visible
+    pub fn view_to_spline(&self) -> &RectTransform {
+        &self.view_to_spline
     }
     pub fn visible_spline_area(&self) -> Rect {
         self.visible_spline_area
