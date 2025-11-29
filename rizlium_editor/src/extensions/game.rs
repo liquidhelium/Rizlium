@@ -49,10 +49,10 @@ impl Plugin for Game {
                 "Enable scrolling to change time",
                 toggle_enable_scroll_time,
             )
-            .register_hotkey(
-                "game.open_bundle_dialog",
-                [Hotkey::new_global([ControlLeft, KeyO])],
-            )
+            // .register_hotkey(
+            //     "game.open_bundle_dialog",
+            //     [Hotkey::new_global([ControlLeft, KeyO])],
+            // )
             .register_hotkey(
                 "game.open_path_dialog",
                 [Hotkey::new_global([ControlLeft, ShiftLeft, KeyO])],

@@ -608,15 +608,13 @@ fn debug_window(
     // mut event: EventReader<WorldMouseEvent>,
     mirror: Res<RizliumDockStateMirror>,
     camera: Query<&VisibleEntities, With<GameCamera>>,
+    inputs: Res<ButtonInput<KeyCode>>,
 ) {
     ScrollArea::vertical()
         .auto_shrink(false)
         .show(ui, |ui| -> Result<()> {
-            // ui.heading("cast_result");
-            // ui.label(format!("{:?}", event.read().next()));
-            // for it in history.history_descriptions() {
-            //     ui.label(it.clone());
-            // }
+            ui.heading("Keys");
+            ui.label(format!("{:#?}", inputs.into_inner()));
             ui.heading("Preedits");
             for ed in history.preedit_datas() {
                 ui.label(format!("{:#?}", ed.inverse()));

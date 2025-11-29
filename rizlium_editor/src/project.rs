@@ -129,6 +129,7 @@ pub struct ChartInfo {
 pub enum ChartFormat {
     Rizline,
     Rizlium,
+    RizliumData,
 }
 #[derive(Resource, Serialize, Deserialize, Debug, Deref, DerefMut)]
 pub struct RecentFiles(#[deref] IndexSet<String>, usize);
@@ -396,6 +397,11 @@ async fn load_chart_from_bundle(path: &str) -> Result<LoadedChart, ChartLoadingE
                 .map_err(|e| ChartLoadingError::ChartConvertingFailed { source: e })?
         }
         ChartFormat::Rizlium => serde_json::from_reader(archive.by_name(&info.chart_path)?)?,
+        ChartFormat::RizliumData => {
+            let data: rizlium_chart::data::Chart =
+                serde_json::from_reader(archive.by_name(&info.chart_path)?)?;
+            data.into()
+        }
     };
     let mut audio_data = Vec::new();
     archive
@@ -438,6 +444,12 @@ async fn load_chart_from_path(path: &str) -> Result<LoadedChart, ChartLoadingErr
         ChartFormat::Rizlium => {
             let chart_file = async_fs::read(path_buf.join(&info.chart_path)).await?;
             serde_json::from_reader(Cursor::new(chart_file))?
+        }
+        ChartFormat::RizliumData => {
+            let chart_file = async_fs::read(path_buf.join(&info.chart_path)).await?;
+            let data: rizlium_chart::data::Chart =
+                serde_json::from_reader(Cursor::new(chart_file))?;
+            data.into()
         }
     };
     let audio_data = async_fs::read(path_buf.join(&info.music_path)).await?;

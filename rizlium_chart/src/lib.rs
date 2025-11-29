@@ -3,6 +3,9 @@
 
 /// 核心数据结构.
 pub mod chart;
+/// 纯数据版本的谱面结构.
+#[cfg(feature = "serde")]
+pub mod data;
 /// 从文件创建Rizlium谱面.
 pub mod parse;
 
