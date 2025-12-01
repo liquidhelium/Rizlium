@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use egui::Ui;
 use indexmap::IndexMap;
 
+use crate::hotkeys::HotkeyRegistry;
 use crate::reflect_system::{ActionId, RSystemRegistry};
 use crate::utils::new_condition;
 
@@ -366,7 +367,18 @@ impl<'a, C: 'static + Send + Sync> MenuTree<'a, C> {
 
                 match &item.action {
                     Action::Command(action_id, _) => {
-                        if ui.button(&*item.title).clicked() {
+                        let shortcut = world
+                            .get_resource::<HotkeyRegistry>()
+                            .and_then(|reg| reg.get(action_id))
+                            .and_then(|hotkeys| hotkeys.first())
+                            .map(|h| h.hotkey_text());
+
+                        let mut button = egui::Button::new(&*item.title);
+                        if let Some(shortcut) = shortcut {
+                            button = button.shortcut_text(shortcut);
+                        }
+
+                        if ui.add(button).clicked() {
                             match world
                                 .resource_mut::<RSystemRegistry>()
                                 .construct_runner(action_id)
