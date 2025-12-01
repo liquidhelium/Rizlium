@@ -11,6 +11,7 @@ use helium_framework::{
 };
 use indexmap::IndexSet;
 use rizlium_chart::prelude::*;
+use rizlium_chart::parse::rizline::RizlineChart;
 use rizlium_render::ChartProvider;
 use rust_i18n::t;
 use serde::{Deserialize, Serialize};
@@ -83,7 +84,7 @@ pub enum SourceKind {
 #[derive(Debug, Clone)]
 pub enum LoadedProject {
     Folder(PathBuf, Chart, ChartInfo),
-    Bundle(PathBuf, Chart),
+    Bundle(PathBuf, Chart, ChartInfo),
 }
 #[derive(Event, Debug)]
 pub enum LoadChartEvent {
@@ -159,7 +160,7 @@ impl ChartProvider for ProjectState {
             Self::ChartLoading(ChartLoading { .. }) => panic!("chart is loading"),
             Self::Loaded(project) => match project {
                 LoadedProject::Folder(_, chart, _) => chart,
-                LoadedProject::Bundle(_, chart) => chart,
+                LoadedProject::Bundle(_, chart, _) => chart,
             },
         }
     }
@@ -170,7 +171,7 @@ impl ChartProvider for ProjectState {
             Self::ChartLoading(ChartLoading { .. }) => panic!("chart is loading"),
             Self::Loaded(project) => match project {
                 LoadedProject::Folder(_, chart, _) => chart,
-                LoadedProject::Bundle(_, chart) => chart,
+                LoadedProject::Bundle(_, chart, _) => chart,
             },
         }
     }
@@ -186,7 +187,7 @@ impl ProjectState {
         if let Self::Loaded(project) = self {
             let chart = match project {
                 LoadedProject::Folder(_, chart, _) => chart,
-                LoadedProject::Bundle(_, chart) => chart,
+                LoadedProject::Bundle(_, chart, _) => chart,
             };
             chart
                 .lines
@@ -201,7 +202,7 @@ impl ProjectState {
         if let Self::Loaded(project) = self {
             let chart = match project {
                 LoadedProject::Folder(_, chart, _) => chart,
-                LoadedProject::Bundle(_, chart) => chart,
+                LoadedProject::Bundle(_, chart, _) => chart,
             };
             chart.lines.iter().map(|line| line.notes.len()).sum()
         } else {
@@ -301,6 +302,7 @@ fn handle_chart_loading(
                         *state = ProjectState::Loaded(LoadedProject::Bundle(
                             PathBuf::from(path),
                             loaded.chart,
+                            loaded.info,
                         ));
                     }
                 }
@@ -322,16 +324,12 @@ fn handle_save_chart_events(
 ) {
     for _ in events.read() {
         if let ProjectState::Loaded(project) = &*state {
-            let chart = match project {
-                LoadedProject::Folder(_, chart, _) => chart.clone(),
-                LoadedProject::Bundle(_, chart) => chart.clone(),
-            };
-            let path = match project {
-                LoadedProject::Folder(p, _, info) => p.join(&info.chart_path),
-                LoadedProject::Bundle(p, _) => p.with_extension("rzl"),
+            let (chart, path, format) = match project {
+                LoadedProject::Folder(p, chart, info) => (chart.clone(), p.join(&info.chart_path), info.format.clone()),
+                LoadedProject::Bundle(p, chart, info) => (chart.clone(), p.with_extension("rzl"), info.format.clone()),
             };
             let task =
-                IoTaskPool::get().spawn(async move { save_chart_to_file(&chart, &path).await });
+                IoTaskPool::get().spawn(async move { save_chart_to_file(&chart, &path, format).await });
             pending_save.task = Some(task);
         }
     }
@@ -468,8 +466,19 @@ async fn load_chart_from_path(path: &str) -> Result<LoadedChart, ChartLoadingErr
 async fn save_chart_to_file(
     chart: &Chart,
     path: &Path,
+    format: ChartFormat,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let serialized = serde_json::to_vec_pretty(chart)?;
+    let serialized = match format {
+        ChartFormat::Rizlium => serde_json::to_vec_pretty(chart)?,
+        ChartFormat::RizliumData => {
+            let data: rizlium_chart::data::Chart = chart.clone().into();
+            serde_json::to_vec_pretty(&data)?
+        }
+        ChartFormat::Rizline => {
+            let rzl_chart: RizlineChart = chart.clone().try_into()?;
+            serde_json::to_vec_pretty(&rzl_chart)?
+        }
+    };
     let mut file = async_fs::File::create(path).await?;
     file.write_all(&serialized).await?;
     file.close().await?;
