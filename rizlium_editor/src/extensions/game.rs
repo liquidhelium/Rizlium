@@ -1,5 +1,4 @@
 use crate::{
-    project::ProjectState,
     time_and_audio::{TimeControlEvent, TimeManager as AudioTimeManager},
     MainMenuContext,
 };
@@ -15,7 +14,7 @@ use egui::Ui;
 use rizlium_render::{notes::NoteTexture, ChartProvider as _, GameTime, GameView};
 use rust_i18n::t;
 
-use crate::{project::SaveChartEvent, LoadChartEvent};
+use crate::project::{AsyncTaskRunner, LoadChartEvent, ProjectState, SaveChartEvent};
 use helium_framework::{menu_system::MenuRegistration, prelude::*};
 pub struct Game;
 
@@ -135,12 +134,12 @@ fn save_chart(mut events: EventWriter<SaveChartEvent>) {
     events.write(SaveChartEvent);
 }
 
-fn open_bundle_dialog(mut state: ResMut<ProjectState>) {
-    state.open_bundle_dialog();
+fn open_bundle_dialog(mut state: ResMut<ProjectState>, mut runner: ResMut<AsyncTaskRunner>) {
+    state.open_bundle_dialog(&mut runner);
 }
 
-fn open_path_dialog(mut state: ResMut<ProjectState>) {
-    state.open_path_dialog();
+fn open_path_dialog(mut state: ResMut<ProjectState>, mut runner: ResMut<AsyncTaskRunner>) {
+    state.open_path_dialog(&mut runner);
 }
 
 #[derive(Resource, Default)]

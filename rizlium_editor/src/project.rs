@@ -26,7 +26,7 @@ impl Plugin for ProjectPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ProjectState>()
             .init_resource::<RecentFiles>()
-            .init_resource::<PendingSave>()
+            .init_resource::<AsyncTaskRunner>()
             .add_event::<LoadChartEvent>()
             .add_event::<ChartLoadingEvent>()
             .add_event::<SaveChartEvent>()
@@ -34,11 +34,10 @@ impl Plugin for ProjectPlugin {
                 PostUpdate,
                 (
                     handle_load_chart_events,
-                    handle_dialog_pending,
-                    handle_chart_loading,
                     handle_save_chart_events,
-                    handle_save_result,
+                    handle_async_tasks,
                     process_loading_results,
+                    handle_input,
                 ),
             );
         app.reflect_system("project.load_path", "Load a path", load_path_action);
@@ -53,19 +52,23 @@ fn load_bundle_action(In(path): In<String>, mut events: EventWriter<LoadChartEve
     events.write(LoadChartEvent::Bundle(path));
 }
 
-pub enum DialogPending {
-    Bundle(Task<Option<String>>),
-    Path(Task<Option<String>>),
+#[derive(Resource, Default)]
+pub struct AsyncTaskRunner {
+    pub task: Option<RunningTask>,
 }
-pub struct ChartLoading {
-    pub task: Task<Result<LoadedChart, ChartLoadingError>>,
+
+pub enum RunningTask {
+    PickFileOpen(Task<Option<PathBuf>>),
+    PickBundleOpen(Task<Option<PathBuf>>),
+    PickFileSave(Task<Option<PathBuf>>),
+    Loading(Task<Result<LoadedChart, ChartLoadingError>>),
+    Saving(Task<Result<(), Box<dyn std::error::Error + Send + Sync>>>),
 }
+
 #[derive(Resource, Default)]
 pub enum ProjectState {
     #[default]
     Idle,
-    DialogPending(DialogPending),
-    ChartLoading(ChartLoading),
     Loaded(LoadedProject),
 }
 #[derive(Clone)]
@@ -156,8 +159,6 @@ impl ChartProvider for ProjectState {
     fn chart(&self) -> &Chart {
         match self {
             Self::Idle => panic!("No chart loaded"),
-            Self::DialogPending(_) => panic!("chart dialog is pending"),
-            Self::ChartLoading(ChartLoading { .. }) => panic!("chart is loading"),
             Self::Loaded(project) => match project {
                 LoadedProject::Folder(_, chart, _) => chart,
                 LoadedProject::Bundle(_, chart, _) => chart,
@@ -167,8 +168,6 @@ impl ChartProvider for ProjectState {
     fn chart_mut(&mut self) -> &mut Chart {
         match self {
             Self::Idle => panic!("No chart loaded"),
-            Self::DialogPending(_) => panic!("chart dialog is pending"),
-            Self::ChartLoading(ChartLoading { .. }) => panic!("chart is loading"),
             Self::Loaded(project) => match project {
                 LoadedProject::Folder(_, chart, _) => chart,
                 LoadedProject::Bundle(_, chart, _) => chart,
@@ -218,18 +217,48 @@ impl ProjectState {
             _ => None,
         }
     }
-    #[must_use]
-    pub fn is_dialog_pending(&self) -> bool {
-        matches!(self, Self::DialogPending(_))
+}
+
+impl AsyncTaskRunner {
+    pub fn is_busy(&self) -> bool {
+        self.task.is_some()
     }
-    #[must_use]
-    pub fn is_chart_loading(&self) -> bool {
-        matches!(self, Self::ChartLoading { .. })
+    pub fn is_loading(&self) -> bool {
+        matches!(self.task, Some(RunningTask::Loading(_)))
     }
 }
+
+fn handle_input(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut runner: ResMut<AsyncTaskRunner>,
+    state: Res<ProjectState>,
+) {
+    if keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight) {
+        if keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight) {
+            if keys.just_pressed(KeyCode::KeyS) {
+                if let ProjectState::Loaded(_) = *state {
+                    if !runner.is_busy() {
+                        let task = IoTaskPool::get().spawn(async {
+                            use rfd::AsyncFileDialog;
+                            let file = AsyncFileDialog::new()
+                                .add_filter("Rizlium Chart", &["json"])
+                                .add_filter("Rizline Chart", &["rizline"])
+                                .add_filter("Rizlium Data", &["data"])
+                                .save_file()
+                                .await;
+                            file.map(|f| f.path().to_path_buf())
+                        });
+                        runner.task = Some(RunningTask::PickFileSave(task));
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn handle_load_chart_events(
     mut events: EventReader<LoadChartEvent>,
-    mut state: ResMut<ProjectState>,
+    mut runner: ResMut<AsyncTaskRunner>,
 ) {
     if events.is_empty() {
         return;
@@ -246,81 +275,124 @@ fn handle_load_chart_events(
                 IoTaskPool::get().spawn(async move { load_chart_from_path(&path).await })
             }
         };
-        *state = ProjectState::ChartLoading(ChartLoading { task });
+        runner.task = Some(RunningTask::Loading(task));
     }
     events.clear();
 }
-fn handle_dialog_pending(mut state: ResMut<ProjectState>, mut events: EventWriter<LoadChartEvent>) {
-    if !state.is_dialog_pending() {
-        return;
-    }
-    let poll_result = match *state {
-        ProjectState::DialogPending(DialogPending::Bundle(ref mut task)) => {
-            let result = futures_lite::future::block_on(futures_lite::future::poll_once(task));
-            result.map(|path| path.map(LoadChartEvent::Bundle))
-        }
-        ProjectState::DialogPending(DialogPending::Path(ref mut task)) => {
-            let result = futures_lite::future::block_on(futures_lite::future::poll_once(task));
-            result.map(|path| path.map(LoadChartEvent::Path))
-        }
-        _ => return,
-    };
-    let Some(selected_path) = poll_result else {
-        return;
-    };
-    if let Some(e) = selected_path {
-        events.write(e);
-    } else {
-        *state = ProjectState::Idle;
-    }
-}
-fn handle_chart_loading(
+
+fn handle_async_tasks(
+    mut runner: ResMut<AsyncTaskRunner>,
     mut state: ResMut<ProjectState>,
-    mut events: EventWriter<ChartLoadingEvent>,
+    mut events: EventWriter<LoadChartEvent>,
+    mut loading_events: EventWriter<ChartLoadingEvent>,
+    mut toasts: ResMut<ToastsStorage>,
     asset_server: Res<AssetServer>,
     mut command: Commands,
 ) {
-    if !state.is_chart_loading() {
-        return;
-    }
-    let ProjectState::ChartLoading(ChartLoading { ref mut task }) = *state else {
+    let Some(task_enum) = runner.task.as_mut() else {
         return;
     };
-    if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
-        match result {
-            Ok(loaded) => {
-                let path = loaded.path.clone();
-                match loaded.source {
-                    SourceKind::Folder => {
-                        *state = ProjectState::Loaded(LoadedProject::Folder(
-                            PathBuf::from(path),
-                            loaded.chart,
-                            loaded.info,
-                        ));
-                    }
-                    SourceKind::Bundle => {
-                        *state = ProjectState::Loaded(LoadedProject::Bundle(
-                            PathBuf::from(path),
-                            loaded.chart,
-                            loaded.info,
-                        ));
+
+    match task_enum {
+        RunningTask::PickFileOpen(task) => {
+            if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
+                if let Some(path) = result {
+                    events.write(LoadChartEvent::Path(path.to_string_lossy().into_owned()));
+                }
+                runner.task = None;
+            }
+        }
+        RunningTask::PickBundleOpen(task) => {
+            if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
+                if let Some(path) = result {
+                    events.write(LoadChartEvent::Bundle(path.to_string_lossy().into_owned()));
+                }
+                runner.task = None;
+            }
+        }
+        RunningTask::PickFileSave(task) => {
+            if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
+                if let Some(path) = result {
+                    // Determine format from extension
+                    let format = if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+                        match ext {
+                            "rizline" => ChartFormat::Rizline,
+                            "data" => ChartFormat::RizliumData,
+                            _ => ChartFormat::Rizlium,
+                        }
+                    } else {
+                        ChartFormat::Rizlium
+                    };
+                    
+                    if let ProjectState::Loaded(project) = &*state {
+                        let chart = match project {
+                            LoadedProject::Folder(_, chart, _) => chart.clone(),
+                            LoadedProject::Bundle(_, chart, _) => chart.clone(),
+                        };
+                        let save_task = IoTaskPool::get().spawn(async move {
+                            save_chart_to_file(&chart, &path, format).await
+                        });
+                        runner.task = Some(RunningTask::Saving(save_task));
+                        return; // Don't clear task yet, we replaced it
                     }
                 }
-                let handle = asset_server.add(loaded.audio_source);
-                command.insert_resource(GameAudioSource(handle));
-                events.write(ChartLoadingEvent::Success(loaded.path));
+                runner.task = None;
             }
-            Err(err) => {
-                *state = ProjectState::Idle;
-                events.write(ChartLoadingEvent::Error(err));
+        }
+        RunningTask::Loading(task) => {
+            if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
+                match result {
+                    Ok(loaded) => {
+                        let path = loaded.path.clone();
+                        match loaded.source {
+                            SourceKind::Folder => {
+                                *state = ProjectState::Loaded(LoadedProject::Folder(
+                                    PathBuf::from(path),
+                                    loaded.chart,
+                                    loaded.info,
+                                ));
+                            }
+                            SourceKind::Bundle => {
+                                *state = ProjectState::Loaded(LoadedProject::Bundle(
+                                    PathBuf::from(path),
+                                    loaded.chart,
+                                    loaded.info,
+                                ));
+                            }
+                        }
+                        let handle = asset_server.add(loaded.audio_source);
+                        command.insert_resource(GameAudioSource(handle));
+                        loading_events.write(ChartLoadingEvent::Success(loaded.path));
+                    }
+                    Err(err) => {
+                        *state = ProjectState::Idle;
+                        loading_events.write(ChartLoadingEvent::Error(err));
+                    }
+                }
+                runner.task = None;
+            }
+        }
+        RunningTask::Saving(task) => {
+            if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
+                match result {
+                    Ok(_) => {
+                        toasts.info(t!("project.save.success"));
+                    }
+                    Err(e) => {
+                        error!("Failed to save chart: {e}");
+                        toasts.error(t!("project.save.fail", err = e));
+                    }
+                }
+                runner.task = None;
             }
         }
     }
 }
+
 fn handle_save_chart_events(
     mut events: EventReader<SaveChartEvent>,
     state: Res<ProjectState>,
-    mut pending_save: ResMut<PendingSave>,
+    mut runner: ResMut<AsyncTaskRunner>,
 ) {
     for _ in events.read() {
         if let ProjectState::Loaded(project) = &*state {
@@ -330,29 +402,13 @@ fn handle_save_chart_events(
             };
             let task =
                 IoTaskPool::get().spawn(async move { save_chart_to_file(&chart, &path, format).await });
-            pending_save.task = Some(task);
+            runner.task = Some(RunningTask::Saving(task));
         }
     }
 }
 
-fn handle_save_result(mut pending_save: ResMut<PendingSave>, mut toasts: ResMut<ToastsStorage>) {
-    if let Some(mut task) = pending_save.task.take() {
-        if let Some(result) =
-            futures_lite::future::block_on(futures_lite::future::poll_once(&mut task))
-        {
-            match result {
-                Ok(_) => {
-                    toasts.info(t!("project.save.success"));
-                }
-                Err(e) => {
-                    error!("Failed to save chart: {e}");
-                    toasts.error(t!("project.save.fail", err = e));
-                }
-            }
-        } else {
-            pending_save.task = Some(task);
-        }
-    }
+fn handle_save_result() {
+    // Deprecated, handled in handle_async_tasks
 }
 fn process_loading_results(
     mut events: EventReader<ChartLoadingEvent>,
@@ -486,31 +542,23 @@ async fn save_chart_to_file(
 }
 
 impl ProjectState {
-    pub fn open_bundle_dialog(&mut self) {
+    pub fn open_bundle_dialog(&mut self, runner: &mut AsyncTaskRunner) {
         let task = IoTaskPool::get().spawn(async {
             use rfd::AsyncFileDialog;
             let file = AsyncFileDialog::new()
                 .add_filter("Chart Bundle", &["zip"])
                 .pick_file()
                 .await;
-            file.map(|f| f.path().to_string_lossy().into_owned())
+            file.map(|f| f.path().to_string_lossy().into_owned().into())
         });
-        *self = ProjectState::DialogPending(DialogPending::Bundle(task));
+        runner.task = Some(RunningTask::PickBundleOpen(task));
     }
-    pub fn open_path_dialog(&mut self) {
+    pub fn open_path_dialog(&mut self, runner: &mut AsyncTaskRunner) {
         let task = IoTaskPool::get().spawn(async {
             use rfd::AsyncFileDialog;
             let folder = AsyncFileDialog::new().pick_folder().await;
-            folder.map(|f| f.path().to_string_lossy().into_owned())
+            folder.map(|f| f.path().to_string_lossy().into_owned().into())
         });
-        *self = ProjectState::DialogPending(DialogPending::Path(task));
+        runner.task = Some(RunningTask::PickFileOpen(task));
     }
-    #[deprecated(note = "Use open_bundle_dialog instead")]
-    pub fn open_dialog(&mut self) {
-        self.open_bundle_dialog();
-    }
-}
-#[derive(Resource, Default)]
-struct PendingSave {
-    task: Option<Task<Result<(), Box<dyn std::error::Error + Send + Sync>>>>,
 }

@@ -5,7 +5,7 @@ use helium_framework::prelude::TabRegistrationExt;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use crate::project::{LoadedProject, ProjectState};
+use crate::project::{AsyncTaskRunner, ChartInfo, LoadedProject, ProjectState};
 
 pub struct ExplorerPlugin;
 
@@ -52,7 +52,8 @@ pub struct FileEntry {
 fn explorer_tab(
     InMut(mut ui): InMut<Ui>,
     mut state: ResMut<ExplorerState>,
-    project: ResMut<ProjectState>,
+    mut project: ResMut<ProjectState>,
+    mut runner: ResMut<AsyncTaskRunner>,
     mut commands: Commands,
 ) {
     let ui = &mut ui;
@@ -96,11 +97,11 @@ fn explorer_tab(
     if let Some(path) = current_path {
         folder_view(ui, &path, &files, &mut state, &mut commands);
     } else {
-        welcome_view(ui, project.into());
+        welcome_view(ui, project.into(), runner.into());
     }
 }
 
-fn welcome_view(ui: &mut Ui, mut project: Mut<ProjectState>) {
+fn welcome_view(ui: &mut Ui, mut project: Mut<ProjectState>, mut runner: Mut<AsyncTaskRunner>) {
     ui.vertical_centered(|ui| {
         ui.add_space(40.0);
 
@@ -120,7 +121,7 @@ fn welcome_view(ui: &mut Ui, mut project: Mut<ProjectState>) {
                 .clicked()
             {
                 // 打开文件夹对话框 - 通过系统事件触发
-                project.open_path_dialog();
+                project.open_path_dialog(&mut runner);
             }
 
             ui.add_space(8.0);
@@ -130,7 +131,7 @@ fn welcome_view(ui: &mut Ui, mut project: Mut<ProjectState>) {
                 .clicked()
             {
                 // 打开图表包对话框 - 通过系统事件触发
-                project.open_bundle_dialog();
+                project.open_bundle_dialog(&mut runner);
             }
 
             ui.add_space(20.0);
