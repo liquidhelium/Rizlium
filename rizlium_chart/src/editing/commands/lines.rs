@@ -68,6 +68,30 @@ impl ChartCommand for RemoveLine {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct RenameLine {
+    pub line_path: LinePath,
+    pub name: String,
+}
+
+impl ChartCommand for RenameLine {
+    fn apply(self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+        let line = self.line_path.get_mut(chart)?;
+        let old_name = replace(&mut line.name, self.name.clone());
+        Ok(RenameLine {
+            line_path: self.line_path,
+            name: old_name,
+        }
+        .into())
+    }
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
+        self.line_path.valid(chart)
+    }
+    fn description(&self) -> std::borrow::Cow<'static, str> {
+        format!("Rename Line {} to {}", self.line_path.0, self.name).into()
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct EditPoint {
     pub line_path: LinePath,

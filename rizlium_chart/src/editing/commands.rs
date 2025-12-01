@@ -21,11 +21,13 @@ pub enum ChartCommands {
     RemoveNote,
     InsertLine,
     RemoveLine,
+    RenameLine,
     InsertPoint,
     EditPoint,
     RemovePoint,
     InsertCanvas,
     RemoveCanvas,
+    RenameCanvas,
 
     InsertCanvasXPosPoint(InsertCanvasXPosPoint),
     RemoveCanvasXPosPoint(RemoveCanvasXPosPoint),

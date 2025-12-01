@@ -230,6 +230,7 @@ impl From<original::Line> for Line {
 impl From<Line> for original::Line {
     fn from(src: Line) -> Self {
         Self {
+            name: String::new(),
             points: src.points.into(),
             notes: src.notes.into_iter().map(|n| n.into()).collect(),
             ring_color: src.ring_color.into(),
@@ -256,6 +257,7 @@ impl From<original::Canvas> for Canvas {
 impl From<Canvas> for original::Canvas {
     fn from(src: Canvas) -> Self {
         Self {
+            name: String::new(),
             x_pos: src.x_pos.into(),
             speed: src.speed.into(),
         }
@@ -292,8 +294,26 @@ impl From<Chart> for original::Chart {
         Self {
             themes: src.themes.into_iter().map(|t| t.into()).collect(),
             theme_control: src.theme_control.into(),
-            lines: src.lines.into_iter().map(|l| l.into()).collect(),
-            canvases: src.canvases.into_iter().map(|c| c.into()).collect(),
+            lines: src
+                .lines
+                .into_iter()
+                .enumerate()
+                .map(|(i, l)| {
+                    let mut line: original::Line = l.into();
+                    line.name = format!("Line {}", i + 1);
+                    line
+                })
+                .collect(),
+            canvases: src
+                .canvases
+                .into_iter()
+                .enumerate()
+                .map(|(i, c)| {
+                    let mut canvas: original::Canvas = c.into();
+                    canvas.name = format!("Canvas {}", i + 1);
+                    canvas
+                })
+                .collect(),
             bpm: src.bpm.into(),
             cam_scale: src.cam_scale.into(),
             cam_move: src.cam_move.into(),

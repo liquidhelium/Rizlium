@@ -19,6 +19,28 @@ impl super::ChartCommand for RemoveCanvas {
     }
 }
 #[derive(Debug, Clone)]
+pub struct RenameCanvas {
+    pub canvas_path: CanvasPath,
+    pub name: String,
+}
+impl super::ChartCommand for RenameCanvas {
+    fn apply(self, chart: &mut Chart) -> super::Result<super::ChartCommands> {
+        let canvas = self.canvas_path.get_mut(chart)?;
+        let old_name = std::mem::replace(&mut canvas.name, self.name.clone());
+        Ok(RenameCanvas {
+            canvas_path: self.canvas_path,
+            name: old_name,
+        }
+        .into())
+    }
+    fn validate(&self, chart: &Chart) -> super::Result<()> {
+        self.canvas_path.valid(chart)
+    }
+    fn description(&self) -> Cow<'static, str> {
+        format!("Rename Canvas {} to {}", self.canvas_path.0, self.name).into()
+    }
+}
+#[derive(Debug, Clone)]
 pub struct InsertCanvas {
     pub canvas: crate::prelude::Canvas,
     pub at: Option<usize>,

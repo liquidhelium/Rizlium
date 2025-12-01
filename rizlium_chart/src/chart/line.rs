@@ -12,6 +12,7 @@ use serde::Serialize;
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Line {
+    pub name: String,
     pub points: Spline<f32, LinePointData>,
     pub notes: Vec<Note>,
     pub ring_color: Spline<ColorRGBA>,
@@ -37,6 +38,7 @@ impl FromIterator<KeyPoint<f32, LinePointData>> for Line {
                 replace(&mut point.time, src)
             });
         Self {
+            name: String::new(),
             points: Spline { points },
             notes: vec![],
             ring_color: Spline::EMPTY,

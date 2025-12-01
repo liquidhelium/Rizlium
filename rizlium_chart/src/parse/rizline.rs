@@ -12,6 +12,7 @@ use tracing::info;
 
 use super::{ConvertError, ConvertResult, HoldNoEndSnafu};
 
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(
@@ -36,6 +37,7 @@ impl Theme {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(
@@ -51,6 +53,7 @@ pub struct ChallengeTime {
 
     pub trans_time: f32,
 }
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(
@@ -121,6 +124,7 @@ impl From<ColorRGBA> for chart::ColorRGBA {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(
@@ -161,6 +165,7 @@ impl LinePoint {
         Ok(point)
     }
 }
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(
@@ -184,6 +189,7 @@ impl From<ColorKeyPoint> for chart::KeyPoint<chart::ColorRGBA> {
         }
     }
 }
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(
@@ -248,6 +254,7 @@ impl Line {
             .map(|(idx, n)| n.convert(line_index, idx))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(chart::Line {
+            name: format!("Line {}", line_index + 1),
             points,
             notes,
             ring_color: self
@@ -290,6 +297,7 @@ fn scale_y(y: f32) -> f32 {
     y * (VIEW_RECT[1][1] - VIEW_RECT[0][1]) * 1.
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(
@@ -306,7 +314,9 @@ pub struct CanvasMove {
 
 impl CanvasMove {
     fn convert(self) -> ConvertResult<chart::Canvas> {
+        let name = format!("Canvas {}", self.index + 1);
         Ok(chart::Canvas {
+            name,
             x_pos: self
                 .x_position_key_points
                 .into_iter()
@@ -336,6 +346,7 @@ impl CanvasMove {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(
@@ -370,6 +381,7 @@ impl TryInto<chart::KeyPoint<f32>> for KeyPoint {
 }
 
 // todo
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(
@@ -382,6 +394,7 @@ pub struct CameraMove {
     pub x_position_key_points: Vec<KeyPoint>,
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(
@@ -499,4 +512,236 @@ fn convert_bpm_to_timemap(bpm: f32, bpm_shifts: Vec<KeyPoint>) -> ConvertResult<
             relevant: (),
         })
         .collect())
+}
+
+fn unscale_x(x: f32) -> f32 {
+    x / (VIEW_RECT[1][0] - VIEW_RECT[0][0])
+}
+fn unscale_y(y: f32) -> f32 {
+    y / (VIEW_RECT[1][1] - VIEW_RECT[0][1])
+}
+
+impl From<chart::ColorRGBA> for ColorRGBA {
+    fn from(val: chart::ColorRGBA) -> Self {
+        Self {
+            r: (val.r * 255.0) as u8,
+            g: (val.g * 255.0) as u8,
+            b: (val.b * 255.0) as u8,
+            a: (val.a * 255.0) as u8,
+        }
+    }
+}
+
+impl From<chart::ThemeData> for Theme {
+    fn from(val: chart::ThemeData) -> Self {
+        Self {
+            colors_list: [
+                val.color.background.into(),
+                val.color.note.into(),
+                val.color.fx.into(),
+            ],
+        }
+    }
+}
+
+impl From<chart::KeyPoint<f32, chart::LinePointData>> for LinePoint {
+    fn from(kp: chart::KeyPoint<f32, chart::LinePointData>) -> Self {
+        Self {
+            time: kp.time,
+            x_position: unscale_x(kp.value),
+            color: kp.relevant.color.into(),
+            ease_type: kp.ease_type.into(),
+            canvas_index: kp.relevant.canvas,
+            floor_position: 0.0,
+        }
+    }
+}
+
+impl From<chart::Note> for Note {
+    fn from(note: chart::Note) -> Self {
+        let (note_type, other_informations) = match note.kind {
+            chart::NoteKind::Tap => (0, vec![]),
+            chart::NoteKind::Drag => (1, vec![]),
+            chart::NoteKind::Hold { end } => (2, vec![end]),
+        };
+        
+        Self {
+            note_type,
+            time: note.time,
+            floor_position: 0.0,
+            other_informations,
+        }
+    }
+}
+
+impl From<chart::Line> for Line {
+    fn from(line: chart::Line) -> Self {
+        let line_points = line.points.points.into_iter().map(Into::into).collect();
+        let notes = line.notes.into_iter().map(Into::into).collect();
+        
+        let convert_color_spline = |spline: &Spline<chart::ColorRGBA>| -> Vec<ColorKeyPoint> {
+            let points = &spline.points;
+            if points.is_empty() {
+                return vec![];
+            }
+            
+            let mut result = Vec::new();
+            for i in 0..points.len() {
+                let p = &points[i];
+                let next_val = if i + 1 < points.len() {
+                    points[i+1].value
+                } else {
+                    p.value
+                };
+                
+                result.push(ColorKeyPoint {
+                    time: p.time,
+                    start_color: p.value.into(),
+                    end_color: next_val.into(),
+                });
+            }
+            result
+        };
+
+        Self {
+            line_points,
+            notes,
+            judge_ring_color: convert_color_spline(&line.ring_color),
+            line_color: convert_color_spline(&line.line_color),
+        }
+    }
+}
+
+impl CanvasMove {
+    fn from_chart_canvas(index: i32, canvas: &chart::Canvas) -> Self {
+        Self {
+            index,
+            x_position_key_points: canvas.x_pos.points.iter().map(|p| KeyPoint {
+                time: p.time,
+                value: unscale_x(p.value),
+                ease_type: p.ease_type.into(),
+                floor_position: 0.0,
+            }).collect(),
+            speed_key_points: canvas.speed.points.iter().map(|p| KeyPoint {
+                time: p.time,
+                value: unscale_y(p.value),
+                ease_type: p.ease_type.into(),
+                floor_position: 0.0,
+            }).collect(),
+        }
+    }
+}
+
+impl TryFrom<chart::Chart> for RizlineChart {
+    type Error = ConvertError;
+
+    fn try_from(chart: chart::Chart) -> Result<Self, Self::Error> {
+        let theme_default = Theme {
+             colors_list: [
+                 ColorRGBA { r: 255, g: 255, b: 255, a: 255 },
+                 ColorRGBA { r: 0, g: 76, b: 229, a: 255 },
+                 ColorRGBA { r: 255, g: 255, b: 255, a: 255 },
+             ]
+        };
+
+        let mut themes_arr = [theme_default.clone(), theme_default.clone()];
+        
+        for (i, t) in chart.themes.iter().take(2).enumerate() {
+            themes_arr[i] = t.clone().into();
+        }
+        
+        if chart.themes.len() == 1 {
+            themes_arr[1] = themes_arr[0].clone();
+        }
+
+        let mut challenge_times = Vec::new();
+        let mut current_theme_idx = 0;
+        let mut start_time = None;
+        
+        for point in chart.theme_control.points() {
+             if point.value != current_theme_idx {
+                 if point.value != 0 { // Assuming != 0 is challenge
+                     if start_time.is_none() {
+                        start_time = Some(point.time);
+                     }
+                 } else if start_time.is_some() {
+                     challenge_times.push(ChallengeTime {
+                         check_point: 0.0,
+                         start: start_time.unwrap(),
+                         end: point.time,
+                         trans_time: 1.0,
+                     });
+                     start_time = None;
+                 }
+                 current_theme_idx = point.value;
+             }
+        }
+        
+        if let Some(start) = start_time {
+             let max_time = chart.lines.iter()
+                .flat_map(|l| l.points.points().iter().map(|p| p.time))
+                .fold(0.0f32, f32::max);
+             challenge_times.push(ChallengeTime {
+                 check_point: 0.0,
+                 start,
+                 end: max_time.max(start + 1.0),
+                 trans_time: 1.0,
+             });
+        }
+
+        if challenge_times.is_empty() {
+             challenge_times.push(ChallengeTime {
+                 check_point: 0.0,
+                 start: 0.0,
+                 end: 1.0,
+                 trans_time: 1.0,
+             });
+        }
+
+        let base_bpm = chart.bpm.points().first().map(|p| p.value).unwrap_or(120.0);
+        let bpm_shifts = chart.bpm.points().iter().map(|p| {
+            KeyPoint {
+                time: p.time,
+                value: p.value / base_bpm,
+                ease_type: 0, 
+                floor_position: 0.0,
+            }
+        }).collect();
+        
+        let lines = chart.lines.into_iter().map(Into::into).collect();
+
+        let canvas_moves = chart.canvases.iter().enumerate().map(|(i, c)| {
+             CanvasMove::from_chart_canvas(i as i32, c)
+        }).collect();
+
+        let camera_move = CameraMove {
+            scale_key_points: chart.cam_scale.points.iter().map(|p| KeyPoint {
+                time: p.time,
+                value: p.value,
+                ease_type: p.ease_type.into(),
+                floor_position: 0.0,
+            }).collect(),
+            x_position_key_points: chart.cam_move.points.iter().map(|p| {
+                KeyPoint {
+                    time: p.time,
+                    value: unscale_x(p.value),
+                    ease_type: p.ease_type.into(),
+                    floor_position: 0.0,
+                }
+            }).collect(),
+        };
+
+        Ok(RizlineChart {
+            file_version: 1,
+            songs_name: "Untitled".to_string(),
+            themes: themes_arr,
+            challenge_times,
+            bpm: base_bpm,
+            bpm_shifts,
+            offset: 0.0,
+            lines,
+            canvas_moves,
+            camera_move,
+        })
+    }
 }

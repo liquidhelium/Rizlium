@@ -129,6 +129,7 @@ pub fn midi_track_to_lines(track: &Track, ticks_per_beat: u32) -> Vec<Line> {
                         };
 
                         lines.push(Line {
+                            name: try_get_track_name(track).unwrap_or_else(|| format!("Line {}", lines.len() + 1)),
                             points: Spline::from_iter(vec![
                                 create_point(start_beat),
                                 create_point(end_beat),
@@ -149,6 +150,17 @@ pub fn midi_track_to_lines(track: &Track, ticks_per_beat: u32) -> Vec<Line> {
         }
     }
     lines
+}
+
+fn try_get_track_name(track: &Track) -> Option<String> {
+    for event in track.iter() {
+        if let TrackEventKind::Meta(MetaMessage::TrackName(name_bytes)) = &event.kind {
+            if let Ok(name_str) = std::str::from_utf8(name_bytes) {
+                return Some(name_str.to_string());
+            }
+        }
+    }
+    None
 }
 
 pub fn tick_to_beat(tick: u32, ticks_per_beat: u32) -> f32 {
@@ -186,6 +198,7 @@ pub fn build_chart(smf: &Smf, ticks_per_beat: u32) -> rizlium_chart::chart::Char
             relevant: (),
         }]),
         canvases: vec![Canvas {
+            name: "Default Canvas".to_string(),
             x_pos: Spline::from_iter(vec![KeyPoint {
                 time: 0.0,
                 value: 0.0,

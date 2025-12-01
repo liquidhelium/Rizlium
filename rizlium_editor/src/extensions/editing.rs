@@ -47,6 +47,26 @@ impl Plugin for Editing {
                 "edit.push_edit_command",
                 "Push an edit command to history",
                 push_edit_command,
+            )
+            .reflect_system(
+                "edit.push_preedit",
+                "Push a preedit command",
+                push_preedit,
+            )
+            .reflect_system(
+                "edit.replace_last_preedit",
+                "Replace last preedit command",
+                replace_last_preedit,
+            )
+            .reflect_system(
+                "edit.submit_preedit",
+                "Submit preedit commands",
+                submit_preedit,
+            )
+            .reflect_system(
+                "edit.discard_preedit",
+                "Discard preedit commands",
+                discard_preedit,
             );
         use KeyCode::*;
         app.register_hotkey("edit.undo", [Hotkey::new_global([ControlLeft, KeyZ])])
@@ -89,6 +109,42 @@ fn push_edit_command(
     mut toast: ResMut<ToastsStorage>,
 ) {
     if let Err(err) = chart_edit_history.push(command, &mut chart.chart_mut()) {
+        toast.error(err.to_string());
+    }
+}
+
+fn push_preedit(
+    In(command): In<ChartCommands>,
+    mut chart_edit_history: ResMut<ChartEditHistory>,
+    mut chart: ResMut<ProjectState>,
+    mut toast: ResMut<ToastsStorage>,
+) {
+    if let Err(err) = chart_edit_history.push_preedit(command, &mut chart.chart_mut()) {
+        toast.error(err.to_string());
+    }
+}
+
+fn replace_last_preedit(
+    In(command): In<ChartCommands>,
+    mut chart_edit_history: ResMut<ChartEditHistory>,
+    mut chart: ResMut<ProjectState>,
+    mut toast: ResMut<ToastsStorage>,
+) {
+    if let Err(err) = chart_edit_history.replace_last_preedit(command, &mut chart.chart_mut()) {
+        toast.error(err.to_string());
+    }
+}
+
+fn submit_preedit(mut chart_edit_history: ResMut<ChartEditHistory>) {
+    chart_edit_history.submit_preedit();
+}
+
+fn discard_preedit(
+    mut chart_edit_history: ResMut<ChartEditHistory>,
+    mut chart: ResMut<ProjectState>,
+    mut toast: ResMut<ToastsStorage>,
+) {
+    if let Err(err) = chart_edit_history.discard_preedit(&mut chart.chart_mut()) {
         toast.error(err.to_string());
     }
 }

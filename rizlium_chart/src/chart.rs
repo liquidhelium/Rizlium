@@ -130,6 +130,7 @@ impl Chart {
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 pub struct Canvas {
+    pub name: String,
     pub x_pos: Spline<f32>,
     pub speed: Spline<f32>,
 }
