@@ -26,6 +26,11 @@ impl Plugin for Game {
             .reflect_system("game.load_path", "Load chart path", load_path)
             .reflect_system("game.save_chart", "Save current chart to file", save_chart)
             .reflect_system(
+                "game.save_chart_as",
+                "Save current chart to a new file",
+                save_chart_as,
+            )
+            .reflect_system(
                 "game.open_bundle_dialog",
                 "Open a chart bundle file",
                 open_bundle_dialog,
@@ -48,13 +53,20 @@ impl Plugin for Game {
                 "Enable scrolling to change time",
                 toggle_enable_scroll_time,
             )
-            // .register_hotkey(
-            //     "game.open_bundle_dialog",
-            //     [Hotkey::new_global([ControlLeft, KeyO])],
-            // )
+            .register_hotkey(
+                "game.open_bundle_dialog",
+                [Hotkey::new_global([ControlLeft, KeyO])],
+            )
             .register_hotkey(
                 "game.open_path_dialog",
                 [Hotkey::new_global([ControlLeft, ShiftLeft, KeyO])],
+            )
+            .register_hotkey(
+                "game.save_chart_as",
+                [Hotkey::new(
+                    [ControlLeft, ShiftLeft, KeyS],
+                    ProjectState::has_chart_system(),
+                )],
             )
             .register_hotkey(
                 "game.save_chart",
@@ -89,6 +101,11 @@ impl Plugin for Game {
                 "file/save_chart",
                 t!("action.save_chart"),
                 "game.save_chart",
+            )
+            .register_command::<MainMenuContext>(
+                "file/save_chart_as",
+                t!("action.save_chart_as"),
+                "game.save_chart_as",
             )
             .register_tab("game.view", t!("game.view.tab"), game_view_tab, || true);
         // bevy systems
@@ -132,6 +149,10 @@ fn load_path(
 
 fn save_chart(mut events: EventWriter<SaveChartEvent>) {
     events.write(SaveChartEvent);
+}
+
+fn save_chart_as(mut state: ResMut<ProjectState>, mut runner: ResMut<AsyncTaskRunner>) {
+    state.open_save_dialog(&mut runner);
 }
 
 fn open_bundle_dialog(mut state: ResMut<ProjectState>, mut runner: ResMut<AsyncTaskRunner>) {

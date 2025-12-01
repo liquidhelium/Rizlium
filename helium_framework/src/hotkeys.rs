@@ -206,29 +206,37 @@ impl Either {
 fn dispatch_hotkey(world: &mut World) {
     let mut triggered = vec![];
     world.resource_scope(|world: &mut World, mut hotkeys: Mut<'_, HotkeyRegistry>| {
-        for (id, listeners) in hotkeys.0.iter_mut() {
-            for listener in listeners {
-                if let Some(trigger) = listener.trigger_result(world) {
-                    let actions = world.resource::<RSystemRegistry>();
-                    match (actions.construct_runner(id), actions.construct_runner(id)) {
-                        (Ok(runner), Err(_)) => {
-                            info!("Hotkey {id} triggered");
-                            triggered.push(Either::HasTrigger(runner, trigger));
-                        },
-                        (Err(_), Ok(runner)) => {
-                            info!("Hotkey {id} triggered without trigger");
-                            triggered.push(Either::NoTrigger(runner));
-                        },
-                        (Err(e1), Err(e2)) => {
-                            error!("Failed to construct hotkey action runner for {id}: {e1:?}, {e2:?}");
-                        },
-                        (Ok(_), Ok(_)) => {
-                            error!("Both triggered and non-triggered action runners exist for {id}, this is not allowed.");
-                        }
+        // 收集所有快捷键并按键数降序排序，确保更具体的快捷键（如 Ctrl+Shift+S）优先于较短的（如 Ctrl+S）被检查
+        let mut all_hotkeys: Vec<(&ActionId, &mut Hotkey)> = hotkeys
+            .0
+            .iter_mut()
+            .flat_map(|(id, listeners)| listeners.iter_mut().map(move |l| (id, l)))
+            .collect();
+
+        all_hotkeys.sort_by(|a, b| b.1.key.len().cmp(&a.1.key.len()));
+
+        for (id, listener) in all_hotkeys {
+            if let Some(trigger) = listener.trigger_result(world) {
+                let actions = world.resource::<RSystemRegistry>();
+                match (actions.construct_runner(id), actions.construct_runner(id)) {
+                    (Ok(runner), Err(_)) => {
+                        info!("Hotkey {id} triggered");
+                        triggered.push(Either::HasTrigger(runner, trigger));
+                    }
+                    (Err(_), Ok(runner)) => {
+                        info!("Hotkey {id} triggered without trigger");
+                        triggered.push(Either::NoTrigger(runner));
+                    }
+                    (Err(e1), Err(e2)) => {
+                        error!("Failed to construct hotkey action runner for {id}: {e1:?}, {e2:?}");
+                    }
+                    (Ok(_), Ok(_)) => {
+                        error!("Both triggered and non-triggered action runners exist for {id}, this is not allowed.");
                     }
                 }
             }
-        }});
+        }
+    });
     for runner in triggered {
         if let Err(e) = runner.run(world) {
             error!("Failed to run hotkey action: {e:?}");

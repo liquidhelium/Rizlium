@@ -37,7 +37,6 @@ impl Plugin for ProjectPlugin {
                     handle_save_chart_events,
                     handle_async_tasks,
                     process_loading_results,
-                    handle_input,
                 ),
             );
         app.reflect_system("project.load_path", "Load a path", load_path_action);
@@ -225,34 +224,6 @@ impl AsyncTaskRunner {
     }
     pub fn is_loading(&self) -> bool {
         matches!(self.task, Some(RunningTask::Loading(_)))
-    }
-}
-
-fn handle_input(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut runner: ResMut<AsyncTaskRunner>,
-    state: Res<ProjectState>,
-) {
-    if keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight) {
-        if keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight) {
-            if keys.just_pressed(KeyCode::KeyS) {
-                if let ProjectState::Loaded(_) = *state {
-                    if !runner.is_busy() {
-                        let task = IoTaskPool::get().spawn(async {
-                            use rfd::AsyncFileDialog;
-                            let file = AsyncFileDialog::new()
-                                .add_filter("Rizlium Chart", &["json"])
-                                .add_filter("Rizline Chart", &["rizline"])
-                                .add_filter("Rizlium Data", &["data"])
-                                .save_file()
-                                .await;
-                            file.map(|f| f.path().to_path_buf())
-                        });
-                        runner.task = Some(RunningTask::PickFileSave(task));
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -560,5 +531,18 @@ impl ProjectState {
             folder.map(|f| f.path().to_string_lossy().into_owned().into())
         });
         runner.task = Some(RunningTask::PickFileOpen(task));
+    }
+    pub fn open_save_dialog(&mut self, runner: &mut AsyncTaskRunner) {
+        let task = IoTaskPool::get().spawn(async {
+            use rfd::AsyncFileDialog;
+            let file = AsyncFileDialog::new()
+                .add_filter("Rizlium Chart", &["json"])
+                .add_filter("Rizline Chart", &["rizline"])
+                .add_filter("Rizlium Data", &["data"])
+                .save_file()
+                .await;
+            file.map(|f| f.path().to_path_buf())
+        });
+        runner.task = Some(RunningTask::PickFileSave(task));
     }
 }
