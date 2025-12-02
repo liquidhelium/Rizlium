@@ -8,7 +8,7 @@ use rizlium_chart::{
     editing::{ChartCommand, ChartCommands, EditHistory},
 };
 use rizlium_render::{ChartProvider, GameTime};
-use rust_i18n::t;
+use crate::t;
 use spline::SplineView;
 pub mod note;
 pub mod spline;
@@ -23,26 +23,26 @@ impl Plugin for Editing {
     fn build(&self, app: &mut App) {
         app.register_tab(
             "edit.note",
-            t!("edit.note.tab"),
+            t!("edit-note-tab"),
             note_window,
             ProjectState::has_chart_system(),
         )
         .register_tab(
             "edit.spline",
-            t!("edit.spline.tab"),
+            t!("edit-spline-tab"),
             spline_edit,
             ProjectState::has_chart_system(),
         )
         .register_tab(
             "edit.tool_config",
-            t!("edit.tool_config.tab"),
+            t!("edit-tool-config-tab"),
             tool_config,
             ProjectState::has_chart_system(),
         );
         app.add_plugins((world_view::WorldViewPlugin, timeline::TimelinePlugin))
             .init_resource::<ChartEditHistory>();
-        app.reflect_system("edit.undo", t!("edit.undo.desc"), undo_redo::undo)
-            .reflect_system("edit.redo", t!("edit.redo.desc"), undo_redo::redo)
+        app.reflect_system("edit.undo", t!("edit-undo-desc"), undo_redo::undo)
+            .reflect_system("edit.redo", t!("edit-redo-desc"), undo_redo::redo)
             .reflect_system(
                 "edit.push_edit_command",
                 "Push an edit command to history",
@@ -71,14 +71,14 @@ impl Plugin for Editing {
         use KeyCode::*;
         app.register_hotkey("edit.undo", [Hotkey::new_global([ControlLeft, KeyZ])])
             .register_hotkey("edit.redo", [Hotkey::new_global([ControlLeft, KeyY])])
-            .register_submenu::<MainMenuContext>("edit", t!("edit.name"))
+            .register_submenu::<MainMenuContext>("edit", t!("edit-name"))
             .register_widget::<MainMenuContext>(
                 "edit/historylist",
                 "History",
                 "edit.history.widget",
             )
-            .register_command::<MainMenuContext>("edit/undo", t!("edit.undo.name"), "edit.undo")
-            .register_command::<MainMenuContext>("edit/redo", t!("edit.redo.name"), "edit.redo")
+            .register_command::<MainMenuContext>("edit/undo", t!("edit-undo-name"), "edit.undo")
+            .register_command::<MainMenuContext>("edit/redo", t!("edit-redo-name"), "edit.redo")
             .reflect_system("edit.history.widget", "history widget", history_list);
     }
 }

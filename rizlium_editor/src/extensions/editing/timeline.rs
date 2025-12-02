@@ -5,7 +5,7 @@ use bevy_prototype_lyon::path;
 use egui::{Align2, Color32, FontId, Id, Sense, Stroke, Ui};
 use helium_framework::prelude::*;
 use rizlium_render::ChartProvider as _;
-use rust_i18n::t;
+use crate::t;
 
 use crate::extensions::inspector::{ChartItem, ScrollToPointEvent, SelectedItem};
 use crate::project::ProjectState;
@@ -18,7 +18,7 @@ impl Plugin for TimelinePlugin {
     fn build(&self, app: &mut App) {
         app.register_tab(
             "edit.timeline",
-            t!("edit.timeline.tab"),
+            t!("edit-timeline-tab"),
             timeline_tab,
             ProjectState::has_chart_system(),
         );
@@ -69,7 +69,7 @@ fn timeline_tab(
 
     if tracks.is_empty() {
         ui.centered_and_justified(|ui| {
-            ui.label(t!("edit.timeline.select_hint"));
+            ui.label(t!("edit-timeline-select-hint"));
         });
         return;
     }

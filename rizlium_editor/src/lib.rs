@@ -21,8 +21,12 @@ use helium_framework::{
 };
 use rizlium_render::{ChartProvider as _, GameTime};
 use std::{mem::swap, time::Duration};
-i18n!();
-use rust_i18n::i18n;
+rizlium_l10n::tl_file!("common" t crate::);
+
+pub fn get_app_title() -> String {
+    t!("rizlium-editor").to_string()
+}
+
 pub use ui::*;
 mod editor_actions;
 pub mod extensions;

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use rust_i18n::t;
+use crate::t;
 use helium_framework::prelude::*;
 use rizlium_chart::{
     chart::{Chart, ColorRGBA, KeyPoint, Line, LinePointData},
@@ -233,10 +233,10 @@ impl<'a, 'w> PencilContext<'a, 'w> {
             })
         } else if self.chart.canvases.get(self.world_config.canvas_index).is_some() {
             self.toast
-                .error(t!("edit.world_view.pencil_tool.unsupported_canvas"));
+                .error(t!("edit-world-view-pencil-tool-unsupported-canvas"));
         } else {
             self.toast
-                .error(t!("edit.world_view.pencil_tool.out_of_bounds"));
+                .error(t!("edit-world-view-pencil-tool-out-of-bounds"));
         }
     }
 
@@ -268,7 +268,7 @@ impl<'a, 'w> PencilContext<'a, 'w> {
             .time_at_y(pos.y, self.world_config.canvas_index)
         else {
             self.toast
-                .error(t!("edit.world_view.pencil_tool.out_of_bounds"));
+                .error(t!("edit-world-view-pencil-tool-out-of-bounds"));
             return None;
         };
 
@@ -282,7 +282,7 @@ impl<'a, 'w> PencilContext<'a, 'w> {
             })
         else {
             self.toast
-                .error(t!("edit.world_view.pencil_tool.empty_x_pos"));
+                .error(t!("edit-world-view-pencil-tool-empty-x-pos"));
             return None;
         };
         let (snapped_time, snapped_value) = snapping_context.snap_point(raw_time, raw_value);

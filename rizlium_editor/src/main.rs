@@ -13,8 +13,7 @@ use rizlium_editor::{
     WindowUpdateControlPlugin,
 };
 use rizlium_render::RizliumRenderingPlugin;
-use rust_i18n::t;
-rust_i18n::i18n!();
+
 fn main() {
     GLOBAL_ERROR_HANDLER.set(|err, ctx| {
         error!("Encountered an error! \n ========= \n Context:\n{ctx:#?}\n ========= \n Error:\n {err:#?}")
@@ -24,7 +23,7 @@ fn main() {
             DefaultPlugins.build()
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        title: t!("Rizlium Editor").to_string(),
+                        title: rizlium_editor::get_app_title(),
                         ..default()
                     }),
                     ..default()

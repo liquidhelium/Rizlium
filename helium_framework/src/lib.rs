@@ -11,9 +11,8 @@ use hotkeys::HotkeyPlugin;
 use menu_system::MenuSystemPlugin;
 use notifications::NotificationPlugin;
 use reflect_system::ActionPlugin;
-use rust_i18n::i18n;
 use tab_system::TabPlugin;
-i18n!();
+rizlium_l10n::tl_file!("common" t crate::);
 
 pub struct HeliumFramework;
 

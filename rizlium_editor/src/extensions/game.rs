@@ -12,7 +12,7 @@ use bevy::{
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::Ui;
 use rizlium_render::{notes::NoteTexture, ChartProvider as _, GameTime, GameView};
-use rust_i18n::t;
+use crate::t;
 
 use crate::project::{AsyncTaskRunner, LoadChartEvent, ProjectState, SaveChartEvent};
 use helium_framework::{menu_system::MenuRegistration, prelude::*};
@@ -86,28 +86,28 @@ impl Plugin for Game {
                     TriggerType::PressAndRelease,
                 )],
             )
-            .register_submenu::<MainMenuContext>("file", t!("file.tab"))
+            .register_submenu::<MainMenuContext>("file", t!("file-tab"))
             .register_command::<MainMenuContext>(
                 "file/open_bundle",
-                t!("action.open_bundle"),
+                t!("action-open-bundle"),
                 "game.open_bundle_dialog",
             )
             .register_command::<MainMenuContext>(
                 "file/open_path",
-                t!("action.open_path"),
+                t!("action-open-path"),
                 "game.open_path_dialog",
             )
             .register_command::<MainMenuContext>(
                 "file/save_chart",
-                t!("action.save_chart"),
+                t!("action-save-chart"),
                 "game.save_chart",
             )
             .register_command::<MainMenuContext>(
                 "file/save_chart_as",
-                t!("action.save_chart_as"),
+                t!("action-save-chart-as"),
                 "game.save_chart_as",
             )
-            .register_tab("game.view", t!("game.view.tab"), game_view_tab, || true);
+            .register_tab("game.view", t!("game-view-tab"), game_view_tab, || true);
         // bevy systems
         app.add_systems(
             Startup,

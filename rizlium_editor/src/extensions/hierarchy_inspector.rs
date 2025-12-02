@@ -11,7 +11,7 @@ use rizlium_chart::{
     },
 };
 use rizlium_render::ChartProvider as _;
-use rust_i18n::t;
+use crate::t;
 
 use crate::extensions::inspector::{ChartItem, SelectedItem};
 
@@ -20,7 +20,7 @@ impl bevy::prelude::Plugin for HierarchyInspector {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.register_tab(
             "hierarchy",
-            t!("hierarchy.tab"),
+            t!("hierarchy-tab"),
             hierarchy_ui,
             crate::project::ProjectState::has_chart_system(),
         );

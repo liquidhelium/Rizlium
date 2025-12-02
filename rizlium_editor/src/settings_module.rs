@@ -13,7 +13,7 @@ use egui::{
 };
 use helium_framework::{prelude::*, utils::identifier::Identifier};
 use indexmap::IndexMap;
-use rust_i18n::t;
+use crate::t;
 use std::{borrow::Cow, marker::PhantomData};
 pub trait SettingsRegistrationExt {
     fn register_settings_module(
@@ -43,7 +43,7 @@ impl Plugin for SettingsPlugin {
         app.init_resource::<SettingsModuleRegistry>();
     }
     fn finish(&self, app: &mut App) {
-        app.register_tab("settings", t!("settings.tab"), settings_tab, || true);
+        app.register_tab("settings", t!("settings-tab"), settings_tab, || true);
     }
 }
 fn settings_tab(InMut(ui): InMut<Ui>, world: &mut World, mut opened_tab: Local<usize>) {

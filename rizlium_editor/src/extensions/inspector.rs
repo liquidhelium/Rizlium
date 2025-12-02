@@ -19,7 +19,7 @@ use rizlium_chart::{
     prelude::Tween,
 };
 use rizlium_render::{ChartProvider, GameCamera};
-use rust_i18n::t;
+use crate::t;
 
 use helium_framework::prelude::*;
 
@@ -54,7 +54,7 @@ impl Plugin for Inspector {
     fn build(&self, app: &mut App) {
         app.register_tab(
             "inspector",
-            t!("inspector.tab"),
+            t!("inspector-tab"),
             logs,
             ProjectState::has_chart_system(),
         )
@@ -81,8 +81,8 @@ fn logs(
         .map(|e| (e.spline_id.clone(), e.point_index))
         .collect();
 
-    let Some(ref item) = selected.item else {
-        ui.weak(t!("tab.logs.select_to_inspect"));
+    let Some(item) = &selected.item else {
+        ui.weak(t!("tab-logs-select-to-inspect"));
         return;
     };
     let ui = &mut ui;

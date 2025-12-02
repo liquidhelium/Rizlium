@@ -21,7 +21,7 @@ use bevy_prototype_lyon::{
 };
 use egui::{PointerButton, Response, Sense, Ui};
 use rizlium_render::{ChartProvider, GameChartCache, GameTime};
-use rust_i18n::t;
+use crate::t;
 use tools::Tool;
 
 use helium_framework::prelude::*;
@@ -63,7 +63,7 @@ impl Plugin for WorldViewPlugin {
             .add_plugins((RaycastPlugin, ToolsPlugin, PointIndicatorPlugin))
             .register_tab(
                 "edit.world_view",
-                t!("edit.world_view.tab"),
+                t!("edit-world-view-tab"),
                 world_tab,
                 || true,
             );

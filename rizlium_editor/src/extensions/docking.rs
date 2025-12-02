@@ -12,7 +12,7 @@ use helium_framework::{
     utils::identifier::Identifier,
     widgets::widget,
 };
-use rust_i18n::t;
+use crate::t;
 pub struct Docking;
 
 impl Plugin for Docking {
@@ -33,7 +33,7 @@ impl Plugin for Docking {
             SettingsModuleStruct::new(
                 docking_ui_module,
                 apply_docking_settings,
-                t!("settings.docking"),
+                t!("settings-docking"),
             ),
         );
     }
@@ -136,7 +136,7 @@ fn apply_docking_settings(
     }
     if let Err(e) = presets.set(storage.temp_presets) {
         error!("Failed to save docking presets: {}", e);
-        toast.error(t!("settings.docking.save_error"));
+        toast.error(t!("settings-docking-save-error"));
     } else {
         info!("Docking presets saved successfully");
     }

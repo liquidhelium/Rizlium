@@ -9,7 +9,7 @@ use bevy::{
 };
 use bevy_persistent::{Persistent, StorageFormat};
 use egui::Ui;
-use rust_i18n::t;
+use crate::t;
 use serde::{Deserialize, Serialize};
 
 use crate::settings_module::{SettingsModuleStruct, SettingsRegistrationExt};
@@ -29,11 +29,13 @@ impl Plugin for I18nPlugin {
             .default(Locale::default())
             .build()
             .expect("failed to setup tab presets");
-        rust_i18n::set_locale(a.0.borrow());
+        
+        let lang_id: Option<rizlium_l10n::LanguageIdentifier> = a.0.parse().ok();
+        rizlium_l10n::set_prefered_locale(lang_id);
 
         app.register_settings_module(
             "settings.language",
-            SettingsModuleStruct::new(language_ui, set_locale, t!("settings.language")),
+            SettingsModuleStruct::new(language_ui, set_locale, t!("settings-language")),
         );
         app.add_systems(Update, sync_locale);
 
@@ -50,7 +52,8 @@ impl Default for Locale {
     }
 }
 fn sync_locale(locale: Res<Persistent<Locale>>) {
-    rust_i18n::set_locale(locale.0.borrow());
+    let lang_id: Option<rizlium_l10n::LanguageIdentifier> = locale.0.parse().ok();
+    rizlium_l10n::set_prefered_locale(lang_id);
 }
 
 fn language_ui(
@@ -60,7 +63,7 @@ fn language_ui(
     let ui = &mut ui;
     let current = locale.0.clone();
     ui.menu_button(current, |ui| {
-        for l in rust_i18n::available_locales!() {
+        for &l in rizlium_l10n::LANGS.iter() {
             if ui.button(l).clicked() {
                 ui.close_menu();
                 return Some(Cow::Borrowed(l));

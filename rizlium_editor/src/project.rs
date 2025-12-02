@@ -13,7 +13,7 @@ use indexmap::IndexSet;
 use rizlium_chart::prelude::*;
 use rizlium_chart::parse::rizline::RizlineChart;
 use rizlium_render::ChartProvider;
-use rust_i18n::t;
+use crate::t;
 use serde::{Deserialize, Serialize};
 use std::{
     io::{Cursor, Read},
@@ -347,11 +347,11 @@ fn handle_async_tasks(
             if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
                 match result {
                     Ok(_) => {
-                        toasts.info(t!("project.save.success"));
+                        toasts.info(t!("project-save-success"));
                     }
                     Err(e) => {
                         error!("Failed to save chart: {e}");
-                        toasts.error(t!("project.save.fail", err = e));
+                        toasts.error(t!("project-save-fail", "err" => e.to_string()));
                     }
                 }
                 runner.task = None;
@@ -399,7 +399,7 @@ fn process_loading_results(
                     break;
                 }
                 error!("Failed to load chart: {e}");
-                toast.error(t!("path.load.fail", err = e));
+                toast.error(t!("path-load-fail", "err" => e.to_string()));
             }
         }
     }

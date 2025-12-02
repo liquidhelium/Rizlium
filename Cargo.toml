@@ -3,7 +3,8 @@ members = [
     "rizlium_chart",
     "rizlium_render",
     "rizlium_editor",
-    "rizlium_dyn_plugin","helium_framework"
+    "rizlium_dyn_plugin","helium_framework",
+    "rizlium_l10n"
     # "rizlium_splash",
     # "rizlium_video_renderer",
 ]

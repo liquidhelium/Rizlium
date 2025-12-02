@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use bevy::{ecs::schedule::BoxedCondition, platform::collections::HashMap, prelude::*};
 use egui::Ui;
 use egui_dock::{DockState, TabViewer};
-use rust_i18n::t;
+use crate::t;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
@@ -106,12 +106,12 @@ impl TabRegistry {
             let Ok(()) = tab.run_with(world, ui) else {
                 ui.colored_label(
                     Color32::GRAY,
-                    RichText::new(t!("tab.not_avalible")).italics(),
+                    RichText::new(t!("tab-not-avalible")).italics(),
                 );
                 return;
             };
         } else {
-            ui.colored_label(Color32::RED, t!("tab.non_exist", tab = tab));
+            ui.colored_label(Color32::RED, t!("tab-non-exist", "tab" => tab.to_string()));
         }
     }
 }

@@ -1,4 +1,4 @@
-use rust_i18n::t;
+use crate::t;
 use strum::EnumIter;
 
 use bevy::{input::mouse::MouseWheel, prelude::*};
@@ -43,22 +43,22 @@ impl Plugin for ToolsPlugin {
             );
         app.reflect_system(
             "edit.world_view.temp_toggle_view",
-            t!("edit.world_view.temp_toggle_view"),
+            t!("edit-world-view-temp-toggle-view"),
             temp_toggle_view,
-        );
-        app.reflect_system(
+        )
+        .reflect_system(
             "edit.world_view.to_pencil",
-            t!("edit.world_view.to_pencil.desc"),
+            t!("edit-world-view-to-pencil-desc"),
             switch_tool(Tool::Pencil),
-        );
-        app.reflect_system(
+        )
+        .reflect_system(
             "edit.world_view.to_select",
-            t!("edit.world_view.to_select.desc"),
+            t!("edit-world-view-to-select-desc"),
             switch_tool(Tool::Select),
-        );
-        app.reflect_system(
+        )
+        .reflect_system(
             "edit.discard_preedit",
-            t!("edit.discard_preedit"),
+            t!("edit-discard-preedit"),
             discard_preedit,
         );
         app.register_hotkey(
