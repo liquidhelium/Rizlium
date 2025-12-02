@@ -41,6 +41,26 @@ impl Plugin for ProjectPlugin {
             );
         app.reflect_system("project.load_path", "Load a path", load_path_action);
         app.reflect_system("project.load_bundle", "Load a bundle", load_bundle_action);
+        app.reflect_system(
+            "project.save_chart",
+            "Save current chart to file",
+            save_chart_action,
+        );
+        app.reflect_system(
+            "project.save_chart_as",
+            "Save current chart to a new file",
+            save_chart_as_action,
+        );
+        app.reflect_system(
+            "project.open_bundle_dialog",
+            "Open a chart bundle file",
+            open_bundle_dialog_action,
+        );
+        app.reflect_system(
+            "project.open_path_dialog",
+            "Open a chart folder",
+            open_path_dialog_action,
+        );
     }
 }
 
@@ -49,6 +69,22 @@ fn load_path_action(In(path): In<String>, mut events: EventWriter<LoadChartEvent
 }
 fn load_bundle_action(In(path): In<String>, mut events: EventWriter<LoadChartEvent>) {
     events.write(LoadChartEvent::Bundle(path));
+}
+
+fn save_chart_action(mut events: EventWriter<SaveChartEvent>) {
+    events.write(SaveChartEvent);
+}
+
+fn save_chart_as_action(mut state: ResMut<ProjectState>, mut runner: ResMut<AsyncTaskRunner>) {
+    state.open_save_dialog(&mut runner);
+}
+
+fn open_bundle_dialog_action(mut state: ResMut<ProjectState>, mut runner: ResMut<AsyncTaskRunner>) {
+    state.open_bundle_dialog(&mut runner);
+}
+
+fn open_path_dialog_action(mut state: ResMut<ProjectState>, mut runner: ResMut<AsyncTaskRunner>) {
+    state.open_path_dialog(&mut runner);
 }
 
 #[derive(Resource, Default)]

@@ -14,7 +14,7 @@ use egui::Ui;
 use rizlium_render::{notes::NoteTexture, ChartProvider as _, GameTime, GameView};
 use crate::t;
 
-use crate::project::{AsyncTaskRunner, LoadChartEvent, ProjectState, SaveChartEvent};
+use crate::project::ProjectState;
 use helium_framework::{menu_system::MenuRegistration, prelude::*};
 pub struct Game;
 
@@ -22,25 +22,7 @@ impl Plugin for Game {
     fn build(&self, app: &mut App) {
         use time_systems::*;
         use KeyCode::*;
-        app.reflect_system("game.load_bundle", "Load chart bundle", load_bundle)
-            .reflect_system("game.load_path", "Load chart path", load_path)
-            .reflect_system("game.save_chart", "Save current chart to file", save_chart)
-            .reflect_system(
-                "game.save_chart_as",
-                "Save current chart to a new file",
-                save_chart_as,
-            )
-            .reflect_system(
-                "game.open_bundle_dialog",
-                "Open a chart bundle file",
-                open_bundle_dialog,
-            )
-            .reflect_system(
-                "game.open_path_dialog",
-                "Open a chart folder",
-                open_path_dialog,
-            )
-            .reflect_system("game.time.advance", "Advance game time", advance_time)
+        app.reflect_system("game.time.advance", "Advance game time", advance_time)
             .reflect_system("game.time.rewind", "Rewind game time", rewind_time)
             .reflect_system(
                 "game.time.toggle_pause",
@@ -54,22 +36,22 @@ impl Plugin for Game {
                 toggle_enable_scroll_time,
             )
             .register_hotkey(
-                "game.open_bundle_dialog",
+                "project.open_bundle_dialog",
                 [Hotkey::new_global([ControlLeft, KeyO])],
             )
             .register_hotkey(
-                "game.open_path_dialog",
+                "project.open_path_dialog",
                 [Hotkey::new_global([ControlLeft, ShiftLeft, KeyO])],
             )
             .register_hotkey(
-                "game.save_chart_as",
+                "project.save_chart_as",
                 [Hotkey::new(
                     [ControlLeft, ShiftLeft, KeyS],
                     ProjectState::has_chart_system(),
                 )],
             )
             .register_hotkey(
-                "game.save_chart",
+                "project.save_chart",
                 [Hotkey::new(
                     [ControlLeft, KeyS],
                     ProjectState::has_chart_system(),
@@ -90,22 +72,22 @@ impl Plugin for Game {
             .register_command::<MainMenuContext>(
                 "file/open_bundle",
                 t!("action-open-bundle"),
-                "game.open_bundle_dialog",
+                "project.open_bundle_dialog",
             )
             .register_command::<MainMenuContext>(
                 "file/open_path",
                 t!("action-open-path"),
-                "game.open_path_dialog",
+                "project.open_path_dialog",
             )
             .register_command::<MainMenuContext>(
                 "file/save_chart",
                 t!("action-save-chart"),
-                "game.save_chart",
+                "project.save_chart",
             )
             .register_command::<MainMenuContext>(
                 "file/save_chart_as",
                 t!("action-save-chart-as"),
-                "game.save_chart_as",
+                "project.save_chart_as",
             )
             .register_tab("game.view", t!("game-view-tab"), game_view_tab, || true);
         // bevy systems
@@ -131,37 +113,7 @@ fn load_textures(server: Res<AssetServer>, mut commands: Commands) {
     });
 }
 
-fn load_bundle(
-    path: In<String>,
-    mut load: EventWriter<LoadChartEvent>,
-    _to_recent_file: (), /* todo */
-) {
-    load.write(LoadChartEvent::Bundle(path.0));
-}
 
-fn load_path(
-    path: In<String>,
-    mut load: EventWriter<LoadChartEvent>,
-    _to_recent_file: (), /* todo */
-) {
-    load.write(LoadChartEvent::Path(path.0));
-}
-
-fn save_chart(mut events: EventWriter<SaveChartEvent>) {
-    events.write(SaveChartEvent);
-}
-
-fn save_chart_as(mut state: ResMut<ProjectState>, mut runner: ResMut<AsyncTaskRunner>) {
-    state.open_save_dialog(&mut runner);
-}
-
-fn open_bundle_dialog(mut state: ResMut<ProjectState>, mut runner: ResMut<AsyncTaskRunner>) {
-    state.open_bundle_dialog(&mut runner);
-}
-
-fn open_path_dialog(mut state: ResMut<ProjectState>, mut runner: ResMut<AsyncTaskRunner>) {
-    state.open_path_dialog(&mut runner);
-}
 
 #[derive(Resource, Default)]
 struct ScrollTimeState(bool);
