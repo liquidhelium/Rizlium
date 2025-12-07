@@ -1,3 +1,4 @@
+use crate::t;
 use crate::time_and_audio::GameAudioSource;
 use bevy::{
     prelude::*,
@@ -10,10 +11,9 @@ use helium_framework::{
     utils::identifier::Identifier,
 };
 use indexmap::IndexSet;
-use rizlium_chart::prelude::*;
 use rizlium_chart::parse::rizline::RizlineChart;
+use rizlium_chart::prelude::*;
 use rizlium_render::ChartProvider;
-use crate::t;
 use serde::{Deserialize, Serialize};
 use std::{
     io::{Cursor, Read},
@@ -302,7 +302,9 @@ fn handle_async_tasks(
 
     match task_enum {
         RunningTask::PickFileOpen(task) => {
-            if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
+            if let Some(result) =
+                futures_lite::future::block_on(futures_lite::future::poll_once(task))
+            {
                 if let Some(path) = result {
                     events.write(LoadChartEvent::Path(path.to_string_lossy().into_owned()));
                 }
@@ -310,7 +312,9 @@ fn handle_async_tasks(
             }
         }
         RunningTask::PickBundleOpen(task) => {
-            if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
+            if let Some(result) =
+                futures_lite::future::block_on(futures_lite::future::poll_once(task))
+            {
                 if let Some(path) = result {
                     events.write(LoadChartEvent::Bundle(path.to_string_lossy().into_owned()));
                 }
@@ -318,27 +322,28 @@ fn handle_async_tasks(
             }
         }
         RunningTask::PickFileSave(task) => {
-            if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
+            if let Some(result) =
+                futures_lite::future::block_on(futures_lite::future::poll_once(task))
+            {
                 if let Some(path) = result {
-                    // Determine format from extension
+                    // Determine format from extension (if not loaded)
                     let format = if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
                         match ext {
-                            "rizline" => ChartFormat::Rizline,
-                            "data" => ChartFormat::RizliumData,
+                            "json" => ChartFormat::Rizline,
+                            "rzd" => ChartFormat::RizliumData,
                             _ => ChartFormat::Rizlium,
                         }
                     } else {
                         ChartFormat::Rizlium
                     };
-                    
+
                     if let ProjectState::Loaded(project) = &*state {
                         let chart = match project {
                             LoadedProject::Folder(_, chart, _) => chart.clone(),
                             LoadedProject::Bundle(_, chart, _) => chart.clone(),
                         };
-                        let save_task = IoTaskPool::get().spawn(async move {
-                            save_chart_to_file(&chart, &path, format).await
-                        });
+                        let save_task = IoTaskPool::get()
+                            .spawn(async move { save_chart_to_file(&chart, &path, format).await });
                         runner.task = Some(RunningTask::Saving(save_task));
                         return; // Don't clear task yet, we replaced it
                     }
@@ -347,7 +352,9 @@ fn handle_async_tasks(
             }
         }
         RunningTask::Loading(task) => {
-            if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
+            if let Some(result) =
+                futures_lite::future::block_on(futures_lite::future::poll_once(task))
+            {
                 match result {
                     Ok(loaded) => {
                         let path = loaded.path.clone();
@@ -380,7 +387,9 @@ fn handle_async_tasks(
             }
         }
         RunningTask::Saving(task) => {
-            if let Some(result) = futures_lite::future::block_on(futures_lite::future::poll_once(task)) {
+            if let Some(result) =
+                futures_lite::future::block_on(futures_lite::future::poll_once(task))
+            {
                 match result {
                     Ok(_) => {
                         toasts.info(t!("project-save-success"));
@@ -404,18 +413,18 @@ fn handle_save_chart_events(
     for _ in events.read() {
         if let ProjectState::Loaded(project) = &*state {
             let (chart, path, format) = match project {
-                LoadedProject::Folder(p, chart, info) => (chart.clone(), p.join(&info.chart_path), info.format.clone()),
-                LoadedProject::Bundle(p, chart, info) => (chart.clone(), p.with_extension("rzl"), info.format.clone()),
+                LoadedProject::Folder(p, chart, info) => {
+                    (chart.clone(), p.join(&info.chart_path), info.format.clone())
+                }
+                LoadedProject::Bundle(p, chart, info) => {
+                    (chart.clone(), p.with_extension("rzl"), info.format.clone())
+                }
             };
-            let task =
-                IoTaskPool::get().spawn(async move { save_chart_to_file(&chart, &path, format).await });
+            let task = IoTaskPool::get()
+                .spawn(async move { save_chart_to_file(&chart, &path, format).await });
             runner.task = Some(RunningTask::Saving(task));
         }
     }
-}
-
-fn handle_save_result() {
-    // Deprecated, handled in handle_async_tasks
 }
 fn process_loading_results(
     mut events: EventReader<ChartLoadingEvent>,
@@ -572,9 +581,9 @@ impl ProjectState {
         let task = IoTaskPool::get().spawn(async {
             use rfd::AsyncFileDialog;
             let file = AsyncFileDialog::new()
-                .add_filter("Rizlium Chart", &["json"])
-                .add_filter("Rizline Chart", &["rizline"])
-                .add_filter("Rizlium Data", &["data"])
+                .add_filter("Rizline Chart", &["json"])
+                .add_filter("Rizlium Chart", &["rzlm"])
+                .add_filter("Rizlium Data", &["rzd"])
                 .save_file()
                 .await;
             file.map(|f| f.path().to_path_buf())
