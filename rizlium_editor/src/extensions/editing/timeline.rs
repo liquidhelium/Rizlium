@@ -33,6 +33,11 @@ struct TimelineState {
     lock_ratio: Option<f32>,
 }
 
+enum TimelineTrackData<'a> {
+    Float(&'a rizlium_chart::prelude::Spline<f32>),
+    Color(&'a rizlium_chart::prelude::Spline<rizlium_chart::prelude::ColorRGBA>),
+}
+
 fn timeline_tab(
     InMut(ui): InMut<Ui>,
     chart_state: Res<ProjectState>,
@@ -45,24 +50,40 @@ fn timeline_tab(
     settings: Res<super::spline::SplineViewSettings>,
 ) {
     let chart = chart_state.chart();
-    let mut tracks: Vec<(&str, &rizlium_chart::prelude::Spline<f32>, String)> = vec![];
+    let mut tracks: Vec<(&str, TimelineTrackData, String)> = vec![];
 
     if let Some(item) = &selected_item.item {
         match item {
             ChartItem::BpmControl => {
-                tracks.push(("BPM", &chart.bpm, "BPM".to_string()));
+                tracks.push(("BPM", TimelineTrackData::Float(&chart.bpm), "BPM".to_string()));
             }
             ChartItem::CameraControl => {
-                tracks.push(("Cam Scale", &chart.cam_scale, "CamScale".to_string()));
-                tracks.push(("Cam Move", &chart.cam_move, "CamMove".to_string()));
+                tracks.push(("Cam Scale", TimelineTrackData::Float(&chart.cam_scale), "CamScale".to_string()));
+                tracks.push(("Cam Move", TimelineTrackData::Float(&chart.cam_move), "CamMove".to_string()));
             },
             ChartItem::Canvas(path) => {
                 let canvas = match chart.canvases.get(path.0) {
                     Some(c) => c,
                     None => return,
                 };
-                tracks.push(("Canvas X Position", &canvas.x_pos, format!("CanvasXPos{}", path.0)));
-                tracks.push(("Canvas Speed", &canvas.speed, format!("CanvasSpeed{}", path.0)));
+                tracks.push(("Canvas X Position", TimelineTrackData::Float(&canvas.x_pos), format!("CanvasXPos{}", path.0)));
+                tracks.push(("Canvas Speed", TimelineTrackData::Float(&canvas.speed), format!("CanvasSpeed{}", path.0)));
+            }
+            ChartItem::Line(path) => {
+                let line = match chart.lines.get(path.0) {
+                    Some(l) => l,
+                    None => return,
+                };
+                tracks.push((
+                    "Ring Color",
+                    TimelineTrackData::Color(&line.ring_color),
+                    format!("LineRingColor{}", path.0),
+                ));
+                tracks.push((
+                    "Line Color",
+                    TimelineTrackData::Color(&line.line_color),
+                    format!("LineLineColor{}", path.0),
+                ));
             }
             _ => {}
         }
@@ -123,7 +144,7 @@ fn timeline_tab(
             }
         },
         |ctx| {
-            for (i, (_, spline, id)) in tracks.iter().enumerate() {
+            for (i, (_, track_data, id)) in tracks.iter().enumerate() {
                 let y = i as f32 * track_height;
                 let screen_y = ctx.y_to_screen(y);
                 // Simple culling
@@ -145,40 +166,126 @@ fn timeline_tab(
                     .allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
                         ui.set_clip_rect(rect);
 
-                        // Auto-fit value range
-                        let (min_val, max_val) = spline
-                            .points()
-                            .iter()
-                            .fold((f32::INFINITY, f32::NEG_INFINITY), |(min, max), p| {
-                                (min.min(p.value), max.max(p.value))
-                            });
-                        let (min_val, max_val) = if min_val.is_infinite() {
-                            (0.0, 1.0)
-                        } else {
-                            (min_val, max_val)
-                        };
+                        match track_data {
+                            TimelineTrackData::Float(spline) => {
+                                // Auto-fit value range
+                                let (min_val, max_val) = spline
+                                    .points()
+                                    .iter()
+                                    .fold((f32::INFINITY, f32::NEG_INFINITY), |(min, max), p| {
+                                        (min.min(p.value), max.max(p.value))
+                                    });
+                                let (min_val, max_val) = if min_val.is_infinite() {
+                                    (0.0, 1.0)
+                                } else {
+                                    (min_val, max_val)
+                                };
 
-                        let range = max_val - min_val;
-                        let margin = if range == 0.0 { 1.0 } else { range * 0.1 };
+                                let range = max_val - min_val;
+                                let margin = if range == 0.0 { 1.0 } else { range * 0.1 };
 
-                        let visible_area = egui::Rect::from_min_max(
-                            egui::pos2(*ctx.visible_time.start(), min_val - margin),
-                            egui::pos2(*ctx.visible_time.end(), max_val + margin),
-                        );
+                                let visible_area = egui::Rect::from_min_max(
+                                    egui::pos2(*ctx.visible_time.start(), min_val - margin),
+                                    egui::pos2(*ctx.visible_time.end(), max_val + margin),
+                                );
 
-                        let sv = SplineView::new(
-                            ui,
-                            spline,
-                            Some(visible_area),
-                            Orientation::Horizontal,
-                            *settings,
-                        );
-                        let (_, clicked) = sv.ui(ui);
-                        if let Some(idx) = clicked {
-                            scroll_events.write(ScrollToPointEvent {
-                                spline_id: id.clone(),
-                                point_index: idx,
-                            });
+                                let sv = SplineView::new(
+                                    ui,
+                                    spline,
+                                    Some(visible_area),
+                                    Orientation::Horizontal,
+                                    *settings,
+                                );
+                                let (_, clicked) = sv.ui(ui);
+                                if let Some(idx) = clicked {
+                                    scroll_events.write(ScrollToPointEvent {
+                                        spline_id: id.clone(),
+                                        point_index: idx,
+                                    });
+                                }
+                            }
+                            TimelineTrackData::Color(spline) => {
+                                let visible_start = *ctx.visible_time.start();
+                                let visible_end = *ctx.visible_time.end();
+                                let duration = visible_end - visible_start;
+                                let width = rect.width();
+
+                                if duration > 0.0 {
+                                    let mut mesh = egui::Mesh::default();
+                                    let step_pixels = 2.0;
+                                    let steps = (width / step_pixels).ceil() as usize;
+
+                                    for i in 0..=steps {
+                                        let t = i as f32 / steps as f32;
+                                        let time = visible_start + t * duration;
+                                        let x = rect.left() + t * width;
+
+                                        if let Some(color) = spline.value(time) {
+                                            let egui_color = egui::Color32::from_rgba_unmultiplied(
+                                                (color.r * 255.0) as u8,
+                                                (color.g * 255.0) as u8,
+                                                (color.b * 255.0) as u8,
+                                                (color.a * 255.0) as u8,
+                                            );
+
+                                            mesh.colored_vertex(egui::pos2(x, rect.top()), egui_color);
+                                            mesh.colored_vertex(egui::pos2(x, rect.bottom()), egui_color);
+
+                                            if i > 0 {
+                                                let idx = mesh.vertices.len() as u32;
+                                                mesh.add_triangle(idx - 4, idx - 3, idx - 2);
+                                                mesh.add_triangle(idx - 3, idx - 1, idx - 2);
+                                            }
+                                        }
+                                    }
+                                    ui.painter().add(mesh);
+                                }
+
+                                // Draw keyframes
+                                let mut clicked_index = None;
+                                let response = ui.allocate_rect(rect, Sense::click());
+
+                                if response.clicked() {
+                                    if let Some(pos) = response.interact_pointer_pos() {
+                                        let t = egui::remap(
+                                            pos.x,
+                                            rect.x_range(),
+                                            ctx.visible_time.clone(),
+                                        );
+                                        if let Ok(idx) = spline.keypoint_at(t) {
+                                            clicked_index = Some(idx);
+                                        }
+                                    }
+                                }
+
+                                for point in spline.points() {
+                                    if point.time >= visible_start && point.time <= visible_end {
+                                        let x = egui::remap(
+                                            point.time,
+                                            ctx.visible_time.clone(),
+                                            rect.x_range(),
+                                        );
+
+                                        ui.painter().circle_filled(
+                                            egui::pos2(x, rect.center().y),
+                                            settings.point_radius,
+                                            settings.point_color,
+                                        );
+                                        ui.painter().circle_stroke(
+                                            egui::pos2(x, rect.center().y),
+                                            settings.point_radius,
+                                            egui::Stroke::new(1.0, Color32::BLACK),
+                                        );
+                                    }
+                                }
+
+                                if let Some(idx) = clicked_index {
+                                    scroll_events.write(ScrollToPointEvent {
+                                        spline_id: id.clone(),
+                                        point_index: idx,
+                                    });
+                                }
+                            }
                         }
                     });
             }

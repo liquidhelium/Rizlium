@@ -1,5 +1,5 @@
 use crate::extensions::editing::spline::{SplineEditorAdapter, SplineListEditor};
-use std::borrow::Cow;
+use crate::t;
 use bevy::{prelude::*, render::view::VisibleEntities};
 use egui::{ScrollArea, Ui};
 use rizlium_chart::{
@@ -11,15 +11,15 @@ use rizlium_chart::{
         },
         commands::{
             EditCanvasSpeedPoint, EditCanvasXPosPoint, EditGlobalPoint, EditPoint,
-            InsertCanvasSpeedPoint, InsertCanvasXPosPoint, InsertGlobalPoint, RemoveCanvasSpeedPoint,
-            RemoveCanvasXPosPoint, RemoveGlobalPoint,
+            InsertCanvasSpeedPoint, InsertCanvasXPosPoint, InsertGlobalPoint,
+            RemoveCanvasSpeedPoint, RemoveCanvasXPosPoint, RemoveGlobalPoint,
         },
         ChartCommands, EditHistory, NotePath,
     },
     prelude::Tween,
 };
 use rizlium_render::{ChartProvider, GameCamera};
-use crate::t;
+use std::borrow::Cow;
 
 use helium_framework::prelude::*;
 
@@ -55,7 +55,7 @@ impl Plugin for Inspector {
         app.register_tab(
             "inspector",
             t!("inspector-tab"),
-            logs,
+            inspector,
             ProjectState::has_chart_system(),
         )
         .init_resource::<SelectedItem>()
@@ -69,7 +69,7 @@ impl Plugin for Inspector {
     }
 }
 
-fn logs(
+fn inspector(
     InMut(mut ui): InMut<Ui>,
     mut chart: ResMut<ProjectState>,
     selected: Res<SelectedItem>,
@@ -155,6 +155,39 @@ fn logs(
                             ));
                         }
                     });
+                // line color list
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show_viewport(ui, |ui, _rect| {
+                        for (i, color) in line.line_color.iter().enumerate() {
+                            ui.horizontal(|ui| {
+                                ui.label(format!("Color {}:", i));
+                                ui.color_edit_button_rgba_unmultiplied(&mut [
+                                    color.value.r,
+                                    color.value.g,
+                                    color.value.b,
+                                    color.value.a,
+                                ]);
+                            });
+                        }
+                    });
+
+                // ring color list
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false; 2])
+                    .show_viewport(ui, |ui, _rect| {
+                        for (i, color) in line.ring_color.iter().enumerate() {
+                            ui.horizontal(|ui| {
+                                ui.label(format!("Point Color {}:", i));
+                                ui.color_edit_button_rgba_unmultiplied(&mut [
+                                    color.value.r,
+                                    color.value.g,
+                                    color.value.b,
+                                    color.value.a,
+                                ]);
+                            });
+                        }
+                    });
             });
         }
         ChartItem::Note(n) => {
@@ -193,7 +226,7 @@ fn logs(
                     chart.reborrow().map_unchanged(|c| c.chart_mut()),
                     &mut chart_edit_history,
                     scroll,
-                    &format!("CanvasXPos{}", c.0)
+                    &format!("CanvasXPos{}", c.0),
                 );
                 ui.separator();
                 ui.heading("Speed");
@@ -203,7 +236,7 @@ fn logs(
                     chart.reborrow().map_unchanged(|c| c.chart_mut()),
                     &mut chart_edit_history,
                     scroll,
-                    &format!("CanvasSpeed{}", c.0)
+                    &format!("CanvasSpeed{}", c.0),
                 );
             }
         }
@@ -244,7 +277,7 @@ fn logs(
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
                 scroll,
-                "Theme"
+                "Theme",
             );
         }
         ChartItem::BpmControl => {
@@ -254,7 +287,7 @@ fn logs(
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
                 scroll,
-                "BPM"
+                "BPM",
             );
         }
         ChartItem::CameraControl => {
@@ -265,7 +298,7 @@ fn logs(
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
                 scroll,
-                "CamScale"
+                "CamScale",
             );
 
             ui.separator();
@@ -276,7 +309,7 @@ fn logs(
                 chart.reborrow().map_unchanged(|c| c.chart_mut()),
                 &mut chart_edit_history,
                 scroll,
-                "CamMove"
+                "CamMove",
             );
         }
     }
@@ -621,12 +654,12 @@ fn debug_window(
             }
             ui.separator();
             ui.heading("History");
-            for ed in history.inverse(){
+            for ed in history.inverse() {
                 ui.label(format!("{:#?}", ed));
             }
             ui.separator();
             ui.heading("Redo cache");
-            for ed in history.redo_inverse(){
+            for ed in history.redo_inverse() {
                 ui.label(format!("{:#?}", ed));
             }
             let cam = camera.single()?;
