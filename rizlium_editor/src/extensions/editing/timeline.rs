@@ -42,6 +42,7 @@ fn timeline_tab(
     mut time_control: EventWriter<crate::time_and_audio::TimeControlEvent>,
     chart_cache: Res<rizlium_render::GameChartCache>,
     mut scroll_events: EventWriter<ScrollToPointEvent>,
+    settings: Res<super::spline::SplineViewSettings>,
 ) {
     let chart = chart_state.chart();
     let mut tracks: Vec<(&str, &rizlium_chart::prelude::Spline<f32>, String)> = vec![];
@@ -170,6 +171,7 @@ fn timeline_tab(
                             spline,
                             Some(visible_area),
                             Orientation::Horizontal,
+                            *settings,
                         );
                         let (_, clicked) = sv.ui(ui);
                         if let Some(idx) = clicked {

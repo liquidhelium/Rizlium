@@ -39,8 +39,12 @@ impl Plugin for Editing {
             tool_config,
             ProjectState::has_chart_system(),
         );
-        app.add_plugins((world_view::WorldViewPlugin, timeline::TimelinePlugin))
-            .init_resource::<ChartEditHistory>();
+        app.add_plugins((
+            world_view::WorldViewPlugin,
+            timeline::TimelinePlugin,
+            spline::SplineSettingsPlugin,
+        ))
+        .init_resource::<ChartEditHistory>();
         app.reflect_system("edit.undo", t!("edit-undo-desc"), undo_redo::undo)
             .reflect_system("edit.redo", t!("edit-redo-desc"), undo_redo::redo)
             .reflect_system(
@@ -196,6 +200,7 @@ pub fn spline_edit(
     mut current: Local<usize>,
     mut visible_rect: Local<Option<egui::Rect>>,
     _external: Local<Spline<f32>>,
+    settings: Res<spline::SplineViewSettings>,
 ) {
     let mut show_first = false;
     ui.scope(|ui| {
@@ -213,8 +218,13 @@ pub fn spline_edit(
 
         ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui| {
             let spline = &chart.chart().canvases[*current].speed;
-            let spline_view =
-                SplineView::new(ui, spline, *visible_rect, spline::Orientation::Horizontal);
+            let spline_view = SplineView::new(
+                ui,
+                spline,
+                *visible_rect,
+                spline::Orientation::Horizontal,
+                *settings,
+            );
             let (response, _) = spline_view.ui(ui);
             let spline_area = spline_view.spline_area();
             const WIDTH: f32 = 80.0;

@@ -9,6 +9,7 @@ use bevy::{
 };
 use bevy_persistent::{Persistent, StorageFormat};
 use egui::Ui;
+use helium_framework::prelude::ToastsStorage;
 use crate::t;
 use serde::{Deserialize, Serialize};
 
@@ -62,6 +63,8 @@ fn language_ui(
 ) -> Option<Cow<'static, str>> {
     let ui = &mut ui;
     let current = locale.0.clone();
+    ui.label(t!("settings-language"));
+    ui.label(t!("settings-language-desc"));
     ui.menu_button(current, |ui| {
         for &l in rizlium_l10n::LANGS.iter() {
             if ui.button(l).clicked() {
@@ -76,7 +79,8 @@ fn language_ui(
     .or(new_locale)
 }
 
-fn set_locale(In(locale): In<Cow<'static, str>>, mut res: ResMut<Persistent<Locale>>) {
+fn set_locale(In(locale): In<Cow<'static, str>>, mut res: ResMut<Persistent<Locale>>, mut toast: ResMut<ToastsStorage>) {
     res.0 = locale;
     res.persist().expect("failed to save config");
+    toast.info(t!("settings-language-changed-restart"));
 }

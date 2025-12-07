@@ -1,3 +1,4 @@
+rizlium_l10n::tl_file!("settings");
 use bevy::{
     app::{App, Plugin},
     ecs::{
@@ -49,7 +50,7 @@ impl Plugin for SettingsPlugin {
 fn settings_tab(InMut(ui): InMut<Ui>, world: &mut World, mut opened_tab: Local<usize>) {
     world.resource_scope(
         |world: &mut World, mut registry: Mut<SettingsModuleRegistry>| {
-            ui.heading("Settings");
+            ui.heading(tl!("settings"));
             ui.scope(|ui| {
                 SidePanel::left("settings_entry")
                     .min_width(60.)
@@ -71,7 +72,7 @@ fn settings_tab(InMut(ui): InMut<Ui>, world: &mut World, mut opened_tab: Local<u
                         runner.run_ui_system(ui, world);
                         let has_mutation = runner.has_mutation();
                         ui.with_layout(Layout::right_to_left(Align::BOTTOM), |ui| {
-                            if ui.add_enabled(has_mutation, Button::new("Apply")).clicked() {
+                            if ui.add_enabled(has_mutation, Button::new(tl!("apply"))).clicked() {
                                 runner.run_apply_system(world);
                             }
                         });

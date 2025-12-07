@@ -1,0 +1,2 @@
+apply = Apply
+settings = Settings

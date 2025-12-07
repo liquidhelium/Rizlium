@@ -44,3 +44,6 @@ edit-timeline-tab = 时间线
 edit-timeline-select-hint = 选择一个对象来查看
 
 edit-world-view-pencil-tool-empty-x-pos = 画布不存在x坐标
+
+settings-language-desc = 选择编辑器界面的语言（需要重启）
+settings-language-changed-restart = 语言已更改。请重启编辑器以应用新语言。

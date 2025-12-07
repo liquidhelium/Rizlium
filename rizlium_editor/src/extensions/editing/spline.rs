@@ -1,5 +1,11 @@
+rizlium_l10n::tl_file!("spline");
+
 use crate::extensions::inspector::edit_scope;
-use bevy::prelude::Mut;
+use crate::settings_module::{SettingsModule, SettingsModuleStruct, SettingsRegistrationExt};
+use bevy::prelude::{
+    App, In, InMut, IntoSystem, Mut, Plugin, ReadOnlySystem, Res, ResMut, Resource, System, World,
+};
+use std::borrow::Cow;
 use egui::{
     emath::RectTransform, epaint::PathShape, pos2, remap, Color32, Pos2, Rect, Response, Sense,
     Stroke, Ui,
@@ -37,6 +43,7 @@ pub struct SplineView<'a, R> {
     visible_spline_area: Rect,
     view_to_spline: RectTransform,
     orientation: Orientation,
+    settings: SplineViewSettings,
 }
 
 impl<'a, R> SplineView<'a, R> {
@@ -45,6 +52,7 @@ impl<'a, R> SplineView<'a, R> {
         spline: &'a Spline<f32, R>,
         visible_spline_area: Option<Rect>,
         orientation: Orientation,
+        settings: SplineViewSettings,
     ) -> Self {
         // Use the available rect as both screen and view area to ensure correct positioning relative to the window
         let view_area = ui.available_rect_before_wrap();
@@ -63,6 +71,7 @@ impl<'a, R> SplineView<'a, R> {
             visible_spline_area,
             view_to_spline: RectTransform::from_to(view_area, visible_spline_area),
             orientation,
+            settings,
         }
     }
 
@@ -148,14 +157,14 @@ impl<'a, R> SplineView<'a, R> {
         }
         let line = PathShape::line(
             linepoints_view,
-            Stroke::new(2.0, Color32::BLUE),
+            Stroke::new(self.settings.line_width, self.settings.line_color),
         );
         painter.add(line);
         for cir in circles_view {
             painter.circle_stroke(
                 cir,
-                2.0,
-                Stroke::new(2.0, Color32::YELLOW),
+                self.settings.point_radius,
+                Stroke::new(2.0, self.settings.point_color),
             );
         }
         (response, clicked_index)
@@ -341,5 +350,73 @@ impl<A: SplineEditorAdapter> SplineListEditor<A> {
                     }
                 })
         });
+    }
+}
+
+#[derive(Resource, Clone, Copy, Debug, PartialEq)]
+pub struct SplineViewSettings {
+    pub line_color: Color32,
+    pub point_color: Color32,
+    pub line_width: f32,
+    pub point_radius: f32,
+}
+
+impl Default for SplineViewSettings {
+    fn default() -> Self {
+        Self {
+            line_color: Color32::BLUE,
+            point_color: Color32::YELLOW,
+            line_width: 2.0,
+            point_radius: 2.0,
+        }
+    }
+}
+
+
+fn spline_settings_ui(
+    In((mut ui, settings)): In<(Ui, Option<SplineViewSettings>)>,
+    current_settings: Res<SplineViewSettings>,
+) -> Option<SplineViewSettings> {
+    let mut editing_settings = settings.unwrap_or(*current_settings);
+    let mut changed = false;
+    ui.vertical(|ui| {
+        ui.horizontal(|ui| {
+            ui.label(tl!("spline-line-color"));
+            changed |= ui.color_edit_button_srgba(&mut editing_settings.line_color).changed();
+        });
+        ui.horizontal(|ui| {
+            ui.label(tl!("spline-point-color"));
+            changed |= ui.color_edit_button_srgba(&mut editing_settings.point_color).changed();
+        });
+        ui.horizontal(|ui| {
+            ui.label(tl!("spline-line-width"));
+            changed |= ui.add(egui::DragValue::new(&mut editing_settings.line_width).speed(0.1)).changed();
+        });
+        ui.horizontal(|ui| {
+            ui.label(tl!("spline-point-radius"));
+            changed |= ui.add(egui::DragValue::new(&mut editing_settings.point_radius).speed(0.1)).changed();
+        });
+    });
+
+    if settings.is_some() || changed {
+        Some(editing_settings)
+    } else {
+        None
+    }
+}
+
+fn spline_settings_apply(
+    In(settings): In<SplineViewSettings>,
+    mut current_settings: ResMut<SplineViewSettings>,
+) {
+    *current_settings = settings;
+}
+
+pub struct SplineSettingsPlugin;
+
+impl Plugin for SplineSettingsPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<SplineViewSettings>()
+            .register_settings_module("spline_view", SettingsModuleStruct::new(spline_settings_ui, spline_settings_apply, tl!("spline-view-settings")));
     }
 }

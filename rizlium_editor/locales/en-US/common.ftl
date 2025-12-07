@@ -44,3 +44,6 @@ edit-timeline-tab = Timeline
 edit-timeline-select-hint = Select an object to view timeline
 
 edit-world-view-pencil-tool-empty-x-pos = Canvas X position is empty
+
+settings-language-desc = Select the language for the editor interface (requires restart)
+settings-language-changed-restart = Language changed. Please restart the editor to apply the new language.
