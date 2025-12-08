@@ -1,4 +1,4 @@
-use crate::{chart::Canvas, prelude::{Chart, KeyPoint, Line, LinePointData, Note, Spline, Tween}};
+use crate::{chart::Canvas, prelude::{Chart, KeyPoint, LayoutNote, Line, LinePointData, Note, Spline, Tween}};
 
 use super::{ChartConflictError, Result};
 
@@ -550,5 +550,54 @@ impl ChartPath for RingColorPath {
                 index: self.1,
             })
         }
+    }
+}
+
+/// 谱面配置中音符的路径
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct LayoutNotePath(pub usize);
+
+impl LayoutNotePath {
+    pub fn new(index: usize) -> Self {
+        Self(index)
+    }
+}
+
+impl ChartPath for LayoutNotePath {
+    type Out = LayoutNote;
+    
+    fn get<'c>(&self, chart: &'c Chart) -> Result<&'c LayoutNote> {
+        chart
+            .layout_notes
+            .get(self.0)
+            .ok_or(ChartConflictError::InvalidLayoutNotePath { layout_note_path: *self })
+    }
+    
+    fn get_mut<'c>(&self, chart: &'c mut Chart) -> Result<&'c mut LayoutNote> {
+        chart
+            .layout_notes
+            .get_mut(self.0)
+            .ok_or(ChartConflictError::InvalidLayoutNotePath { layout_note_path: *self })
+    }
+    
+    fn remove(&self, chart: &mut Chart) -> Result<Self::Out> {
+        let len = chart.layout_notes.len();
+        (len > self.0)
+            .then(|| chart.layout_notes.remove(self.0))
+            .ok_or(ChartConflictError::InvalidLayoutNotePath { layout_note_path: *self })
+    }
+    
+    fn valid(&self, chart: &Chart) -> Result<()> {
+        if chart.layout_notes.len() > self.0 {
+            Ok(())
+        } else {
+            Err(ChartConflictError::InvalidLayoutNotePath { layout_note_path: *self })
+        }
+    }
+}
+
+impl From<usize> for LayoutNotePath {
+    fn from(value: usize) -> Self {
+        Self(value)
     }
 }

@@ -184,6 +184,33 @@ impl From<Note> for original::Note {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LayoutNote {
+    pub time: f32,
+    pub x: f32,
+    pub kind: NoteKind,
+}
+
+impl From<original::LayoutNote> for LayoutNote {
+    fn from(src: original::LayoutNote) -> Self {
+        Self {
+            time: src.time,
+            x: src.x,
+            kind: src.kind,
+        }
+    }
+}
+
+impl From<LayoutNote> for original::LayoutNote {
+    fn from(src: LayoutNote) -> Self {
+        Self {
+            time: src.time,
+            x: src.x,
+            kind: src.kind,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct LinePointData {
     pub canvas: usize,
@@ -273,6 +300,8 @@ pub struct Chart {
     pub bpm: Spline<f32>,
     pub cam_scale: Spline<f32>,
     pub cam_move: Spline<f32>,
+    #[serde(default)]
+    pub layout_notes: Vec<LayoutNote>,
 }
 
 impl From<original::Chart> for Chart {
@@ -285,6 +314,7 @@ impl From<original::Chart> for Chart {
             bpm: src.bpm.into(),
             cam_scale: src.cam_scale.into(),
             cam_move: src.cam_move.into(),
+            layout_notes: src.layout_notes.into_iter().map(|n| n.into()).collect(),
         }
     }
 }
@@ -317,6 +347,7 @@ impl From<Chart> for original::Chart {
             bpm: src.bpm.into(),
             cam_scale: src.cam_scale.into(),
             cam_move: src.cam_move.into(),
+            layout_notes: src.layout_notes.into_iter().map(|n| n.into()).collect(),
         }
     }
 }

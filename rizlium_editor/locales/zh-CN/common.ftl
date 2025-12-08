@@ -47,3 +47,10 @@ edit-world-view-pencil-tool-empty-x-pos = 画布不存在x坐标
 
 settings-language-desc = 选择编辑器界面的语言（需要重启）
 settings-language-changed-restart = 语言已更改。请重启编辑器以应用新语言。
+
+edit-layout-tab = 谱面配置
+edit-layout-tool = 工具:
+edit-layout-pencil = 铅笔
+edit-layout-select = 选择
+edit-layout-note-kind = 音符类型:
+edit-layout-follow = 跟随游标

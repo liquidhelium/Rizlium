@@ -217,5 +217,6 @@ pub fn build_chart(smf: &Smf, ticks_per_beat: u32) -> rizlium_chart::chart::Char
             .iter()
             .flat_map(|t| midi_track_to_lines(t, ticks_per_beat))
             .collect(),
+        layout_notes: vec![],
     }
 }

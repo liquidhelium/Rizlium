@@ -13,6 +13,7 @@ use spline::SplineView;
 pub mod note;
 pub mod spline;
 pub mod timeline;
+pub mod layout_editor;
 mod tool_config_window;
 mod tool_select_bar;
 mod undo_redo;
@@ -43,6 +44,7 @@ impl Plugin for Editing {
             world_view::WorldViewPlugin,
             timeline::TimelinePlugin,
             spline::SplineSettingsPlugin,
+            layout_editor::LayoutEditorPlugin,
         ))
         .init_resource::<ChartEditHistory>();
         app.reflect_system("edit.undo", t!("edit-undo-desc"), undo_redo::undo)

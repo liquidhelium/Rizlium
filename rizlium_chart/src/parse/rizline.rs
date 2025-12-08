@@ -497,6 +497,7 @@ impl TryInto<chart::Chart> for RizlineChart {
                 .map(TryInto::try_into)
                 .collect::<ConvertResult<_>>()?,
             bpm,
+            layout_notes: vec![],
         })
     }
 }

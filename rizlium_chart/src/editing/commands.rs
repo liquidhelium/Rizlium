@@ -12,6 +12,8 @@ mod canvases;
 pub use canvases::*;
 mod global_spline;
 pub use global_spline::*;
+mod layout_note;
+pub use layout_note::*;
 
 #[enum_dispatch(ChartCommand)]
 #[derive(Debug, Clone)]
@@ -60,6 +62,13 @@ pub enum ChartCommands {
     InsertRingColorPoint(InsertRingColorPoint),
     RemoveRingColorPoint(RemoveRingColorPoint),
     EditRingColorPoint(EditRingColorPoint),
+
+    ChangeLayoutNoteTime,
+    ChangeLayoutNoteX,
+    MoveLayoutNote,
+    InsertLayoutNote,
+    RemoveLayoutNote,
+    ChangeLayoutNoteKind,
 
     CommandSequence,
     Nop,

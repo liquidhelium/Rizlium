@@ -1,5 +1,6 @@
 mod color;
 mod easing;
+mod layout_note;
 mod line;
 mod note;
 mod theme;
@@ -9,6 +10,7 @@ use std::{sync::OnceLock, vec};
 
 pub use color::*;
 pub use easing::*;
+pub use layout_note::*;
 pub use line::*;
 pub use note::*;
 #[cfg(feature = "deserialize")]
@@ -32,6 +34,9 @@ pub struct Chart {
     pub bpm: Spline<f32>,
     pub cam_scale: Spline<f32>,
     pub cam_move: Spline<f32>,
+    /// 谱面配置中的音符布局，用于辅助音符放置
+    #[cfg_attr(feature = "deserialize", serde(default))]
+    pub layout_notes: Vec<LayoutNote>,
 }
 
 impl Chart {
@@ -80,6 +85,7 @@ impl Chart {
                     relevant: (),
                 }
             ].into(),
+            layout_notes: vec![],
         }
     }
     pub fn theme_at(&self, time: f32) -> Result<ThemeTransition<'_>, Whatever> {

@@ -47,3 +47,10 @@ edit-world-view-pencil-tool-empty-x-pos = Canvas X position is empty
 
 settings-language-desc = Select the language for the editor interface (requires restart)
 settings-language-changed-restart = Language changed. Please restart the editor to apply the new language.
+
+edit-layout-tab = Layout
+edit-layout-tool = Tool:
+edit-layout-pencil = Pencil
+edit-layout-select = Select
+edit-layout-note-kind = Note Type:
+edit-layout-follow = Follow Cursor

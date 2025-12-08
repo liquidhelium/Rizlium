@@ -5,7 +5,7 @@ use snafu::Snafu;
 
 use self::chart_path::LinePath;
 pub use self::{
-    chart_path::NotePath,
+    chart_path::{NotePath, LayoutNotePath},
     commands::{ChartCommand, ChartCommands},
 };
 /// Representation of a chart item
@@ -17,6 +17,10 @@ pub enum ChartConflictError {
     #[snafu(display("Invalid note path: {note_path:?}"))]
     InvalidNotePath {
         note_path: NotePath,
+    },
+    #[snafu(display("Invalid layout note path: {layout_note_path:?}"))]
+    InvalidLayoutNotePath {
+        layout_note_path: LayoutNotePath,
     },
     #[snafu(display("Invalid line path: {line_path:?}"))]
     InvalidLinePath {
