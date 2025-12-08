@@ -228,8 +228,8 @@ fn timeline_tab(
                                                 (color.a * 255.0) as u8,
                                             );
 
-                                            mesh.colored_vertex(egui::pos2(x, rect.top()), egui_color);
-                                            mesh.colored_vertex(egui::pos2(x, rect.bottom()), egui_color);
+                                            mesh.colored_vertex(egui::pos2(x, rect.center().y - settings.point_radius * 2.0), egui_color);
+                                            mesh.colored_vertex(egui::pos2(x, rect.center().y + settings.point_radius * 2.0), egui_color);
 
                                             if i > 0 {
                                                 let idx = mesh.vertices.len() as u32;

@@ -53,6 +53,14 @@ pub enum ChartCommands {
     RemoveCamMovePoint(RemoveGlobalPoint<CamMoveSelector>),
     EditCamMovePoint(EditGlobalPoint<CamMoveSelector>),
 
+    InsertLineColorPoint(InsertLineColorPoint),
+    RemoveLineColorPoint(RemoveLineColorPoint),
+    EditLineColorPoint(EditLineColorPoint),
+
+    InsertRingColorPoint(InsertRingColorPoint),
+    RemoveRingColorPoint(RemoveRingColorPoint),
+    EditRingColorPoint(EditRingColorPoint),
+
     CommandSequence,
     Nop,
 }

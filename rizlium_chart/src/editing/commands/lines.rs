@@ -2,7 +2,7 @@ use std::mem::replace;
 
 use crate::{
     editing::{
-        chart_path::{ChartPath, LinePath},
+        chart_path::{ChartPath, LinePath, LineColorPath, RingColorPath},
         ChartConflictError,
     },
     prelude::*,
@@ -258,3 +258,166 @@ impl ChartCommand for RemovePoint {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct InsertLineColorPoint {
+    pub point: KeyPoint<ColorRGBA>,
+    pub at: Option<usize>,
+    pub line_index: usize,
+}
+
+impl ChartCommand for InsertLineColorPoint {
+    fn apply(self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+        let line = chart.lines.get_mut(self.line_index).ok_or(crate::editing::ChartConflictError::InvalidLinePath { line_path: self.line_index.into() })?;
+        let len = line.line_color.points().len();
+        let at = self.at.unwrap_or(len);
+        if at > len {
+             return Err(crate::editing::ChartConflictError::IndexOutOfBounds { index: at, len });
+        }
+        line.line_color.points.insert(at, self.point.clone());
+        Ok(RemoveLineColorPoint {
+            path: LineColorPath::new(self.line_index, at),
+        }.into())
+    }
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
+        let line = chart.lines.get(self.line_index).ok_or(crate::editing::ChartConflictError::InvalidLinePath { line_path: self.line_index.into() })?;
+        let len = line.line_color.points().len();
+        if let Some(at) = self.at {
+            if at > len {
+                return Err(crate::editing::ChartConflictError::IndexOutOfBounds { index: at, len });
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RemoveLineColorPoint {
+    pub path: LineColorPath,
+}
+
+impl ChartCommand for RemoveLineColorPoint {
+    fn apply(self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+        let point = self.path.remove(chart)?;
+        Ok(InsertLineColorPoint {
+            point,
+            at: Some(self.path.1),
+            line_index: self.path.0,
+        }.into())
+    }
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
+        self.path.valid(chart)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EditLineColorPoint {
+    pub path: LineColorPath,
+    pub new_time: Option<f32>,
+    pub new_value: Option<ColorRGBA>,
+    pub new_easing: Option<EasingId>,
+}
+
+impl ChartCommand for EditLineColorPoint {
+    fn apply(self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+        let point = self.path.get_mut(chart)?;
+        let current_time = point.time;
+        let old_time = replace(&mut point.time, self.new_time.unwrap_or(current_time));
+        let current_value = point.value;
+        let old_value = replace(&mut point.value, self.new_value.unwrap_or(current_value));
+        let current_easing = point.ease_type;
+        let old_easing = replace(&mut point.ease_type, self.new_easing.unwrap_or(current_easing));
+        
+        Ok(EditLineColorPoint {
+            path: self.path,
+            new_time: Some(old_time),
+            new_value: Some(old_value),
+            new_easing: Some(old_easing),
+        }.into())
+    }
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
+        self.path.valid(chart)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct InsertRingColorPoint {
+    pub point: KeyPoint<ColorRGBA>,
+    pub at: Option<usize>,
+    pub line_index: usize,
+}
+
+impl ChartCommand for InsertRingColorPoint {
+    fn apply(self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+        let line = chart.lines.get_mut(self.line_index).ok_or(crate::editing::ChartConflictError::InvalidLinePath { line_path: self.line_index.into() })?;
+        let len = line.ring_color.points().len();
+        let at = self.at.unwrap_or(len);
+        if at > len {
+             return Err(crate::editing::ChartConflictError::IndexOutOfBounds { index: at, len });
+        }
+        line.ring_color.points.insert(at, self.point.clone());
+        Ok(RemoveRingColorPoint {
+            path: RingColorPath::new(self.line_index, at),
+        }.into())
+    }
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
+        let line = chart.lines.get(self.line_index).ok_or(crate::editing::ChartConflictError::InvalidLinePath { line_path: self.line_index.into() })?;
+        let len = line.ring_color.points().len();
+        if let Some(at) = self.at {
+            if at > len {
+                return Err(crate::editing::ChartConflictError::IndexOutOfBounds { index: at, len });
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RemoveRingColorPoint {
+    pub path: RingColorPath,
+}
+
+impl ChartCommand for RemoveRingColorPoint {
+    fn apply(self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+        let point = self.path.remove(chart)?;
+        Ok(InsertRingColorPoint {
+            point,
+            at: Some(self.path.1),
+            line_index: self.path.0,
+        }.into())
+    }
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
+        self.path.valid(chart)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EditRingColorPoint {
+    pub path: RingColorPath,
+    pub new_time: Option<f32>,
+    pub new_value: Option<ColorRGBA>,
+    pub new_easing: Option<EasingId>,
+}
+
+impl ChartCommand for EditRingColorPoint {
+    fn apply(self, chart: &mut Chart) -> crate::editing::Result<super::ChartCommands> {
+        let point = self.path.get_mut(chart)?;
+        let current_time = point.time;
+        let old_time = replace(&mut point.time, self.new_time.unwrap_or(current_time));
+        let current_value = point.value;
+        let old_value = replace(&mut point.value, self.new_value.unwrap_or(current_value));
+        let current_easing = point.ease_type;
+        let old_easing = replace(&mut point.ease_type, self.new_easing.unwrap_or(current_easing));
+        
+        Ok(EditRingColorPoint {
+            path: self.path,
+            new_time: Some(old_time),
+            new_value: Some(old_value),
+            new_easing: Some(old_easing),
+        }.into())
+    }
+    fn validate(&self, chart: &Chart) -> crate::editing::Result<()> {
+        self.path.valid(chart)
+    }
+}
+

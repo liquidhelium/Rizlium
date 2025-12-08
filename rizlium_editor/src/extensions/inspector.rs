@@ -143,52 +143,34 @@ fn inspector(
             });
         }
         ChartItem::Line(l) => {
-            show_ui(ui, *l, &chart.chart(), |ui, line| {
-                ui.strong(format!("Line {}:", l.0));
-                egui::ScrollArea::vertical()
-                    .auto_shrink([false; 2])
-                    .show_viewport(ui, |ui, _rect| {
-                        for (i, point) in line.points.iter().enumerate() {
-                            ui.label(format!(
-                                "Point {}: time = {:.2}, value = {:.2}",
-                                i, point.time, point.value
-                            ));
-                        }
-                    });
-                // line color list
-                egui::ScrollArea::vertical()
-                    .auto_shrink([false; 2])
-                    .show_viewport(ui, |ui, _rect| {
-                        for (i, color) in line.line_color.iter().enumerate() {
-                            ui.horizontal(|ui| {
-                                ui.label(format!("Color {}:", i));
-                                ui.color_edit_button_rgba_unmultiplied(&mut [
-                                    color.value.r,
-                                    color.value.g,
-                                    color.value.b,
-                                    color.value.a,
-                                ]);
-                            });
-                        }
-                    });
+            // show_ui(ui, *l, &chart.chart(), |ui, line| {
+            ui.strong(format!("Line {}:", l.0));
+            // line color list
+            ui.heading("Line Color");
+            let scroll = scroll_targets
+                .get(&format!("LineLineColor{}", l.0))
+                .copied();
+            SplineListEditor::new(LineColorAdapter { line_index: l.0 }).show(
+                ui,
+                chart.reborrow().map_unchanged(|c| c.chart_mut()),
+                &mut chart_edit_history,
+                scroll,
+                &format!("LineLineColor{}", l.0),
+            );
 
-                // ring color list
-                egui::ScrollArea::vertical()
-                    .auto_shrink([false; 2])
-                    .show_viewport(ui, |ui, _rect| {
-                        for (i, color) in line.ring_color.iter().enumerate() {
-                            ui.horizontal(|ui| {
-                                ui.label(format!("Point Color {}:", i));
-                                ui.color_edit_button_rgba_unmultiplied(&mut [
-                                    color.value.r,
-                                    color.value.g,
-                                    color.value.b,
-                                    color.value.a,
-                                ]);
-                            });
-                        }
-                    });
-            });
+            // ring color list
+            ui.heading("Ring Color");
+            let scroll = scroll_targets
+                .get(&format!("LineRingColor{}", l.0))
+                .copied();
+            SplineListEditor::new(RingColorAdapter { line_index: l.0 }).show(
+                ui,
+                chart.reborrow().map_unchanged(|c| c.chart_mut()),
+                &mut chart_edit_history,
+                scroll,
+                &format!("LineRingColor{}", l.0),
+            );
+            // });
         }
         ChartItem::Note(n) => {
             // show_ui(ui, *n, &chart.chart(), |ui, note| {
@@ -677,4 +659,114 @@ fn debug_window(
         })
         .inner
         .unwrap();
+}
+
+struct LineColorAdapter {
+    line_index: usize,
+}
+
+impl SplineEditorAdapter for LineColorAdapter {
+    type Tween = rizlium_chart::chart::ColorRGBA;
+    type Relevant = ();
+    type Path = rizlium_chart::editing::chart_path::LineColorPath;
+
+    fn get_spline<'a>(&self, chart: &'a Chart) -> &'a Spline<Self::Tween, Self::Relevant> {
+        &chart.lines[self.line_index].line_color
+    }
+    fn path(&self, index: usize) -> Self::Path {
+        rizlium_chart::editing::chart_path::LineColorPath::new(self.line_index, index)
+    }
+    fn edit_command(
+        &self,
+        path: Self::Path,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::EditLineColorPoint(rizlium_chart::editing::commands::EditLineColorPoint {
+            path,
+            new_time: Some(point.time),
+            new_value: Some(point.value),
+            new_easing: Some(point.ease_type),
+        })
+    }
+    fn add_command(
+        &self,
+        index: usize,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::InsertLineColorPoint(
+            rizlium_chart::editing::commands::InsertLineColorPoint {
+                point,
+                at: Some(index),
+                line_index: self.line_index,
+            },
+        )
+    }
+    fn remove_command(&self, index: usize) -> ChartCommands {
+        ChartCommands::RemoveLineColorPoint(
+            rizlium_chart::editing::commands::RemoveLineColorPoint {
+                path: rizlium_chart::editing::chart_path::LineColorPath::new(
+                    self.line_index,
+                    index,
+                ),
+            },
+        )
+    }
+    fn value_ui(&self, ui: &mut Ui, value: &mut Self::Tween) -> egui::Response {
+        ui.color_edit_button_rgba_unmultiplied(&mut [value.r, value.g, value.b, value.a])
+    }
+}
+
+struct RingColorAdapter {
+    line_index: usize,
+}
+
+impl SplineEditorAdapter for RingColorAdapter {
+    type Tween = rizlium_chart::chart::ColorRGBA;
+    type Relevant = ();
+    type Path = rizlium_chart::editing::chart_path::RingColorPath;
+
+    fn get_spline<'a>(&self, chart: &'a Chart) -> &'a Spline<Self::Tween, Self::Relevant> {
+        &chart.lines[self.line_index].ring_color
+    }
+    fn path(&self, index: usize) -> Self::Path {
+        rizlium_chart::editing::chart_path::RingColorPath::new(self.line_index, index)
+    }
+    fn edit_command(
+        &self,
+        path: Self::Path,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::EditRingColorPoint(rizlium_chart::editing::commands::EditRingColorPoint {
+            path,
+            new_time: Some(point.time),
+            new_value: Some(point.value),
+            new_easing: Some(point.ease_type),
+        })
+    }
+    fn add_command(
+        &self,
+        index: usize,
+        point: KeyPoint<Self::Tween, Self::Relevant>,
+    ) -> ChartCommands {
+        ChartCommands::InsertRingColorPoint(
+            rizlium_chart::editing::commands::InsertRingColorPoint {
+                point,
+                at: Some(index),
+                line_index: self.line_index,
+            },
+        )
+    }
+    fn remove_command(&self, index: usize) -> ChartCommands {
+        ChartCommands::RemoveRingColorPoint(
+            rizlium_chart::editing::commands::RemoveRingColorPoint {
+                path: rizlium_chart::editing::chart_path::RingColorPath::new(
+                    self.line_index,
+                    index,
+                ),
+            },
+        )
+    }
+    fn value_ui(&self, ui: &mut Ui, value: &mut Self::Tween) -> egui::Response {
+        ui.color_edit_button_rgba_unmultiplied(&mut [value.r, value.g, value.b, value.a])
+    }
 }

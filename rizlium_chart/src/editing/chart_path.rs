@@ -418,3 +418,137 @@ impl ChartPath for CanvasSpeedPath {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct LineColorPath(pub usize, pub usize);
+
+impl LineColorPath {
+    pub fn new(line_idx: usize, point_idx: usize) -> Self {
+        Self(line_idx, point_idx)
+    }
+}
+
+impl ChartPath for LineColorPath {
+    type Out = KeyPoint<crate::chart::ColorRGBA>;
+    fn get<'c>(&self, chart: &'c Chart) -> Result<&'c Self::Out> {
+        chart
+            .lines
+            .get(self.0)
+            .ok_or(ChartConflictError::InvalidLinePath { line_path: self.0.into() })?
+            .line_color
+            .points()
+            .get(self.1)
+            .ok_or(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "LineColor",
+                index: self.1,
+            })
+    }
+    fn get_mut<'c>(&self, chart: &'c mut Chart) -> Result<&'c mut Self::Out> {
+        chart
+            .lines
+            .get_mut(self.0)
+            .ok_or(ChartConflictError::InvalidLinePath { line_path: self.0.into() })?
+            .line_color
+            .points
+            .get_mut(self.1)
+            .ok_or(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "LineColor",
+                index: self.1,
+            })
+    }
+    fn remove(&self, chart: &mut Chart) -> Result<Self::Out> {
+        let line = chart
+            .lines
+            .get_mut(self.0)
+            .ok_or(ChartConflictError::InvalidLinePath { line_path: self.0.into() })?;
+        if line.line_color.points().len() > self.1 {
+            Ok(line.line_color.points.remove(self.1))
+        } else {
+            Err(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "LineColor",
+                index: self.1,
+            })
+        }
+    }
+    fn valid(&self, chart: &Chart) -> Result<()> {
+        let line = chart
+            .lines
+            .get(self.0)
+            .ok_or(ChartConflictError::InvalidLinePath { line_path: self.0.into() })?;
+        if line.line_color.points().len() > self.1 {
+            Ok(())
+        } else {
+            Err(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "LineColor",
+                index: self.1,
+            })
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct RingColorPath(pub usize, pub usize);
+
+impl RingColorPath {
+    pub fn new(line_idx: usize, point_idx: usize) -> Self {
+        Self(line_idx, point_idx)
+    }
+}
+
+impl ChartPath for RingColorPath {
+    type Out = KeyPoint<crate::chart::ColorRGBA>;
+    fn get<'c>(&self, chart: &'c Chart) -> Result<&'c Self::Out> {
+        chart
+            .lines
+            .get(self.0)
+            .ok_or(ChartConflictError::InvalidLinePath { line_path: self.0.into() })?
+            .ring_color
+            .points()
+            .get(self.1)
+            .ok_or(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "RingColor",
+                index: self.1,
+            })
+    }
+    fn get_mut<'c>(&self, chart: &'c mut Chart) -> Result<&'c mut Self::Out> {
+        chart
+            .lines
+            .get_mut(self.0)
+            .ok_or(ChartConflictError::InvalidLinePath { line_path: self.0.into() })?
+            .ring_color
+            .points
+            .get_mut(self.1)
+            .ok_or(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "RingColor",
+                index: self.1,
+            })
+    }
+    fn remove(&self, chart: &mut Chart) -> Result<Self::Out> {
+        let line = chart
+            .lines
+            .get_mut(self.0)
+            .ok_or(ChartConflictError::InvalidLinePath { line_path: self.0.into() })?;
+        if line.ring_color.points().len() > self.1 {
+            Ok(line.ring_color.points.remove(self.1))
+        } else {
+            Err(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "RingColor",
+                index: self.1,
+            })
+        }
+    }
+    fn valid(&self, chart: &Chart) -> Result<()> {
+        let line = chart
+            .lines
+            .get(self.0)
+            .ok_or(ChartConflictError::InvalidLinePath { line_path: self.0.into() })?;
+        if line.ring_color.points().len() > self.1 {
+            Ok(())
+        } else {
+            Err(ChartConflictError::NoSuchGlobalSplinePoint {
+                spline: "RingColor",
+                index: self.1,
+            })
+        }
+    }
+}

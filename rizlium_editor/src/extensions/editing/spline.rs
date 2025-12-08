@@ -5,16 +5,17 @@ use crate::settings_module::{SettingsModule, SettingsModuleStruct, SettingsRegis
 use bevy::prelude::{
     App, In, InMut, IntoSystem, Mut, Plugin, ReadOnlySystem, Res, ResMut, Resource, System, World,
 };
-use std::borrow::Cow;
+use egui::StrokeKind;
 use egui::{
-    emath::RectTransform, epaint::PathShape, pos2, remap, Color32, Pos2, Rect, Response, Sense,
-    Stroke, Ui,
+    Color32, Pos2, Rect, Response, Sense, Stroke, Ui, emath::RectTransform, epaint::PathShape,
+    pos2, remap,
 };
 use rizlium_chart::{
-    chart::{invlerp, Chart, KeyPoint},
-    editing::{chart_path::ChartPath, ChartCommands, EditHistory},
+    chart::{Chart, KeyPoint, invlerp},
+    editing::{ChartCommands, EditHistory, chart_path::ChartPath},
     prelude::{Spline, Tween},
 };
+use std::borrow::Cow;
 
 pub trait TransformHelper {
     fn map_x(&self, x: f32) -> f32;
@@ -78,8 +79,13 @@ impl<'a, R> SplineView<'a, R> {
     pub fn ui(&self, ui: &mut Ui) -> (Response, Option<usize>) {
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
         let mut clicked_index = None;
+        ui.painter().debug_rect(
+            response.rect,
+            Color32::BLUE,
+            "Spline View Area",
+        );
         if response.clicked() {
-            if let Some(pos) = response.interact_pointer_pos() {
+            if let Some(pos) = response.interact_pointer_pos() && ui.clip_rect().contains(pos) {
                 let t = self.view_to_spline.map_x(pos.x);
                 if let Ok(idx) = self.spline.keypoint_at(t) {
                     clicked_index = Some(idx);
@@ -116,8 +122,7 @@ impl<'a, R> SplineView<'a, R> {
                     circles_view.push(point_view);
                     linepoints_view.push(point_view);
                     current_t = point.time + 0.01;
-                    current_screen_x =
-                        self.view_to_spline.inverse().map_x(current_t).ceil() + 2.0;
+                    current_screen_x = self.view_to_spline.inverse().map_x(current_t).ceil() + 2.0;
                     idx
                 } else {
                     return (response, None);
@@ -229,12 +234,12 @@ impl<A: SplineEditorAdapter> SplineListEditor<A> {
         let spline = self.adapter.get_spline(&chart);
         let len = spline.len();
         let points = spline.points().clone();
-        ui.group(|ui| {
-            egui::ScrollArea::vertical()
-                .id_salt(ui.id().with(id))
-                .auto_shrink([false, true])
-                .max_height(300.0)
-                .show(ui, |ui| {
+        ui.push_id(id, |ui| {
+            ui.group(|ui| {
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false, true])
+                    .max_height(300.0)
+                    .show(ui, |ui| {
                     ui.vertical_centered_justified(|ui| {
                         if ui.button("+").clicked() {
                             let new_point = if len > 0 {
@@ -249,8 +254,8 @@ impl<A: SplineEditorAdapter> SplineListEditor<A> {
                                     relevant: A::Relevant::default(),
                                 }
                             };
-                            let _ = history
-                                .push(self.adapter.add_command(0, new_point), &mut *chart);
+                            let _ =
+                                history.push(self.adapter.add_command(0, new_point), &mut *chart);
                         }
                     });
 
@@ -321,10 +326,8 @@ impl<A: SplineEditorAdapter> SplineListEditor<A> {
                                         });
                                     }
                                     if ui.button("🗑").clicked() {
-                                        let _ = history.push(
-                                            self.adapter.remove_command(i),
-                                            &mut *chart,
-                                        );
+                                        let _ = history
+                                            .push(self.adapter.remove_command(i), &mut *chart);
                                     }
                                     if ui.button("+").clicked() {
                                         let target_idx = i + 1;
@@ -342,13 +345,47 @@ impl<A: SplineEditorAdapter> SplineListEditor<A> {
                                     }
                                 })
                                 .response;
-
+                            let time = ui.input(|i| i.time);
+                            // We need to store the time this index was last scrolled to.
+                            // egui::util::id_type_map::IdTypeMap can store temp state.
+                            let id = ui.id().with("highlight_time").with(i);
                             if Some(i) == scroll_to {
                                 response.scroll_to_me(Some(egui::Align::TOP));
+                                ui.data_mut(|d| d.insert_temp(id, time));
+                            }
+                            let start_time: Option<f64> = ui.data(|d| d.get_temp(id));
+                            if let Some(start_time) = start_time {
+                                let elapsed = time - start_time;
+                                if elapsed < 1.0 {
+                                    let alpha = remap(elapsed, 0.0..=1.0, 1.0..=0.0);
+                                    // draw
+                                    ui.painter().rect(
+                                        response.rect.shrink(-1.0),
+                                        4.0,
+                                        Color32::from_rgba_unmultiplied(
+                                            62,
+                                            155,
+                                            255,
+                                            (alpha * 100.0) as u8,
+                                        ),
+                                        Stroke::new(
+                                            2.0,
+                                            Color32::from_rgba_unmultiplied(
+                                                62,
+                                                155,
+                                                255,
+                                                (alpha * 255.0) as u8,
+                                            ),
+                                        ),
+                                        StrokeKind::Middle,
+                                    );
+                                    ui.ctx().request_repaint();
+                                }
                             }
                         });
                     }
                 })
+            });
         });
     }
 }
@@ -372,7 +409,6 @@ impl Default for SplineViewSettings {
     }
 }
 
-
 fn spline_settings_ui(
     In((mut ui, settings)): In<(Ui, Option<SplineViewSettings>)>,
     current_settings: Res<SplineViewSettings>,
@@ -382,19 +418,27 @@ fn spline_settings_ui(
     ui.vertical(|ui| {
         ui.horizontal(|ui| {
             ui.label(tl!("spline-line-color"));
-            changed |= ui.color_edit_button_srgba(&mut editing_settings.line_color).changed();
+            changed |= ui
+                .color_edit_button_srgba(&mut editing_settings.line_color)
+                .changed();
         });
         ui.horizontal(|ui| {
             ui.label(tl!("spline-point-color"));
-            changed |= ui.color_edit_button_srgba(&mut editing_settings.point_color).changed();
+            changed |= ui
+                .color_edit_button_srgba(&mut editing_settings.point_color)
+                .changed();
         });
         ui.horizontal(|ui| {
             ui.label(tl!("spline-line-width"));
-            changed |= ui.add(egui::DragValue::new(&mut editing_settings.line_width).speed(0.1)).changed();
+            changed |= ui
+                .add(egui::DragValue::new(&mut editing_settings.line_width).speed(0.1))
+                .changed();
         });
         ui.horizontal(|ui| {
             ui.label(tl!("spline-point-radius"));
-            changed |= ui.add(egui::DragValue::new(&mut editing_settings.point_radius).speed(0.1)).changed();
+            changed |= ui
+                .add(egui::DragValue::new(&mut editing_settings.point_radius).speed(0.1))
+                .changed();
         });
     });
 
@@ -417,6 +461,13 @@ pub struct SplineSettingsPlugin;
 impl Plugin for SplineSettingsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SplineViewSettings>()
-            .register_settings_module("spline_view", SettingsModuleStruct::new(spline_settings_ui, spline_settings_apply, tl!("spline-view-settings")));
+            .register_settings_module(
+                "spline_view",
+                SettingsModuleStruct::new(
+                    spline_settings_ui,
+                    spline_settings_apply,
+                    tl!("spline-view-settings"),
+                ),
+            );
     }
 }
