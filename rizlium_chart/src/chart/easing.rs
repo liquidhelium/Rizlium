@@ -202,9 +202,9 @@ impl<T: Tween, R> Spline<T, R> {
     }
     /// Return which [`KeyPoint`] the `time` is in.
     ///
-    /// `Ok(val)` is between `0..=self.points.len() - 2`;  
+    /// `Ok(val)` is between `0..=self.points.len() - 2`;
     ///
-    /// `Err(val)` is either `0` or `self.points.len()`.  
+    /// `Err(val)` is either `0` or `self.points.len()`.
     ///
     /// If this [`Spline`] is empty then `Err(0)` is returned.
     pub fn keypoint_at(&self, time: f32) -> Result<usize, usize> {
@@ -258,15 +258,15 @@ impl<T: Tween, R> Spline<T, R> {
     }
     pub fn push(&mut self, keypoint: KeyPoint<T, R>) {
         self.points.push(keypoint);
-        self.sort_unstable();
+        self.sort();
     }
 
     pub fn remove(&mut self, index: usize) -> Option<KeyPoint<T, R>> {
         (index < self.points.len()).then_some(self.points.remove(index))
     }
 
-    pub fn sort_unstable(&mut self) {
-        self.points.sort_unstable_by(|a, b| {
+    pub fn sort(&mut self) {
+        self.points.sort_by(|a, b| {
             a.time
                 .partial_cmp(&b.time)
                 .unwrap_or(std::cmp::Ordering::Equal)
@@ -277,7 +277,7 @@ impl<T: Tween, R> Spline<T, R> {
         for keypoint in iter {
             self.points.push(keypoint);
         }
-        self.sort_unstable();
+        self.sort();
     }
     pub fn iter(&self) -> impl Iterator<Item = &KeyPoint<T, R>> {
         self.points.iter()
@@ -286,7 +286,7 @@ impl<T: Tween, R> Spline<T, R> {
 impl<T: Tween, R> From<Vec<KeyPoint<T, R>>> for Spline<T, R> {
     fn from(value: Vec<KeyPoint<T, R>>) -> Self {
         let mut ret = Self { points: value };
-        ret.sort_unstable();
+        ret.sort();
         ret
     }
 }

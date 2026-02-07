@@ -19,6 +19,23 @@ use super::{ConvertError, ConvertResult, HoldNoEndSnafu};
     any(feature = "serialize", feature = "deserialize"),
     serde(rename_all = "camelCase")
 )]
+pub struct RizlineChartMeta {
+    pub title: String,
+    pub composer: String,
+    pub difficulty: f32,
+    pub level: f32,
+    pub max_hit: usize,
+    pub max_score: usize,
+    pub preview_time: f32
+}
+
+#[derive(Clone)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
+#[cfg_attr(
+    any(feature = "serialize", feature = "deserialize"),
+    serde(rename_all = "camelCase")
+)]
 pub struct Theme {
     pub colors_list: [ColorRGBA; 3],
 }
@@ -228,7 +245,7 @@ impl Line {
                     },
                 ]
             })
-            .chain(self.judge_ring_color.last().map(|c| chart::KeyPoint {
+            .chain(self.line_color.last().map(|c| chart::KeyPoint {
                 time: c.time,
                 value: c.end_color.into(),
                 ease_type: chart::EasingId::Linear,
@@ -403,10 +420,10 @@ pub struct CameraMove {
 )]
 pub struct RizlineChart {
     pub file_version: i32,
-
+    #[serde(default)]
     pub songs_name: String,
 
-    pub themes: [Theme; 2],
+    pub themes: Vec<Theme>,
 
     pub challenge_times: Vec<ChallengeTime>,
 
@@ -417,7 +434,7 @@ pub struct RizlineChart {
     pub bpm: f32,
 
     pub bpm_shifts: Vec<KeyPoint>,
-
+    #[serde(alias = "chartDelayMs")]
     pub offset: f32,
 
     pub lines: Vec<Line>,
@@ -431,11 +448,16 @@ impl TryInto<chart::Chart> for RizlineChart {
     type Error = ConvertError;
 
     fn try_into(self) -> ConvertResult<chart::Chart> {
-        let [normal, challenge] = self.themes;
         let bpm = convert_bpm_to_timemap(self.bpm, self.bpm_shifts)?;
         info!("chart convert started");
         Ok(chart::Chart {
-            themes: vec![normal.convert(false), challenge.convert(true)],
+            themes: self.themes.into_iter().enumerate().map(|(i, t)| {
+                if i == 0 {
+                    t.convert(false)
+                } else {
+                    t.convert(true)
+                }
+            }).collect(),
             // 如果challenge_times相互重叠(含 trans_time)则会产生奇怪的结果.
             theme_control: Some(chart::KeyPoint {
                 time: 0.,
@@ -443,7 +465,7 @@ impl TryInto<chart::Chart> for RizlineChart {
                 ..Default::default()
             })
             .into_iter()
-            .chain(self.challenge_times.into_iter().flat_map(|c| {
+            .chain(self.challenge_times.into_iter().enumerate().flat_map(|(i, c)| {
                 [
                     chart::KeyPoint {
                         time: c.start - c.trans_time,
@@ -452,12 +474,12 @@ impl TryInto<chart::Chart> for RizlineChart {
                     },
                     chart::KeyPoint {
                         time: c.start,
-                        value: 1,
+                        value: i+1,
                         ..Default::default()
                     },
                     chart::KeyPoint {
                         time: c.end,
-                        value: 1,
+                        value: i+1,
                         ..Default::default()
                     },
                     chart::KeyPoint {
@@ -565,7 +587,7 @@ impl From<chart::Note> for Note {
             chart::NoteKind::Drag => (1, vec![]),
             chart::NoteKind::Hold { end } => (2, vec![end]),
         };
-        
+
         Self {
             note_type,
             time: note.time,
@@ -579,13 +601,13 @@ impl From<chart::Line> for Line {
     fn from(line: chart::Line) -> Self {
         let line_points = line.points.points.into_iter().map(Into::into).collect();
         let notes = line.notes.into_iter().map(Into::into).collect();
-        
+
         let convert_color_spline = |spline: &Spline<chart::ColorRGBA>| -> Vec<ColorKeyPoint> {
             let points = &spline.points;
             if points.is_empty() {
                 return vec![];
             }
-            
+
             let mut result = Vec::new();
             for i in 0..points.len() {
                 let p = &points[i];
@@ -594,7 +616,7 @@ impl From<chart::Line> for Line {
                 } else {
                     p.value
                 };
-                
+
                 result.push(ColorKeyPoint {
                     time: p.time,
                     start_color: p.value.into(),
@@ -637,28 +659,11 @@ impl TryFrom<chart::Chart> for RizlineChart {
     type Error = ConvertError;
 
     fn try_from(chart: chart::Chart) -> Result<Self, Self::Error> {
-        let theme_default = Theme {
-             colors_list: [
-                 ColorRGBA { r: 255, g: 255, b: 255, a: 255 },
-                 ColorRGBA { r: 0, g: 76, b: 229, a: 255 },
-                 ColorRGBA { r: 255, g: 255, b: 255, a: 255 },
-             ]
-        };
-
-        let mut themes_arr = [theme_default.clone(), theme_default.clone()];
-        
-        for (i, t) in chart.themes.iter().take(2).enumerate() {
-            themes_arr[i] = t.clone().into();
-        }
-        
-        if chart.themes.len() == 1 {
-            themes_arr[1] = themes_arr[0].clone();
-        }
 
         let mut challenge_times = Vec::new();
         let mut current_theme_idx = 0;
         let mut start_time = None;
-        
+
         for point in chart.theme_control.points() {
              if point.value != current_theme_idx {
                  if point.value != 0 { // Assuming != 0 is challenge
@@ -677,7 +682,7 @@ impl TryFrom<chart::Chart> for RizlineChart {
                  current_theme_idx = point.value;
              }
         }
-        
+
         if let Some(start) = start_time {
              let max_time = chart.lines.iter()
                 .flat_map(|l| l.points.points().iter().map(|p| p.time))
@@ -704,11 +709,11 @@ impl TryFrom<chart::Chart> for RizlineChart {
             KeyPoint {
                 time: p.time,
                 value: p.value / base_bpm,
-                ease_type: 0, 
+                ease_type: 0,
                 floor_position: 0.0,
             }
         }).collect();
-        
+
         let lines = chart.lines.into_iter().map(Into::into).collect();
 
         let canvas_moves = chart.canvases.iter().enumerate().map(|(i, c)| {
@@ -735,7 +740,7 @@ impl TryFrom<chart::Chart> for RizlineChart {
         Ok(RizlineChart {
             file_version: 1,
             songs_name: "Untitled".to_string(),
-            themes: themes_arr,
+            themes: chart.themes.into_iter().map(Into::into).collect(),
             challenge_times,
             bpm: base_bpm,
             bpm_shifts,

@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use bevy::ecs::component::Tick;
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
+use bevy_prototype_lyon::shapes::Circle;
 use rizlium_chart::chart::{EasingId, KeyPoint, LinePointData, Tween};
 
 use bevy_prototype_lyon::prelude::*;
@@ -69,7 +70,7 @@ impl Default for ChartLineBundle {
             shape: default(),
             stoke: Stroke {
                 options: StrokeOptions::default()
-                    .with_line_width(10.)
+                    .with_line_width(5.)
                     .with_line_cap(LineCap::Round),
                 brush: Brush::Color(Color::NONE),
             },
@@ -238,43 +239,54 @@ fn update_shape<P: ChartProvider>(
             ) else {
                 return;
             };
-
-            let mut builder = PathBuilder::new();
-            builder.move_to(Vec2::ZERO);
-            let relative_pos = [pos2[0] - pos1[0], pos2[1] - pos1[1]];
-            if !(keypoint1.ease_type == EasingId::Linear
-                || pos1[0].approx_eq(&pos2[0])
-                || pos1[1].approx_eq(&pos2[1]))
-            {
-                let mut point_count = ((relative_pos[1]) / 5.).floor();
-                if point_count >= 10000. {
-                    point_count = 5000.
+            if pos1[0].approx_eq(&pos2[0]) && pos1[1].approx_eq(&pos2[1]) {
+                // circle optimization
+                *path = bevy_prototype_lyon::path::ShapePath::new()
+                    .add(&bevy_prototype_lyon::shapes::Circle {
+                        radius:2.5,
+                        center: Vec2 { x: 0.0, y: 0.0 }
+                    }).build();
+                synced.shape = provider.last_changed();
+            } else {
+                let mut builder = PathBuilder::new();
+                builder.move_to(Vec2::ZERO);
+                let relative_pos = [pos2[0] - pos1[0], pos2[1] - pos1[1]];
+                if !(keypoint1.ease_type == EasingId::Linear
+                    || pos1[0].approx_eq(&pos2[0])
+                    || pos1[1].approx_eq(&pos2[1]))
+                {
+                    let mut point_count = ((relative_pos[1]) / 5.).floor();
+                    if point_count >= 10000. {
+                        point_count = 5000.
+                    }
+                    builder.reserve(point_count as usize);
+                    // 0...>1...>2...>3..0'
+                    (1..point_count as usize)
+                        .map(|i| i as f32 / point_count)
+                        .map(|t| {
+                            [
+                                f32::ease(0., relative_pos[0], t, keypoint1.ease_type),
+                                <f32 as rizlium_chart::chart::Tween>::lerp(0., relative_pos[1], t),
+                            ]
+                        })
+                        .for_each(|p| {
+                            builder.line_to(p.into());
+                        });
                 }
-                builder.reserve(point_count as usize);
-                // 0...>1...>2...>3..0'
-                (1..point_count as usize)
-                    .map(|i| i as f32 / point_count)
-                    .map(|t| {
-                        [
-                            f32::ease(0., relative_pos[0], t, keypoint1.ease_type),
-                            <f32 as rizlium_chart::chart::Tween>::lerp(0., relative_pos[1], t),
-                        ]
-                    })
-                    .for_each(|p| {
-                        builder.line_to(p.into());
-                    });
+                builder.line_to(relative_pos.into());
+                // connect next segment(不再需要,因为round头能很好连接)
+                // if line.points.len() - 1 > keypoint_idx {
+                //     if let Some(pos) =
+                //         chart
+                //             .with_cache(&cache)
+                //             .line_pos_at(line_idx, keypoint2.time + 0.01, **time)
+                //     {
+                //         builder.line_to(Vec2::from_array(pos) - Vec2::from_array(pos1));
+                //     }
+                // }
+                *path = builder.build();
+                synced.shape = provider.last_changed();
             }
-            builder.line_to(relative_pos.into());
-            // connect next segment
-            if let Some(pos) =
-                chart
-                    .with_cache(&cache)
-                    .line_pos_at(line_idx, keypoint2.time + 0.01, **time)
-            {
-                builder.line_to(Vec2::from_array(pos) - Vec2::from_array(pos1));
-            }
-            *path = builder.build();
-            synced.shape = provider.last_changed();
         });
 }
 

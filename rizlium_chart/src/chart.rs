@@ -42,49 +42,44 @@ pub struct Chart {
 impl Chart {
     pub fn basic() -> Self {
         Self {
-            themes: vec![
-                ThemeData {
-                    is_challenge: false,color: ThemeColor {
-                        fx: ColorRGBA::WHITE,
-                        note: ColorRGBA::new(0.0, 0.3, 0.9, 1.0),
-                        background: ColorRGBA::WHITE,
-                    },
-                }
-            ],
-            theme_control: vec![
-                KeyPoint {
-                    time: 0.0,
-                    value: 0,
-                    ease_type: EasingId::Linear,
-                    relevant: (),
-                }
-            ].into(),
+            themes: vec![ThemeData {
+                is_challenge: false,
+                color: ThemeColor {
+                    fx: ColorRGBA::WHITE,
+                    note: ColorRGBA::new(0.0, 0.3, 0.9, 1.0),
+                    background: ColorRGBA::WHITE,
+                },
+            }],
+            theme_control: vec![KeyPoint {
+                time: 0.0,
+                value: 0,
+                ease_type: EasingId::Linear,
+                relevant: (),
+            }]
+            .into(),
             lines: vec![],
             canvases: vec![],
-            bpm: vec![
-                KeyPoint {
-                    time: 0.0,
-                    value: 120.0,
-                    ease_type: EasingId::Linear,
-                    relevant: (),
-                }
-            ].into(),
-            cam_scale: vec![
-                KeyPoint {
-                    time: 0.0,
-                    value: 1.0,
-                    ease_type: EasingId::Linear,
-                    relevant: (),
-                }
-            ].into(),
-            cam_move: vec![
-                KeyPoint {
-                    time: 0.0,
-                    value: 0.0,
-                    ease_type: EasingId::Linear,
-                    relevant: (),
-                }
-            ].into(),
+            bpm: vec![KeyPoint {
+                time: 0.0,
+                value: 120.0,
+                ease_type: EasingId::Linear,
+                relevant: (),
+            }]
+            .into(),
+            cam_scale: vec![KeyPoint {
+                time: 0.0,
+                value: 1.0,
+                ease_type: EasingId::Linear,
+                relevant: (),
+            }]
+            .into(),
+            cam_move: vec![KeyPoint {
+                time: 0.0,
+                value: 0.0,
+                ease_type: EasingId::Linear,
+                relevant: (),
+            }]
+            .into(),
             layout_notes: vec![],
         }
     }
@@ -302,7 +297,20 @@ impl ChartAndCache<'_, '_> {
 
     pub fn line_pos_at(&self, line_idx: usize, time: f32, game_time: f32) -> Option<[f32; 2]> {
         let line = self.chart.lines.get(line_idx)?;
-        let index = line.points.keypoint_at(time).ok()?;
+        if line.points.is_empty() {
+            return None;
+        }
+        let index = match line.points.keypoint_at(time) {
+            Ok(i) => i,
+            Err(0) if time >= line.points.start_time()? => {
+                return Some(self.pos_for_linepoint_at(line_idx, 0, game_time).expect("points must not empty"))
+            }
+            Err(val) if time <= line.points.end_time()? && val != 0 => {
+                assert_eq!(val, line.points.len());
+                return Some(self.pos_for_linepoint_at(line_idx, val, game_time).unwrap())
+            }
+            _ => return None,
+        };
         let point1 = &line.points.points()[index];
         // Safe because `keypoint_at`.
         let pos1 = self
@@ -330,10 +338,7 @@ impl ChartAndCache<'_, '_> {
         game_time: f32,
     ) -> Option<[f32; 2]> {
         let line = self.chart.lines.get(line_idx)?;
-        time = time.clamp(
-            line.points.start_time()? + 0.01,
-            line.points.end_time()? - 0.01,
-        );
+        time = time.clamp(line.points.start_time()?, line.points.end_time()?);
         self.line_pos_at(line_idx, time, game_time)
     }
 

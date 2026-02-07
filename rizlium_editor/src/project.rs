@@ -4,14 +4,14 @@ use bevy::{
     prelude::*,
     tasks::{IoTaskPool, Task},
 };
-use bevy_kira_audio::{prelude::StaticSoundData, AudioSource};
+use bevy_kira_audio::{AudioSource, prelude::StaticSoundData};
 use futures_lite::io::AsyncWriteExt;
 use helium_framework::{
     prelude::{Actions, ActionsExt, ToastsStorage},
     utils::identifier::Identifier,
 };
 use indexmap::IndexSet;
-use rizlium_chart::parse::rizline::RizlineChart;
+use rizlium_chart::parse::rizline::{RizlineChart, RizlineChartMeta};
 use rizlium_chart::prelude::*;
 use rizlium_render::ChartProvider;
 use serde::{Deserialize, Serialize};
@@ -140,19 +140,19 @@ pub struct SaveChartEvent;
 pub enum ChartLoadingError {
     #[snafu(display("No info file present"))]
     NoInfo { path: String },
-    #[snafu(display("Failed to unzip file"), context(false))]
+    #[snafu(display("Failed to unzip file, source: {source:#?}"), context(false))]
     UnzipFileFailed { source: zip::result::ZipError },
-    #[snafu(display("Failed to read file"), context(false))]
+    #[snafu(display("Failed to read file, source: {source:#?}"), context(false))]
     ReadingFileFailed { source: std::io::Error },
-    #[snafu(display("Chart format is invalid"), context(false))]
+    #[snafu(display("Chart format is invalid, source: {source:#?}"), context(false))]
     ChartFormatInvalid { source: serde_json::Error },
-    #[snafu(display("Chart info format is invalid"), context(false))]
+    #[snafu(display("Chart info format is invalid, source: {source:#?}"), context(false))]
     InfoFormatInvalid { source: serde_yaml::Error },
-    #[snafu(display("Failed to convert chart"), context(false))]
+    #[snafu(display("Failed to convert chart, source: {source:#?}"), context(false))]
     ChartConvertingFailed {
         source: rizlium_chart::parse::ConvertError,
     },
-    #[snafu(display("Failed to convert music"), context(false))]
+    #[snafu(display("Failed to convert music, source: {source:#?}"), context(false))]
     MusicConvertingFailed {
         source: bevy_kira_audio::prelude::FromFileError,
     },
@@ -501,8 +501,32 @@ async fn load_chart_from_path(path: &str) -> Result<LoadedChart, ChartLoadingErr
             } else {
                 ChartLoadingError::ReadingFileFailed { source: e }
             }
-        })?;
-    let info: ChartInfo = serde_yaml::from_reader(Cursor::new(info_file))?;
+        });
+    let info: ChartInfo = match info_file {
+        Ok(info_file) => serde_yaml::from_reader(Cursor::new(info_file))?,
+        Err(e) => match async_fs::read(path_buf.join("metadata.json"))
+            .await
+            .map_err(|e| {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    ChartLoadingError::NoInfo {
+                        path: path.to_string(),
+                    }
+                } else {
+                    ChartLoadingError::ReadingFileFailed { source: e }
+                }
+            }) {
+            Ok(info) => {
+                let meta: RizlineChartMeta = serde_json::from_reader(Cursor::new(info))?;
+                ChartInfo {
+                    name: meta.title,
+                    format: ChartFormat::Rizline,
+                    chart_path: "chart.json".into(),
+                    music_path: "song.mp3".into()
+                }
+            }
+            Err(e) => return Err(e),
+        },
+    };
     let chart = match info.format {
         ChartFormat::Rizline => {
             let chart_file = async_fs::read(path_buf.join(&info.chart_path)).await?;

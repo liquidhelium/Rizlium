@@ -56,9 +56,7 @@ fn dispatch_events(
     audio_datas: Res<Assets<AudioSource>>,
     audio_data: Res<GameAudioSource>,
 ) {
-    let Some(audio) = audios.get_mut(&audio.0) else {
-        return;
-    };
+    let mut audio = audios.get_mut(&audio.0);
     let Some(audio_data) = audio_datas.get(&**audio_data) else {
         warn!("invalid audio source");
         return;
@@ -70,7 +68,9 @@ fn dispatch_events(
             TimeControlEvent::Seek(pos) => {
                 let pos = (*pos as f64).clamp(0., audio_data.sound.duration().as_secs_f64() - 0.01);
                 time.seek(pos);
-                audio.seek_to(pos);
+                if let Some(ref mut audio) = audio {
+                    audio.seek_to(pos);
+                }
             }
             TimeControlEvent::Toggle => time.toggle_paused(),
             TimeControlEvent::SetPaused(paused) => time.set_paused(*paused),
@@ -80,7 +80,9 @@ fn dispatch_events(
                     audio_data.sound.duration().as_secs_f64() - 0.01 - time.current(),
                 );
                 time.advance(duration);
-                audio.seek_by(duration);
+                if let Some(ref mut audio) = audio {
+                    audio.seek_by(duration);
+                }
             }
         }
     }
@@ -179,33 +181,46 @@ fn align_or_restart_audio(
     mut time: ResMut<TimeManager>,
     mut audio: ResMut<CurrentGameAudio>,
     mut audios: ResMut<Assets<AudioInstance>>,
+    sources: Res<Assets<AudioSource>>,
     player: Res<Audio>,
     source: Res<GameAudioSource>,
 ) {
-    let Some(current_audio) = audios.get_mut(&audio.0) else {
+    let song_length = if let Some(source_data) = sources.get(&source.0) {
+        source_data.sound.duration().as_secs_f64()
+    } else {
+        warn!("GameAudioSource is invalid.");
+        0.0
+    };
+    let current_audio = audios.get_mut(&audio.0);
+    if current_audio.is_none() && time.current() >= song_length {
         info!("Restarting audio");
         let new_handle = player.play(source.0.clone()).handle();
         audios.remove(&audio.0);
         audio.0 = new_handle;
         time.seek(0.);
         time.pause();
+
         return;
     };
-    match current_audio.state() {
-        PlaybackState::Playing { position } => {
-            if time.paused() {
-                info!("Pausing audio");
-                current_audio.pause(AudioTween::default());
-            } else {
-                time.align_to_audio_time(position);
+    if let Some(current_audio) = current_audio {
+        match current_audio.state() {
+            PlaybackState::Playing { position } => {
+                if time.paused() {
+                    info!("Pausing audio");
+                    current_audio.pause(AudioTween::default());
+                } else {
+                    time.align_to_audio_time(position);
+                }
+            }
+            _ => {
+                current_audio.seek_to(time.current());
+                if !time.paused() {
+                    info!("Resuming audio");
+                    current_audio.resume(AudioTween::default());
+                }
             }
         }
-        _ => {
-            current_audio.seek_to(time.current());
-            if !time.paused() {
-                info!("Resuming audio");
-                current_audio.resume(AudioTween::default());
-            }
-        }
+    } else {
+        warn_once!("cannot get current audio, is the format supported?");
     }
 }

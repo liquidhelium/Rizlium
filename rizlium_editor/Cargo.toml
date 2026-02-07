@@ -39,9 +39,8 @@ helium_framework = { path = "../helium_framework", features = [
 ] }
 bevy_prototype_lyon = { git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium" }
 zip = "4.3"
-bevy_kira_audio = "0.23"
-kira = "0.9"
+bevy_kira_audio = {version = "0.23", features = ["mp3"]}
+kira = {version = "0.9", features = ["mp3"]}
 uuid = { version = "1.4", features = ["v4"] }
 [dev-dependencies]
 serde_json = "*"
-
