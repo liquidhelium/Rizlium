@@ -1,5 +1,7 @@
 use bevy::ecs::error::GLOBAL_ERROR_HANDLER;
 use bevy::prelude::*;
+use bevy::render::RenderPlugin;
+use bevy::render::settings::{RenderCreation, WgpuSettings};
 use bevy_egui::EguiPlugin;
 use bevy_persistent::prelude::*;
 use rizlium_editor::extensions::ExtensionsPlugin;

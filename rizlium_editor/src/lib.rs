@@ -113,15 +113,16 @@ impl Default for SecondTimer {
     }
 }
 fn compute_fps(
-    mut last_fps: Local<u32>,
+    mut last_frame: Local<u32>,
     current: Res<FrameCount>,
     mut fps: ResMut<NowFps>,
     time: Res<Time>,
     mut fps_timer: Local<SecondTimer>,
 ) {
     if fps_timer.tick(time.delta()).finished() {
-        fps.0 = current.0 - *last_fps;
-        *last_fps = current.0;
+        fps.0 = current.0 - *last_frame;
+        info!("fps: {}", fps.0);
+        *last_frame = current.0;
     }
 }
 pub fn ui_when_no_dock(
@@ -212,7 +213,7 @@ impl Plugin for WindowUpdateControlPlugin {
 fn change_render_type(mut window: Query<&mut Window, With<PrimaryWindow>>) -> Result<()> {
     window
         .single_mut()
-        .map(|mut a| a.present_mode = PresentMode::AutoNoVsync)?;
+        .map(|mut a| a.present_mode = PresentMode::AutoVsync)?;
     Ok(())
 }
 fn update_type_changing(mut event: EventWriter<RequestRedraw>) {

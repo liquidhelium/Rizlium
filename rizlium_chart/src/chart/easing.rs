@@ -385,7 +385,7 @@ impl Tween for usize {
 
 pub type Easing = fn(f32) -> f32;
 
-const EASING_MAP: [Easing; 16] = [
+const EASING_MAP: [Easing; 19] = [
     linear,
     sine_in,
     sine_out,
@@ -405,6 +405,9 @@ const EASING_MAP: [Easing; 16] = [
         warn!("easing: easing 15(animCurve) is not supported");
         0.0
     },
+    circ_in_out,
+    circ_out,
+    circ_in,
 ];
 
 #[derive(IntoPrimitive, TryFromPrimitive, Clone, Copy, Debug, Default, PartialEq, Eq, EnumIter)]
@@ -429,6 +432,9 @@ pub enum EasingId {
     Start,
     End,
     AnimCurve,
+    InOutCircle,
+    OutCircle,
+    InCircle,
 }
 
 fn easef32(ease_type: EasingId, x: f32) -> f32 {
