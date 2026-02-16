@@ -44,9 +44,9 @@ fn timeline_tab(
     selected_item: Res<SelectedItem>,
     mut state: Local<TimelineState>,
     game_time: Res<rizlium_render::GameTime>,
-    mut time_control: EventWriter<crate::time_and_audio::TimeControlEvent>,
+    mut time_control: MessageWriter<crate::time_and_audio::TimeControlEvent>,
     chart_cache: Res<rizlium_render::GameChartCache>,
-    mut scroll_events: EventWriter<ScrollToPointEvent>,
+    mut scroll_events: MessageWriter<ScrollToPointEvent>,
     settings: Res<super::spline::SplineViewSettings>,
 ) {
     let chart = chart_state.chart();

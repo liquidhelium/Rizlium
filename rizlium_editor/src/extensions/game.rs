@@ -95,9 +95,11 @@ impl Plugin for Game {
             Startup,
             (
                 setup_game_view.after(bevy_egui::EguiStartupSet::InitContexts),
-                load_textures,
             ),
         )
+        .add_systems(PreStartup, (
+            load_textures
+        ))
         .add_systems(Update, scroll_time)
         .init_resource::<ScrollTimeState>();
     }
@@ -124,8 +126,8 @@ fn toggle_enable_scroll_time(In(trigger): In<RuntimeTrigger>, mut state: ResMut<
 
 fn scroll_time(
     state: Res<ScrollTimeState>,
-    mut wheel: EventReader<MouseWheel>,
-    mut time: EventWriter<TimeControlEvent>,
+    mut wheel: MessageReader<MouseWheel>,
+    mut time: MessageWriter<TimeControlEvent>,
 ) {
     if state.0 {
         for i in wheel.read() {
@@ -138,17 +140,17 @@ mod time_systems {
     const SINGLE_TIME: f32 = 1.0;
     use crate::time_and_audio::TimeControlEvent;
     use crate::time_and_audio::TimeControlEvent::*;
-    use bevy::ecs::{event::EventWriter, system::In};
-    pub fn advance_time(mut ev: EventWriter<TimeControlEvent>) {
+    use bevy::{ecs::system::In, prelude::MessageWriter};
+    pub fn advance_time(mut ev: MessageWriter<TimeControlEvent>) {
         ev.write(Advance(SINGLE_TIME));
     }
-    pub fn rewind_time(mut ev: EventWriter<TimeControlEvent>) {
+    pub fn rewind_time(mut ev: MessageWriter<TimeControlEvent>) {
         ev.write(Advance(-SINGLE_TIME));
     }
-    pub fn toggle_pause(mut ev: EventWriter<TimeControlEvent>) {
+    pub fn toggle_pause(mut ev: MessageWriter<TimeControlEvent>) {
         ev.write(Toggle);
     }
-    pub fn time_control(In(event): In<TimeControlEvent>, mut ev: EventWriter<TimeControlEvent>) {
+    pub fn time_control(In(event): In<TimeControlEvent>, mut ev: MessageWriter<TimeControlEvent>) {
         ev.write(event);
     }
 }
@@ -173,7 +175,7 @@ pub fn game_view_tab(
     textures: Res<EguiUserTextures>,
     time: Res<AudioTimeManager>,
     game_time: Res<GameTime>,
-    ev: EventWriter<TimeControlEvent>,
+    ev: MessageWriter<TimeControlEvent>,
 ) {
     let ui = &mut ui;
     let img = textures
@@ -230,6 +232,6 @@ fn setup_game_view(
     };
     image.resize(size);
     let image_handle = images.add(image);
-    egui_context.add_image(image_handle.clone());
+    egui_context.add_image(bevy_egui::EguiTextureHandle::Strong(image_handle.clone()));
     commands.insert_resource(GameView(image_handle));
 }

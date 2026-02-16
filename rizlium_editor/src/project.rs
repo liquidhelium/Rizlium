@@ -27,9 +27,9 @@ impl Plugin for ProjectPlugin {
         app.init_resource::<ProjectState>()
             .init_resource::<RecentFiles>()
             .init_resource::<AsyncTaskRunner>()
-            .add_event::<LoadChartEvent>()
-            .add_event::<ChartLoadingEvent>()
-            .add_event::<SaveChartEvent>()
+            .add_message::<LoadChartEvent>()
+            .add_message::<ChartLoadingEvent>()
+            .add_message::<SaveChartEvent>()
             .add_systems(
                 PostUpdate,
                 (
@@ -64,14 +64,14 @@ impl Plugin for ProjectPlugin {
     }
 }
 
-fn load_path_action(In(path): In<String>, mut events: EventWriter<LoadChartEvent>) {
+fn load_path_action(In(path): In<String>, mut events: MessageWriter<LoadChartEvent>) {
     events.write(LoadChartEvent::Path(path));
 }
-fn load_bundle_action(In(path): In<String>, mut events: EventWriter<LoadChartEvent>) {
+fn load_bundle_action(In(path): In<String>, mut events: MessageWriter<LoadChartEvent>) {
     events.write(LoadChartEvent::Bundle(path));
 }
 
-fn save_chart_action(mut events: EventWriter<SaveChartEvent>) {
+fn save_chart_action(mut events: MessageWriter<SaveChartEvent>) {
     events.write(SaveChartEvent);
 }
 
@@ -124,17 +124,17 @@ pub enum LoadedProject {
     Folder(PathBuf, Chart, ChartInfo),
     Bundle(PathBuf, Chart, ChartInfo),
 }
-#[derive(Event, Debug)]
+#[derive(Message, Debug)]
 pub enum LoadChartEvent {
     Bundle(String),
     Path(String),
 }
-#[derive(Event)]
+#[derive(Message)]
 pub enum ChartLoadingEvent {
     Success(String),
     Error(ChartLoadingError),
 }
-#[derive(Event)]
+#[derive(Message)]
 pub struct SaveChartEvent;
 #[derive(Debug, snafu::Snafu)]
 pub enum ChartLoadingError {
@@ -209,7 +209,7 @@ impl ChartProvider for ProjectState {
             },
         }
     }
-    fn has_chart_system() -> impl Condition<()> {
+    fn has_chart_system() -> impl SystemCondition<()> {
         IntoSystem::into_system(|state: Res<ProjectState>| {
             matches!(*state, ProjectState::Loaded(_))
         })
@@ -264,7 +264,7 @@ impl AsyncTaskRunner {
 }
 
 fn handle_load_chart_events(
-    mut events: EventReader<LoadChartEvent>,
+    mut events: MessageReader<LoadChartEvent>,
     mut runner: ResMut<AsyncTaskRunner>,
 ) {
     if events.is_empty() {
@@ -290,8 +290,8 @@ fn handle_load_chart_events(
 fn handle_async_tasks(
     mut runner: ResMut<AsyncTaskRunner>,
     mut state: ResMut<ProjectState>,
-    mut events: EventWriter<LoadChartEvent>,
-    mut loading_events: EventWriter<ChartLoadingEvent>,
+    mut events: MessageWriter<LoadChartEvent>,
+    mut loading_events: MessageWriter<ChartLoadingEvent>,
     mut toasts: ResMut<ToastsStorage>,
     asset_server: Res<AssetServer>,
     mut command: Commands,
@@ -406,7 +406,7 @@ fn handle_async_tasks(
 }
 
 fn handle_save_chart_events(
-    mut events: EventReader<SaveChartEvent>,
+    mut events: MessageReader<SaveChartEvent>,
     state: Res<ProjectState>,
     mut runner: ResMut<AsyncTaskRunner>,
 ) {
@@ -427,7 +427,7 @@ fn handle_save_chart_events(
     }
 }
 fn process_loading_results(
-    mut events: EventReader<ChartLoadingEvent>,
+    mut events: MessageReader<ChartLoadingEvent>,
     mut recent: ResMut<RecentFiles>,
     mut toast: ResMut<ToastsStorage>,
     mut actions: Actions,

@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use bevy::render::view::RenderLayers;
+use bevy::camera::visibility::RenderLayers;
 use bevy_prototype_lyon::shapes::Rectangle;
 
 use crate::ChartProvider;
@@ -13,7 +13,7 @@ use super::GameCamera;
 use bevy::math::Vec3A;
 
 use bevy::prelude::*;
-use bevy::render::primitives::Aabb;
+use bevy::camera::primitives::Aabb;
 use bevy_prototype_lyon::prelude::*;
 
 pub const MASK_LAYER: usize = 1;
@@ -43,11 +43,11 @@ pub(crate) fn init_mask(mut commands: Commands) {
         .spawn((
             ShapeBundle {
                 transform: Transform::from_xyz(0., 0., 10.),
-                aabb: Aabb {
-                    center: default(),
-                    half_extents: Vec3A::MAX,
-                },
                 ..default()
+            },
+            Aabb {
+                center: default(),
+                half_extents: Vec3A::MAX,
             },
             Fill::default(),
             RenderLayers::layer(MASK_LAYER),
@@ -58,11 +58,11 @@ pub(crate) fn init_mask(mut commands: Commands) {
         .spawn((
             ShapeBundle {
                 transform: Transform::from_xyz(0., 0., MASK_Z),
-                aabb: Aabb {
-                    center: default(),
-                    half_extents: Vec3A::MAX,
-                },
                 ..default()
+            },
+            Aabb {
+                center: default(),
+                half_extents: Vec3A::MAX,
             },
             Fill::brush(Color::BLACK.with_alpha(0.)),
             RenderLayers::layer(MASK_LAYER),

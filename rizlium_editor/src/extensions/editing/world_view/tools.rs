@@ -19,11 +19,11 @@ use super::{
     WorldCam,
 };
 
-pub fn is_tool(tool: Tool) -> impl Condition<()> {
+pub fn is_tool(tool: Tool) -> impl SystemCondition<()> {
     edit_view_or_tool_focused().and(resource_exists_and_equals(tool))
 }
 
-pub fn previous_tool(tool: Tool) -> impl Condition<()> {
+pub fn previous_tool(tool: Tool) -> impl SystemCondition<()> {
     resource_exists_and_equals(OriginalTool(Some(tool))).and(|| true)
 }
 
@@ -34,7 +34,7 @@ impl Plugin for ToolsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Tool>()
             .init_resource::<OriginalTool>()
-            .add_event::<DiscardPreeditEvent>()
+            .add_message::<DiscardPreeditEvent>()
             .init_tool_config::<tool_configs::PencilToolConfig>()
             .add_systems(
                 Update,
@@ -92,10 +92,10 @@ pub enum Tool {
     Select,
 }
 
-#[derive(Event, Default)]
+#[derive(Message, Default)]
 pub struct DiscardPreeditEvent;
 
-fn discard_preedit(mut ev: EventWriter<DiscardPreeditEvent>) {
+fn discard_preedit(mut ev: MessageWriter<DiscardPreeditEvent>) {
     ev.write_default();
 }
 
@@ -127,9 +127,9 @@ const fn switch_tool(tool: Tool) -> impl FnMut(ResMut<Tool>) {
 }
 
 fn view_tool(
-    mut events: EventReader<ScreenMouseEvent>,
+    mut events: MessageReader<ScreenMouseEvent>,
     mut camera: Query<(&mut Projection, &mut Transform), With<WorldCam>>,
-    mut mouse_wheel: EventReader<MouseWheel>,
+    mut mouse_wheel: MessageReader<MouseWheel>,
     tool: Res<Tool>,
 ) -> Result<()> {
     if *tool != Tool::View {
@@ -182,7 +182,7 @@ fn temp_toggle_view(
 
 
 fn select_tool(
-    mut mouse_events: EventReader<WorldMouseEvent>,
+    mut mouse_events: MessageReader<WorldMouseEvent>,
     tool: Res<Tool>,
     to_game: WorldToGame,
     lines: Query<(Entity, &ChartLineId)>,

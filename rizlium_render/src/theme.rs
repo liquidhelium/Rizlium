@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use bevy::{prelude::*, render::camera::ClearColorConfig};
+use bevy::{prelude::*, camera::ClearColorConfig};
 
 use crate::{colorrgba_to_color, default_ph, time_and_audio::GameTime, ChartProvider, GameCamera};
 

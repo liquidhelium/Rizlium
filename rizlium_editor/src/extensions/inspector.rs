@@ -1,6 +1,6 @@
 use crate::extensions::editing::spline::{SplineEditorAdapter, SplineListEditor};
 use crate::t;
-use bevy::{prelude::*, render::view::VisibleEntities};
+use bevy::{prelude::*, camera::visibility::VisibleEntities};
 use egui::{ScrollArea, Ui};
 use rizlium_chart::{
     chart::{Chart, KeyPoint, Spline},
@@ -32,7 +32,7 @@ pub struct SelectedItem {
     pub item: Option<ChartItem>,
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct ScrollToPointEvent {
     pub spline_id: String,
     pub point_index: usize,
@@ -59,7 +59,7 @@ impl Plugin for Inspector {
             ProjectState::has_chart_system(),
         )
         .init_resource::<SelectedItem>()
-        .add_event::<ScrollToPointEvent>();
+        .add_message::<ScrollToPointEvent>();
         app.register_tab(
             "debugger",
             t!("debugger.tab"),
@@ -74,7 +74,7 @@ fn inspector(
     mut chart: ResMut<ProjectState>,
     selected: Res<SelectedItem>,
     mut chart_edit_history: ResMut<ChartEditHistory>,
-    mut scroll_events: EventReader<ScrollToPointEvent>,
+    mut scroll_events: MessageReader<ScrollToPointEvent>,
 ) {
     let scroll_targets: std::collections::HashMap<_, _> = scroll_events
         .read()
@@ -620,7 +620,7 @@ pub fn edit_scope<P, T, F, C>(
 fn debug_window(
     InMut(ui): InMut<Ui>,
     history: Res<ChartEditHistory>,
-    // mut event: EventReader<WorldMouseEvent>,
+    // mut event: MessageReader<WorldMouseEvent>,
     mirror: Res<RizliumDockStateMirror>,
     camera: Query<&VisibleEntities, With<GameCamera>>,
     inputs: Res<ButtonInput<KeyCode>>,

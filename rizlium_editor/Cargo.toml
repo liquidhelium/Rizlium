@@ -10,16 +10,16 @@ rizlium_render = { path = "../rizlium_render" }
 rizlium_dyn_plugin = { path = "../rizlium_dyn_plugin"}
 rune = "0.14"
 anyhow = "1"
-bevy_egui = "0.34"
-egui = "0.31"
-egui_dock = { version = "0.16", features = ["serde"] }
+bevy_egui = "0.39"
+egui = "0.33"
+egui_dock = { version = "0.18", features = ["serde"] }
 # egui_tracing = "0.2"
-egui-notify = "0.19"
+egui-notify = "0.21"
 tracing-subscriber = "*"
 # Todo: split x11, wayland and webgl2
 bevy = { workspace = true}
 rizlium_chart = { path = "../rizlium_chart" }
-bevy-persistent = { version = "0.8", features = ["json", "toml"] }
+bevy-persistent = { version = "0.10", features = ["json", "toml"] }
 serde = { version = "*", features = ["derive"] }
 dirs = "6.0"
 rfd = {version = "*",default-features=false, features = ["async-std","gtk3"]}
@@ -39,7 +39,7 @@ helium_framework = { path = "../helium_framework", features = [
 ] }
 bevy_prototype_lyon = { git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium" }
 zip = "4.3"
-bevy_kira_audio = {version = "0.23", features = ["mp3"]}
+bevy_kira_audio = {version = "0.25", features = ["mp3"]}
 kira = {version = "0.9", features = ["mp3"]}
 uuid = { version = "1.4", features = ["v4"] }
 [dev-dependencies]

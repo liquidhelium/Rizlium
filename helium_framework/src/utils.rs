@@ -1,11 +1,11 @@
 use bevy::{
     ecs::schedule::BoxedCondition,
-    prelude::{Condition, IntoSystem, System},
+    prelude::{SystemCondition, IntoSystem, System},
 };
 
 pub mod identifier;
 
-pub fn new_condition<M>(condition: impl Condition<M>) -> BoxedCondition {
+pub fn new_condition<M>(condition: impl SystemCondition<M>) -> BoxedCondition {
     let condition_system = IntoSystem::into_system(condition);
     assert!(
         condition_system.is_send(),

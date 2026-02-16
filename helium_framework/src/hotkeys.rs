@@ -96,12 +96,12 @@ const fn always() -> bool {
     true
 }
 impl Hotkey {
-    pub fn new<M>(key: impl IntoIterator<Item = KeyCode>, trigger_when: impl Condition<M>) -> Self {
+    pub fn new<M>(key: impl IntoIterator<Item = KeyCode>, trigger_when: impl SystemCondition<M>) -> Self {
         Self::new_advanced(key, trigger_when, TriggerType::Pressed)
     }
     pub fn new_advanced<M>(
         key: impl IntoIterator<Item = KeyCode>,
-        trigger_when: impl Condition<M>,
+        trigger_when: impl SystemCondition<M>,
         trigger_type: TriggerType,
     ) -> Self {
         Self {
@@ -147,7 +147,7 @@ impl Hotkey {
             || self.key.contains(&KeyCode::ControlLeft)
             || self.key.contains(&KeyCode::ControlRight);
 
-        (self.trigger_when.run_readonly((), world) && (not_editing_text || has_modifier))
+        (self.trigger_when.run_readonly((), world).unwrap_or(false) && (not_editing_text || has_modifier))
             .then(|| self.keyboard_trigger(world))
             .flatten()
     }

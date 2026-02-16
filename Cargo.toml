@@ -54,32 +54,25 @@ lto = "thin"
 
 
 [workspace.dependencies]
-bevy = { version = "0.16", default-features = false, features = [
-    # "animation",
+bevy = { version = "0.18", default-features = false, features = [
     "bevy_asset",
-    # "bevy_scene",
     "bevy_winit",
     "bevy_core_pipeline",
-    # "bevy_pbr",
-    # "bevy_gltf",
     "bevy_render",
-    "bevy_sprite",
     "png",
     "hdr",
-    "zstd",
     "x11",
     "ktx2",
-    # "filesystem_watcher",
     "tonemapping_luts",
     "webgl2",
     "wayland",
     "multi_threaded",
     "bevy_gizmos",
     "bevy_picking",
-    "bevy_mesh_picking_backend",
-    "configurable_error_handler",
-    # magic!
-    "dynamic_linking"
+    "mesh_picking",
+    "dynamic_linking",
+    "zstd_rust",
+    "bevy_text",
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9.33"

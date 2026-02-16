@@ -1,7 +1,6 @@
-use bevy::ecs::error::GLOBAL_ERROR_HANDLER;
+
+use bevy::mesh::primitives;
 use bevy::prelude::*;
-use bevy::render::RenderPlugin;
-use bevy::render::settings::{RenderCreation, WgpuSettings};
 use bevy_egui::EguiPlugin;
 use bevy_persistent::prelude::*;
 use rizlium_editor::extensions::ExtensionsPlugin;
@@ -17,9 +16,6 @@ use rizlium_editor::{
 use rizlium_render::RizliumRenderingPlugin;
 
 fn main() {
-    GLOBAL_ERROR_HANDLER.set(|err, ctx| {
-        error!("Encountered an error! \n ========= \n Context:\n{ctx:#?}\n ========= \n Error:\n {err:#?}")
-    }).expect("Cannot set global error handler. It has been set by a library?");
     App::new()
         .add_plugins((
             DefaultPlugins.build()
@@ -30,9 +26,7 @@ fn main() {
                     }),
                     ..default()
                 }),
-            EguiPlugin {
-                enable_multipass_for_primary_context: false,
-            },
+            EguiPlugin::default(),
             helium_framework::HeliumFramework,
             CountFpsPlugin,
             WindowUpdateControlPlugin,
@@ -64,7 +58,8 @@ fn main() {
         .add_systems(Last, persist_dock_state)
         .run();
 }
-fn setup_persistent(mut commands: Commands) {
+
+fn setup_persistent(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     let config_dir = dirs::config_dir()
         .expect("Config dir is None")
         .join("rizlium-editor");
@@ -97,7 +92,7 @@ fn setup_persistent(mut commands: Commands) {
     );
 }
 fn persist_dock_state(
-    events: EventReader<bevy::app::AppExit>,
+    events: MessageReader<bevy::app::AppExit>,
     state: ResMut<Persistent<RizliumDockState>>,
 ) -> Result<()> {
     if !events.is_empty() {

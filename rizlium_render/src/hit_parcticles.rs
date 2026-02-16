@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use bevy::{
-    asset::{load_internal_asset, weak_handle},
+    asset::{load_internal_asset, uuid_handle},
     prelude::*,
 };
 use bevy_common_assets::json::JsonAssetPlugin;
@@ -14,7 +14,7 @@ pub struct HitParticlePlugin<P: ChartProvider>(PhantomData<P>);
 default_ph!(HitParticlePlugin<P>);
 
 pub const BUILTIN_HIT_PARTICLE: Handle<EffectAsset> =
-    weak_handle!("99ae43c6-fcb3-49ce-8c2a-44f7cef9aff6");
+    uuid_handle!("99ae43c6-fcb3-49ce-8c2a-44f7cef9aff6");
 
 impl<P: ChartProvider> Plugin for HitParticlePlugin<P> {
     fn build(&self, app: &mut App) {

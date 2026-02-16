@@ -2,10 +2,11 @@
 use std::marker::PhantomData;
 
 use bevy::{
-    core_pipeline::{fxaa::Fxaa, oit::OrderIndependentTransparencySettings},
     prelude::*,
-    render::{camera::RenderTarget, view::RenderLayers},
+    camera::{RenderTarget, visibility::RenderLayers},
+    core_pipeline::oit::OrderIndependentTransparencySettings,
 };
+// use bevy::core_pipeline::fxaa::Fxaa;
 
 use bevy_hanabi::HanabiPlugin;
 use bevy_prototype_lyon::prelude::*;
@@ -100,7 +101,7 @@ impl<P: ChartProvider> Plugin for RizliumRenderingPlugin<P> {
             ChartNotePlugin::<P>::default(),
             RingPlugin::<P>::default(),
             MaskPlugin::<P>::default(),
-            HitParticlePlugin::<P>::default(),
+            // HitParticlePlugin::<P>::default(),
             CameraControlPlugin::<P>::default(),
         ))
         .add_systems(Startup, spawn_game_camera)
@@ -118,7 +119,7 @@ fn spawn_game_camera(mut commands: Commands) {
             Camera2d,
             Projection::Orthographic(OrthographicProjection {
                 viewport_origin: [0.5, masks::RING_OFFSET].into(),
-                scaling_mode: bevy::render::camera::ScalingMode::Fixed {
+                scaling_mode: bevy::camera::ScalingMode::Fixed {
                     width: 900.,
                     height: 1600.,
                 },
@@ -131,7 +132,8 @@ fn spawn_game_camera(mut commands: Commands) {
             OrderIndependentTransparencySettings::default(),
             RenderLayers::from_layers(&[MASK_LAYER, 0]),
             Msaa::Off,
-            Fxaa::default(),
+            RenderTarget::None { size: (10,10).into() }
+            // Fxaa::default(),
         ))
         .insert(GameCamera);
 }
@@ -139,20 +141,19 @@ fn spawn_game_camera(mut commands: Commands) {
 // TODO: don't run continuously
 fn bind_gameview(
     gameview: Option<Res<GameView>>,
-    mut game_cameras: Query<&mut Camera, With<GameCamera>>,
+    mut game_cameras: Query<&mut RenderTarget, With<GameCamera>>,
 ) {
     let Some(gameview) = gameview else {
         warn!("No game view exist.");
         return;
     };
 
-    let Ok(mut game_camera) = game_cameras.single_mut() else {
+    let Ok(mut render_target) = game_cameras.single_mut() else {
         warn!("No game camera found.");
         return;
     };
-    use bevy::render::camera::ImageRenderTarget;
-    if !matches!(game_camera.target, RenderTarget::Image(_)) {
-        game_camera.target = RenderTarget::Image(ImageRenderTarget::from(gameview.0.clone()));
+    if !matches!(*render_target, RenderTarget::Image(_)) {
+        *render_target = RenderTarget::Image(gameview.0.clone().into());
     }
 }
 

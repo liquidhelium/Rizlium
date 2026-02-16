@@ -11,8 +11,8 @@ serde_json = { workspace = true }
 bevy_prototype_lyon = { git = "https://github.com/liquidhelium/bevy_prototype_lyon_rizlium" }
 rizlium_chart = { path = "../rizlium_chart" }
 snafu = "0.8"
-bevy_hanabi = "0.16"
-bevy_common_assets = {version = "0.13.0", features = ["json"]}
+bevy_hanabi = "0.18"
+bevy_common_assets = {version = "0.15.0", features = ["json"]}
 
 [features]
 trace = ["bevy/trace_tracy"]

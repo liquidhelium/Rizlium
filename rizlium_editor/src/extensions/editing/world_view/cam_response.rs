@@ -1,6 +1,6 @@
 use bevy::{
     math::Ray3d, picking::mesh_picking::ray_cast::MeshRayCastSettings, prelude::*,
-    render::view::RenderLayers,
+    camera::visibility::RenderLayers,
 };
 use rizlium_render::ChartLine;
 use strum::EnumIs;
@@ -11,20 +11,20 @@ pub struct RaycastPlugin;
 
 impl Plugin for RaycastPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ScreenMouseEvent>()
-            .add_event::<WorldMouseEvent>()
+        app.add_message::<ScreenMouseEvent>()
+            .add_message::<WorldMouseEvent>()
             .add_systems(
                 PreUpdate,
-                ray_cast.run_if(resource_exists_and_changed::<Events<ScreenMouseEvent>>),
+                ray_cast.run_if(resource_exists_and_changed::<Messages<ScreenMouseEvent>>),
             )
             .add_systems(PostUpdate, add_pick_to_lines);
     }
 }
 
-#[derive(Event, Debug)]
+#[derive(Message, Debug)]
 pub struct ScreenMouseEvent(pub MouseEvent);
 
-#[derive(Event, Debug)]
+#[derive(Message, Debug)]
 pub struct WorldMouseEvent {
     pub event: MouseEvent,
     pub casted_entity: Option<Entity>,
@@ -69,8 +69,8 @@ fn ray_cast(
     mut raycast: bevy::picking::prelude::MeshRayCast,
     camera: Query<(&Camera, &GlobalTransform, Option<&RenderLayers>), With<WorldCam>>,
     mut meshes: Query<(Entity, Option<&RenderLayers>, &mut CamResponse)>,
-    mut screen_mouse_events: EventReader<ScreenMouseEvent>,
-    mut world_mouse_events: EventWriter<WorldMouseEvent>,
+    mut screen_mouse_events: MessageReader<ScreenMouseEvent>,
+    mut world_mouse_events: MessageWriter<WorldMouseEvent>,
 ) -> Result<()> {
     let (cam, trans, cam_layers) = camera.single()?;
     screen_mouse_events.read().for_each(|ev| {

@@ -3,17 +3,14 @@ use std::ops::ControlFlow;
 
 use crate::{project::ProjectState, time_and_audio::GameAudioSource};
 use bevy::{
-    core_pipeline::{fxaa::Fxaa, oit::OrderIndependentTransparencySettings},
-    math::vec2,
+    core_pipeline::oit::OrderIndependentTransparencySettings,
     prelude::*,
-    render::{
-        primitives::Aabb,
-        render_resource::{
-            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-        },
-        view::RenderLayers,
+    camera::{RenderTarget, visibility::RenderLayers},
+    render::render_resource::{
+        Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
     },
 };
+// use bevy::core_pipeline::fxaa::Fxaa;
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use bevy_kira_audio::AudioSource;
 use bevy_prototype_lyon::{
@@ -70,7 +67,7 @@ impl Plugin for WorldViewPlugin {
     }
 }
 
-pub fn edit_view_or_tool_focused() -> impl Condition<()> {
+pub fn edit_view_or_tool_focused() -> impl SystemCondition<()> {
     tab_focused("edit.world_view").or(tab_focused("edit.tool_config"))
 }
 
@@ -86,17 +83,14 @@ fn setup_world_cam(
     mut images: ResMut<Assets<Image>>,
 ) {
     let handle = images.add(get_image());
-    egui_context.add_image(handle.clone());
+    egui_context.add_image(bevy_egui::EguiTextureHandle::Strong(handle.clone()));
     commands.spawn((
         // todo: use a shader to shadow places which are not in GameView
         Camera2d,
-        Camera {
-            target: bevy::render::camera::RenderTarget::Image(handle.clone().into()),
-            ..default()
-        },
+        RenderTarget::Image(handle.clone().into()),
         Msaa::Off,
         OrderIndependentTransparencySettings::default(),
-        Fxaa::default(),
+        // Fxaa::default(),
         RenderLayers::default().with(114),
         WorldCam,
     ));
@@ -127,13 +121,10 @@ fn get_camera(handle: Handle<Image>) -> impl Bundle {
     (
         // todo: use a shader to shadow places which are not in GameView
         Camera2d,
-        Camera {
-            target: bevy::render::camera::RenderTarget::Image(handle.into()),
-            ..default()
-        },
+        RenderTarget::Image(handle.into()),
         Msaa::Off,
         OrderIndependentTransparencySettings::default(),
-        Fxaa::default(),
+        // Fxaa::default(),
         layers,
     )
 }
@@ -156,7 +147,7 @@ fn world_tab(
     mut camera: Query<(&mut Projection, &mut Transform), With<WorldCam>>,
     mut scale: Local<Scale>,
     mut center: Local<Vec3>,
-    mut event_writer: EventWriter<ScreenMouseEvent>,
+    mut event_writer: MessageWriter<ScreenMouseEvent>,
     mut tool: ResMut<Tool>,
     mut config: ResMut<WorldViewConfig>,
 ) {
@@ -200,7 +191,7 @@ fn world_tab(
     };
     img.resize(size);
 
-    let img = textures.image_id(&large_view).expect("texture not found");
+    let img = textures.image_id(&**large_view).expect("texture not found");
     // main img
     let area = ui
         .centered_and_justified(|ui| ui.add(egui::Image::new((img, size2d))))
@@ -343,29 +334,31 @@ fn add_points_indicator(
     let segment_count = chart.segment_count();
     let now_count = indicators.iter().count();
     for _ in now_count..segment_count {
-        commands.spawn(PointIndicatorBundle {
-            shape: ShapeBundle {
-                path: GeometryBuilder::new()
-                    .add(&Circle0 {
-                        radius: 10.,
-                        center: [0., 0.].into(),
-                    })
-                    .build(),
-                transform: Transform::from_translation(Vec3 {
-                    x: 0.,
-                    y: 100.,
-                    z: 20.,
-                }),
-                aabb: Aabb {
-                    center: [0., 0., 0.].into(),
-                    half_extents: [10., 10., 0.].into(),
+        commands.spawn((
+            PointIndicatorBundle {
+                shape: ShapeBundle {
+                    path: GeometryBuilder::new()
+                        .add(&Circle0 {
+                            radius: 10.,
+                            center: [0., 0.].into(),
+                        })
+                        .build(),
+                    transform: Transform::from_translation(Vec3 {
+                        x: 0.,
+                        y: 100.,
+                        z: 20.,
+                    }),
+                    ..default()
                 },
-                ..default()
+                stroke: Stroke::new(Color::WHITE, 10.),
+                layer: RenderLayers::from_layers(&[114]),
+                ..Default::default()
             },
-            stroke: Stroke::new(Color::WHITE, 10.),
-            layer: RenderLayers::from_layers(&[114]),
-            ..Default::default()
-        });
+            bevy::camera::primitives::Aabb {
+                center: [0., 0., 0.].into(),
+                half_extents: [10., 10., 0.].into(),
+            },
+        ));
     }
 }
 

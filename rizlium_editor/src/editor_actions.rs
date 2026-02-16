@@ -24,13 +24,13 @@ impl SystemBuffer for ManualEditorCommands {
 impl ManualEditorCommands {
     pub fn time_control(&mut self, event: TimeControlEvent) {
         self.commands.push(|world: &mut World| {
-            world.send_event(event);
+            world.write_message(event);
         });
     }
     pub fn load_chart(&mut self, path: String) {
         let dup = path.clone();
         self.commands.push(|world: &mut World| {
-            world.send_event(LoadChartEvent::Bundle(dup));
+            world.write_message(LoadChartEvent::Bundle(dup));
         });
         self.update_recent(path);
     }

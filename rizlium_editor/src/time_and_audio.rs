@@ -5,7 +5,7 @@ use rizlium_render::{GameChartCache, GameTime};
 pub struct CurrentGameAudio(pub Handle<AudioInstance>);
 #[derive(Resource, Deref)]
 pub struct GameAudioSource(pub Handle<AudioSource>);
-#[derive(Event, Debug, Reflect)]
+#[derive(Message, Debug, Reflect)]
 pub enum TimeControlEvent {
     Pause,
     Resume,
@@ -26,7 +26,7 @@ pub struct EditorAudioPlugin;
 impl Plugin for EditorAudioPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(bevy_kira_audio::AudioPlugin)
-            .add_event::<TimeControlEvent>()
+            .add_message::<TimeControlEvent>()
             .add_systems(Startup, init_time_manager)
             .add_systems(
                 Update,
@@ -49,7 +49,7 @@ fn update_timemgr(mut time: ResMut<TimeManager>, real_time: Res<Time>) {
     time.update(real_time.elapsed_secs_f64());
 }
 fn dispatch_events(
-    mut event: EventReader<TimeControlEvent>,
+    mut event: MessageReader<TimeControlEvent>,
     mut time: ResMut<TimeManager>,
     audio: Res<CurrentGameAudio>,
     mut audios: ResMut<Assets<AudioInstance>>,
@@ -91,7 +91,7 @@ fn sync_audio(
     mut commands: Commands,
     game_audio: Option<ResMut<CurrentGameAudio>>,
     mut game_audios: ResMut<Assets<AudioInstance>>,
-    mut time_control: EventWriter<TimeControlEvent>,
+    mut time_control: MessageWriter<TimeControlEvent>,
     source: Res<GameAudioSource>,
     audio: Res<Audio>,
 ) {

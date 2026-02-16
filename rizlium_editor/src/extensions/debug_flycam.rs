@@ -1,13 +1,11 @@
 use bevy::{
     input::mouse::MouseMotion,
     prelude::*,
-    render::{
-        camera::RenderTarget,
-        render_resource::{
-            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-        },
+    camera::RenderTarget,
+    render::render_resource::{
+        Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
     },
-    window::{CursorGrabMode, PrimaryWindow},
+    window::{CursorGrabMode, CursorOptions, PrimaryWindow},
 };
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::{DragValue, Ui, Widget};
@@ -54,25 +52,25 @@ impl Default for KeyBindings {
 }
 #[derive(Component)]
 pub struct FlyCam;
-fn toggle_grab_cursor(window: &mut Window) {
+fn toggle_grab_cursor(cursor_options: &mut CursorOptions) {
     info!(
         "Toggling cursor grab mode: {:?}",
-        window.cursor_options.grab_mode
+        cursor_options.grab_mode
     );
-    match window.cursor_options.grab_mode {
+    match cursor_options.grab_mode {
         CursorGrabMode::None => {
-            window.cursor_options.grab_mode = CursorGrabMode::Confined;
-            window.cursor_options.visible = false;
+            cursor_options.grab_mode = CursorGrabMode::Confined;
+            cursor_options.visible = false;
         }
         _ => {
-            window.cursor_options.grab_mode = CursorGrabMode::None;
-            window.cursor_options.visible = true;
+            cursor_options.grab_mode = CursorGrabMode::None;
+            cursor_options.visible = true;
         }
     }
 }
-fn initial_grab_cursor(mut primary_window: Query<&mut Window, With<PrimaryWindow>>) {
-    if let Ok(mut window) = primary_window.single_mut() {
-        toggle_grab_cursor(&mut window);
+fn initial_grab_cursor(mut primary_window: Query<&mut CursorOptions, With<PrimaryWindow>>) {
+    if let Ok(mut cursor_options) = primary_window.single_mut() {
+        toggle_grab_cursor(&mut cursor_options);
     } else {
         warn!("Primary window not found for `initial_grab_cursor`!");
     }
@@ -85,7 +83,7 @@ fn setup_player(
     mut images: ResMut<Assets<Image>>,
 ) {
     let handle = images.add(get_image());
-    egui_context.add_image(handle.clone());
+    egui_context.add_image(bevy_egui::EguiTextureHandle::Strong(handle.clone()));
     commands.spawn(get_cam(handle.clone()));
     commands.insert_resource(DebugCam(handle));
 }
@@ -93,10 +91,7 @@ fn get_cam(image: Handle<Image>) -> impl Bundle {
     (
         Camera2d,
         FlyCam,
-        Camera {
-            target: RenderTarget::Image(image.into()),
-            ..Default::default()
-        },
+        RenderTarget::Image(image.into()),
         Projection::Perspective(PerspectiveProjection::default()),
         Transform::from_xyz(0.0, 0.0, -500.0).looking_at(Vec3::ZERO, Vec3::Y),
     )
@@ -120,13 +115,13 @@ fn get_image() -> Image {
 }
 fn player_move_forward(
     time: Res<Time>,
-    primary_window: Query<&Window, With<PrimaryWindow>>,
+    cursor_options: Query<&CursorOptions, With<PrimaryWindow>>,
     settings: Res<MovementSettings>,
     mut query: Query<(&FlyCam, &mut Transform)>,
 ) {
-    if let Ok(window) = primary_window.single() {
+    if let Ok(cursor_options) = cursor_options.single() {
         for (_camera, mut transform) in query.iter_mut() {
-            if window.cursor_options.grab_mode != CursorGrabMode::None {
+            if cursor_options.grab_mode != CursorGrabMode::None {
                 let local_z = transform.local_z();
                 let forward = -Vec3::new(local_z.x, 0., local_z.z);
                 transform.translation +=
@@ -137,13 +132,13 @@ fn player_move_forward(
 }
 fn player_move_backward(
     time: Res<Time>,
-    primary_window: Query<&Window, With<PrimaryWindow>>,
+    cursor_options: Query<&CursorOptions, With<PrimaryWindow>>,
     settings: Res<MovementSettings>,
     mut query: Query<(&FlyCam, &mut Transform)>,
 ) {
-    if let Ok(window) = primary_window.single() {
+    if let Ok(cursor_options) = cursor_options.single() {
         for (_camera, mut transform) in query.iter_mut() {
-            if window.cursor_options.grab_mode != CursorGrabMode::None {
+            if cursor_options.grab_mode != CursorGrabMode::None {
                 let local_z = transform.local_z();
                 let forward = -Vec3::new(local_z.x, 0., local_z.z);
                 transform.translation -=
@@ -154,13 +149,13 @@ fn player_move_backward(
 }
 fn player_move_left(
     time: Res<Time>,
-    primary_window: Query<&Window, With<PrimaryWindow>>,
+    cursor_options: Query<&CursorOptions, With<PrimaryWindow>>,
     settings: Res<MovementSettings>,
     mut query: Query<(&FlyCam, &mut Transform)>,
 ) {
-    if let Ok(window) = primary_window.single() {
+    if let Ok(cursor_options) = cursor_options.single() {
         for (_camera, mut transform) in query.iter_mut() {
-            if window.cursor_options.grab_mode != CursorGrabMode::None {
+            if cursor_options.grab_mode != CursorGrabMode::None {
                 let local_z = transform.local_z();
                 let right = Vec3::new(local_z.z, 0., -local_z.x);
                 transform.translation -=
@@ -171,13 +166,13 @@ fn player_move_left(
 }
 fn player_move_right(
     time: Res<Time>,
-    primary_window: Query<&Window, With<PrimaryWindow>>,
+    cursor_options: Query<&CursorOptions, With<PrimaryWindow>>,
     settings: Res<MovementSettings>,
     mut query: Query<(&FlyCam, &mut Transform)>,
 ) {
-    if let Ok(window) = primary_window.single() {
+    if let Ok(cursor_options) = cursor_options.single() {
         for (_camera, mut transform) in query.iter_mut() {
-            if window.cursor_options.grab_mode != CursorGrabMode::None {
+            if cursor_options.grab_mode != CursorGrabMode::None {
                 let local_z = transform.local_z();
                 let right = Vec3::new(local_z.z, 0., -local_z.x);
                 transform.translation +=
@@ -188,13 +183,13 @@ fn player_move_right(
 }
 fn player_move_ascend(
     time: Res<Time>,
-    primary_window: Query<&Window, With<PrimaryWindow>>,
+    cursor_options: Query<&CursorOptions, With<PrimaryWindow>>,
     settings: Res<MovementSettings>,
     mut query: Query<(&FlyCam, &mut Transform)>,
 ) {
-    if let Ok(window) = primary_window.single() {
+    if let Ok(cursor_options) = cursor_options.single() {
         for (_camera, mut transform) in query.iter_mut() {
-            if window.cursor_options.grab_mode != CursorGrabMode::None {
+            if cursor_options.grab_mode != CursorGrabMode::None {
                 transform.translation += Vec3::Y * time.delta_secs() * settings.speed;
             }
         }
@@ -202,13 +197,13 @@ fn player_move_ascend(
 }
 fn player_move_descend(
     time: Res<Time>,
-    primary_window: Query<&Window, With<PrimaryWindow>>,
+    cursor_options: Query<&CursorOptions, With<PrimaryWindow>>,
     settings: Res<MovementSettings>,
     mut query: Query<(&FlyCam, &mut Transform)>,
 ) {
-    if let Ok(window) = primary_window.single() {
+    if let Ok(cursor_options) = cursor_options.single() {
         for (_camera, mut transform) in query.iter_mut() {
-            if window.cursor_options.grab_mode != CursorGrabMode::None {
+            if cursor_options.grab_mode != CursorGrabMode::None {
                 transform.translation -= Vec3::Y * time.delta_secs() * settings.speed;
             }
         }
@@ -216,18 +211,20 @@ fn player_move_descend(
 }
 fn player_look(
     settings: Res<MovementSettings>,
-    primary_window: Query<&Window, With<PrimaryWindow>>,
-    mut state: EventReader<MouseMotion>,
+    cursor_options: Query<&CursorOptions, With<PrimaryWindow>>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    mut state: MessageReader<MouseMotion>,
     mut query: Query<&mut Transform, With<FlyCam>>,
 ) {
-    if let Ok(window) = primary_window.single() {
-        for mut transform in query.iter_mut() {
-            for ev in state.read() {
-                let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
-                match window.cursor_options.grab_mode {
-                    CursorGrabMode::None => (),
-                    _ => {
-                        let window_scale = window.height().min(window.width());
+    if let Ok(cursor_options) = cursor_options.single() {
+        if let Ok(window) = windows.single() {
+            for mut transform in query.iter_mut() {
+                for ev in state.read() {
+                    let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
+                    match cursor_options.grab_mode {
+                        CursorGrabMode::None => (),
+                        _ => {
+                            let window_scale = window.height().min(window.width());
                         pitch -= (settings.sensitivity * ev.delta.y * window_scale).to_radians();
                         yaw -= (settings.sensitivity * ev.delta.x * window_scale).to_radians();
                     }
@@ -237,13 +234,14 @@ fn player_look(
                     Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
             }
         }
+    }
     } else {
         warn!("Primary window not found for `player_look`!");
     }
 }
-fn cursor_grab(mut primary_window: Query<&mut Window, With<PrimaryWindow>>) {
-    if let Ok(mut window) = primary_window.single_mut() {
-        toggle_grab_cursor(&mut window);
+fn cursor_grab(mut cursor_options_query: Query<&mut CursorOptions, With<PrimaryWindow>>) {
+    if let Ok(mut cursor_options) = cursor_options_query.single_mut() {
+        toggle_grab_cursor(&mut cursor_options);
     } else {
         warn!("Primary window not found for `cursor_grab`!");
     }

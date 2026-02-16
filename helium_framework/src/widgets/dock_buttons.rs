@@ -16,10 +16,10 @@ pub fn dock_button(
         if ui.selectable_label(is_opened, tab.title()).clicked() {
             if is_opened {
                 to_remove = Some(state.find_tab(i).expect("i is opened but then not found?"));
-                ui.close_menu();
+                ui.close();
             } else {
                 to_add = Some(i.clone());
-                ui.close_menu();
+                ui.close();
             }
         }
     }

@@ -4,7 +4,7 @@ use bevy::{
     asset::uuid::Uuid,
     ecs::{
         change_detection::{DetectChanges, DetectChangesMut},
-        schedule::Condition,
+        schedule::SystemCondition,
         system::{Res, ResMut},
     },
     log::debug,
@@ -41,7 +41,7 @@ impl Default for RizliumDockState {
         Self(dock_state)
     }
 }
-pub fn tab_opened(tab: impl Into<TabId>) -> impl Condition<()> {
+pub fn tab_opened(tab: impl Into<TabId>) -> impl SystemCondition<()> {
     let tab = tab.into();
     (move |res: Option<Res<RizliumDockStateMirror>>| {
         res.is_some_and(|res| res.0.as_ref().is_some_and(|r| r.find_tab(&tab).is_some()))

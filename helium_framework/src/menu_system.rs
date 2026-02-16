@@ -72,7 +72,7 @@ impl<C> MenuItem<C> {
     /// let item = MenuItem::new("save", "保存", "文件/保存", Action::Command("save_file".into(), PhantomData::<()>))
     ///     .with_condition(|world: &World| world.resource::<AppState>().is_document_opened);
     /// ```
-    pub fn with_condition<M>(mut self, condition: impl Condition<M>) -> Self {
+    pub fn with_condition<M>(mut self, condition: impl SystemCondition<M>) -> Self {
         self.when = new_condition(condition);
         self
     }
@@ -359,7 +359,7 @@ impl<'a, C: 'static + Send + Sync> MenuTree<'a, C> {
         match node {
             MenuNode::Item(index) => {
                 let item = &mut items[*index];
-                let visible = item.when.run_readonly((), world);
+                let visible = item.when.run_readonly((), world).unwrap_or(false);
 
                 if !visible {
                     return;

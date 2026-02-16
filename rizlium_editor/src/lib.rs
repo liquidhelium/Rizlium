@@ -2,12 +2,14 @@
 #![allow(clippy::type_complexity)]
 #![allow(unused)]
 use bevy::{
+    camera::{CameraOutputMode, visibility::RenderLayers},
     diagnostic::FrameCount,
     ecs::{system::RunSystemOnce as _, world::CommandQueue},
     prelude::*,
+    render::render_resource::BlendState,
     window::{PresentMode, PrimaryWindow, RequestRedraw},
 };
-use bevy_egui::{EguiContext, EguiUserTextures};
+use bevy_egui::{EguiContext, EguiGlobalSettings, EguiPrimaryContextPass, EguiUserTextures, PrimaryEguiContext};
 use bevy_persistent::Persistent;
 use egui::{Color32, Frame, Layout, Rect, RichText, Style, Ui, UiBuilder};
 use egui_dock::DockArea;
@@ -77,7 +79,7 @@ macro_rules! icons_def {
                 $($path: $path.clone(),)+
             });
             $(
-                egui_context.add_image($path);
+                egui_context.add_image(bevy_egui::EguiTextureHandle::Strong($path));
             )+
             Ok(())
         }
@@ -119,7 +121,7 @@ fn compute_fps(
     time: Res<Time>,
     mut fps_timer: Local<SecondTimer>,
 ) {
-    if fps_timer.tick(time.delta()).finished() {
+    if fps_timer.tick(time.delta()).is_finished() {
         fps.0 = current.0 - *last_frame;
         info!("fps: {}", fps.0);
         *last_frame = current.0;
@@ -128,7 +130,7 @@ fn compute_fps(
 pub fn ui_when_no_dock(
     In(ui): In<&mut Ui>,
     _recents: Res<Persistent<RecentFiles>>,
-    mut _events: EventWriter<LoadChartEvent>,
+    mut _events: MessageWriter<LoadChartEvent>,
     egui_textures: Res<EguiUserTextures>,
     icons: Res<Icons>,
     hotkeys: Res<HotkeyRegistry>,
@@ -216,19 +218,40 @@ fn change_render_type(mut window: Query<&mut Window, With<PrimaryWindow>>) -> Re
         .map(|mut a| a.present_mode = PresentMode::AutoVsync)?;
     Ok(())
 }
-fn update_type_changing(mut event: EventWriter<RequestRedraw>) {
+fn update_type_changing(mut event: MessageWriter<RequestRedraw>) {
     event.write(RequestRedraw);
 }
 pub struct MainUIPlugin;
 
 impl Plugin for MainUIPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (load_icons, spawn_cam))
-            .add_systems(Update, (editor_main, input_state_update, setup_font));
+        app.add_systems(Startup, (load_icons, spawn_main_cam))
+            .add_systems(
+                EguiPrimaryContextPass,
+                (editor_main, input_state_update, setup_font),
+            );
     }
 }
-fn spawn_cam(mut commands: Commands) {
-    commands.spawn(Camera2d);
+/// 用于渲染egui界面的Camera.这是第一个添加的
+fn spawn_main_cam(mut commands: Commands, mut egui_global_settings: ResMut<EguiGlobalSettings>) {
+    // Disable the automatic creation of a primary context to set it up manually for the camera we need.
+    egui_global_settings.auto_create_primary_context = false;
+    commands.spawn((
+        // The `PrimaryEguiContext` component requires everything needed to render a primary context.
+        PrimaryEguiContext,
+        Camera2d,
+        // Setting RenderLayers to none makes sure we won't render anything apart from the UI.
+        RenderLayers::none(),
+        Camera {
+            order: 1,
+            output_mode: CameraOutputMode::Write {
+                blend_state: Some(BlendState::ALPHA_BLENDING),
+                clear_color: ClearColorConfig::None,
+            },
+            clear_color: ClearColorConfig::Custom(Color::NONE),
+            ..default()
+        },
+    ));
 }
 fn setup_font(mut context: Query<&mut EguiContext, Added<EguiContext>>) {
     use egui::{FontData, FontDefinitions, FontFamily};

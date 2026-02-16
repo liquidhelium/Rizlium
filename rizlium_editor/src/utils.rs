@@ -1,5 +1,5 @@
 use bevy::ecs::{
-    schedule::{BoxedCondition, Condition},
+    schedule::{BoxedCondition, SystemCondition},
     system::{IntoSystem, Res, System, SystemParam},
 };
 use rizlium_render::{GameChartCache, GameTime};
@@ -24,7 +24,7 @@ impl WorldToGame<'_> {
         self.cache.is_some() && self.time.is_some()
     }
 }
-pub fn new_condition<M>(condition: impl Condition<M>) -> BoxedCondition {
+pub fn new_condition<M>(condition: impl SystemCondition<M>) -> BoxedCondition {
     let condition_system = IntoSystem::into_system(condition);
     assert!(
         condition_system.is_send(),

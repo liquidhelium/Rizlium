@@ -45,11 +45,11 @@ pub struct TabStorage {
 #[derive(Resource, Default, PartialEq, Eq)]
 pub struct FocusedTab(pub Option<TabId>);
 
-pub fn tab_focused(tab: impl Into<TabId>) -> impl Condition<()> {
+pub fn tab_focused(tab: impl Into<TabId>) -> impl SystemCondition<()> {
     resource_exists_and_equals(FocusedTab(Some(tab.into()))).and(|| true)
 }
 
-pub fn tab_opened(tab: impl Into<TabId>) -> impl Condition<()> {
+pub fn tab_opened(tab: impl Into<TabId>) -> impl SystemCondition<()> {
     let tab = tab.into();
     (move |res: Option<Res<HeDockState>>| res.is_some_and(|res| res.0.find_tab(&tab).is_some()))
         .and(|| true)
@@ -74,6 +74,7 @@ impl TabStorage {
                 })?;
         self.avalible_condition
             .run_readonly((), world)
+            .unwrap_or(false)
             .then(|| {
                 world.run_system_with(system_id, ui).unwrap();
             })
@@ -104,10 +105,10 @@ impl TabRegistry {
 
         if let Some(tab) = self.0.get_mut(tab) {
             let Ok(()) = tab.run_with(world, ui) else {
-                ui.colored_label(
-                    Color32::GRAY,
-                    RichText::new(t!("tab-not-avalible")).italics(),
-                );
+                // ui.colored_label(
+                //     Color32::GRAY,
+                //     RichText::new(t!("tab-not-avalible")).italics(),
+                // );
                 return;
             };
         } else {
@@ -122,7 +123,7 @@ pub trait TabRegistrationExt {
         id: impl Into<TabId>,
         name: impl Into<Cow<'static, str>>,
         system: impl IntoSystem<InMut<'static, Ui>, (), M1> + 'static,
-        avalible_when: impl Condition<M2>,
+        avalible_when: impl SystemCondition<M2>,
     ) -> &mut Self;
 }
 
@@ -132,7 +133,7 @@ impl TabRegistrationExt for App {
         id: impl Into<TabId>,
         name: impl Into<Cow<'static, str>>,
         system: impl IntoSystem<InMut<'static, Ui>, (), M1> + 'static,
-        avalible_when: impl Condition<M2>,
+        avalible_when: impl SystemCondition<M2>,
     ) -> &mut Self {
         self.world_mut()
             .register_tab(id, name, system, avalible_when);
@@ -146,7 +147,7 @@ impl TabRegistrationExt for World {
         id: impl Into<TabId>,
         name: impl Into<Cow<'static, str>>,
         system: impl IntoSystem<InMut<'static, Ui>, (), M1> + 'static,
-        avalible_when: impl Condition<M2>,
+        avalible_when: impl SystemCondition<M2>,
     ) -> &mut Self {
         self.resource_scope(|world, mut registry: Mut<TabRegistry>| {
             let system_id: bevy::ecs::system::SystemId<_, _> = world.register_system(system);

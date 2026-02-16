@@ -116,7 +116,8 @@ impl<Storage: Send + Sync + 'static> ModuleRunner for SettingsModuleDyn<Storage>
         );
         self.storage = self
             .ui_system
-            .run_readonly((child, self.storage.take()), world);
+            .run_readonly((child, self.storage.take()), world)
+            .unwrap_or(None);
     }
     fn has_mutation(&self) -> bool {
         self.storage.is_some()

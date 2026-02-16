@@ -1,15 +1,15 @@
 use std::marker::PhantomData;
 
-use bevy::ecs::component::Tick;
+use bevy::ecs::change_detection::Tick;
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
 use bevy_prototype_lyon::shapes::Circle;
 use rizlium_chart::chart::{EasingId, KeyPoint, LinePointData, Tween};
 
 use bevy_prototype_lyon::prelude::*;
 
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::{prelude::*, camera::visibility::RenderLayers};
 
-use bevy::render::primitives::Aabb;
+use bevy::camera::primitives::Aabb;
 
 use crate::{ChartProvider, GameChartCache};
 

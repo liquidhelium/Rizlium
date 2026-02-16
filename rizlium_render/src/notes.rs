@@ -204,9 +204,9 @@ fn update_note_kind<P: ChartProvider>(
                                 Sprite {
                                     image: texture.hold_body.clone(),
                                     custom_size: Some(Vec2::new(50., 150.)),
-                                    anchor: bevy::sprite::Anchor::BottomCenter,
                                     ..default()
                                 },
+                                bevy::sprite::Anchor(Vec2::new(0.0, 0.0)),
                                 Transform::from_translation(Vec2::ZERO.extend(0.)),
                                 HoldBody,
                                 ChildOf(entity),

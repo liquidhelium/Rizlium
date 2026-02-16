@@ -32,8 +32,8 @@ pub struct PencilToolEditData {
 }
 
 pub(super) fn pencil_tool(
-    mut mouse_events: EventReader<WorldMouseEvent>,
-    mut discard_events: EventReader<DiscardPreeditEvent>,
+    mut mouse_events: MessageReader<WorldMouseEvent>,
+    mut discard_events: MessageReader<DiscardPreeditEvent>,
     tool: Res<Tool>,
     pencil_config: Res<PencilToolConfig>,
     world_config: Res<WorldViewConfig>,
@@ -88,7 +88,7 @@ struct PencilContext<'a, 'w> {
 }
 
 impl<'a, 'w> PencilContext<'a, 'w> {
-    fn handle_discard(&mut self, discard_events: &mut EventReader<DiscardPreeditEvent>) {
+    fn handle_discard(&mut self, discard_events: &mut MessageReader<DiscardPreeditEvent>) {
         if !discard_events.is_empty() {
             discard_events.clear();
             *self.current_edit = None;

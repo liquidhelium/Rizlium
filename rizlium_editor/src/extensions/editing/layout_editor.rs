@@ -114,7 +114,7 @@ fn layout_editor_tab(
     mut chart_state: ResMut<ProjectState>,
     mut state: ResMut<LayoutEditorState>,
     game_time: Res<rizlium_render::GameTime>,
-    mut time_control: EventWriter<TimeControlEvent>,
+    mut time_control: MessageWriter<TimeControlEvent>,
     snapping_config: Res<SnappingConfig>,
     mut chart_edit_history: ResMut<ChartEditHistory>,
     mut toast: ResMut<ToastsStorage>,
