@@ -16,7 +16,7 @@ pub fn enum_selector<T: IntoEnumIterator + Eq + Debug>(value: &mut T, ui: &mut U
             let text = format!("{variant:?}");
             let selectable_value = ui.selectable_value(value, variant, text);
             if selectable_value.changed() {
-                ui.close_menu();
+                ui.close();
                 return Some(selectable_value);
             };
         }

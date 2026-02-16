@@ -239,12 +239,12 @@ fn folder_view(
                                     old_name: file.name.clone(),
                                     new_name: file.name.clone(),
                                 });
-                                ui.close_menu();
+                                ui.close();
                             }
 
                             if ui.button("删除").clicked() {
                                 delete_item(&file.path, state, commands);
-                                ui.close_menu();
+                                ui.close();
                             }
                         });
 

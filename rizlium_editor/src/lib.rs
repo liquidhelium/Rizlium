@@ -166,7 +166,7 @@ pub fn ui_when_no_dock(
     };
     let id = egui_textures.image_id(&icons.rizlium_solid_darker).unwrap();
     let main_rect = ui.available_rect_before_wrap().shrink(50.);
-    ui.allocate_new_ui(UiBuilder::new().max_rect(main_rect), |ui: &mut Ui| {
+    ui.scope_builder(UiBuilder::new().max_rect(main_rect), |ui: &mut Ui| {
         ui.vertical_centered(|ui| {
             ui.add(egui::Image::new((id, egui::Vec2::splat(300.))));
         });
@@ -176,16 +176,16 @@ pub fn ui_when_no_dock(
         } else {
             main_rect
         };
-        ui.allocate_new_ui(UiBuilder::new().max_rect(center_rect), |ui: &mut Ui| {
+        ui.scope_builder(UiBuilder::new().max_rect(center_rect), |ui: &mut Ui| {
             let center_rect = ui.available_rect_before_wrap();
             let max_rect = left_half(&center_rect);
-            ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui: &mut Ui| {
+            ui.scope_builder(UiBuilder::new().max_rect(max_rect), |ui: &mut Ui| {
                 desc(ui, "command_panel.toggle_open");
                 desc(ui, "game.open_path_dialog");
                 desc(ui, "game.open_bundle_dialog");
             });
             let max_rect = right_half(&center_rect);
-            ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui: &mut Ui| {
+            ui.scope_builder(UiBuilder::new().max_rect(max_rect), |ui: &mut Ui| {
                 keys(ui, "command_panel.toggle_open");
                 keys(ui, "game.open_path_dialog");
                 keys(ui, "game.open_bundle_dialog");

@@ -30,7 +30,7 @@ impl Plugin for I18nPlugin {
             .default(Locale::default())
             .build()
             .expect("failed to setup tab presets");
-        
+
         let lang_id: Option<rizlium_l10n::LanguageIdentifier> = a.0.parse().ok();
         rizlium_l10n::set_prefered_locale(lang_id);
 
@@ -68,7 +68,7 @@ fn language_ui(
     ui.menu_button(current, |ui| {
         for &l in rizlium_l10n::LANGS.iter() {
             if ui.button(l).clicked() {
-                ui.close_menu();
+                ui.close();
                 return Some(Cow::Borrowed(l));
             }
         }

@@ -131,7 +131,7 @@ fn timeline_tab(
                 );
 
                 ctx.ui
-                    .allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
+                    .scope_builder(egui::UiBuilder::new().max_rect(rect), |ui| {
                         ui.centered_and_justified(|ui| {
                             ui.label(*name);
                         });
@@ -163,7 +163,7 @@ fn timeline_tab(
                 );
 
                 ctx.ui
-                    .allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
+                    .scope_builder(egui::UiBuilder::new().max_rect(rect), |ui| {
                         ui.set_clip_rect(rect);
 
                         match track_data {
@@ -635,7 +635,7 @@ pub mod fl_timeline {
             vec2(header_width, timeline_height + config.scroll_bar_height),
         );
 
-        ui.allocate_new_ui(egui::UiBuilder::new().max_rect(corner_rect), |ui| {
+        ui.scope_builder(egui::UiBuilder::new().max_rect(corner_rect), |ui| {
             egui::Frame::NONE.fill(rgb("171717")).show(ui, |ui| {
                 ui.horizontal(|ui| {
                     if ui.selectable_label(*follow_cursor, "S").clicked() {
@@ -684,7 +684,7 @@ pub mod fl_timeline {
             );
 
             let response = ui
-                .allocate_new_ui(
+                .scope_builder(
                     egui::UiBuilder::new()
                         .max_rect(timeline_rect)
                         .layout(egui::Layout::left_to_right(egui::Align::Min)),
@@ -763,7 +763,7 @@ pub mod fl_timeline {
 
         // Draw Left Panel
         {
-            ui.allocate_new_ui(
+            ui.scope_builder(
                 egui::UiBuilder::new()
                     .max_rect(left_panel_rect)
                     .layout(egui::Layout::top_down(egui::Align::Min)),
@@ -780,7 +780,7 @@ pub mod fl_timeline {
 
         // Draw Content
         {
-            ui.allocate_new_ui(
+            ui.scope_builder(
                 egui::UiBuilder::new()
                     .max_rect(content_rect)
                     .layout(egui::Layout::top_down(egui::Align::Min)),

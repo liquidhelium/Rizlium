@@ -218,7 +218,7 @@ pub fn spline_edit(
     let (res, spline_view) = {
         let max_rect = ui.available_rect_before_wrap();
 
-        ui.allocate_new_ui(UiBuilder::new().max_rect(max_rect), |ui| {
+        ui.scope_builder(UiBuilder::new().max_rect(max_rect), |ui| {
             let spline = &chart.chart().canvases[*current].speed;
             let spline_view = SplineView::new(
                 ui,

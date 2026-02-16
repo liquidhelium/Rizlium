@@ -42,7 +42,7 @@ pub fn command_panel(
         return;
     }
     let mut ready_to_run: Option<Identifier> = None;
-    let mut panel_rect = ctx.screen_rect().shrink(20.);
+    let mut panel_rect = ctx.content_rect().shrink(20.);
     panel_rect.set_height(20.);
     panel_rect.set_width(400.0f32.min(panel_rect.width()));
     egui::Area::new("commands".into())
@@ -53,7 +53,7 @@ pub fn command_panel(
             set_menu_style(ui.style_mut());
             egui::Frame::popup(ui.style()).show(ui, |ui| {
                 ui.set_max_width(panel_rect.width());
-                ui.set_max_height(ctx.screen_rect().height() / 2.);
+                ui.set_max_height(ctx.content_rect().height() / 2.);
                 ui.with_layout(Layout::top_down_justified(egui::Align::LEFT), |ui| {
                     ui.add_sized(
                         panel_rect.size(),

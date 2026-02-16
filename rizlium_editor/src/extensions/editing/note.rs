@@ -1,4 +1,4 @@
-use egui::{scroll_area::ScrollAreaOutput, Color32, FontId, NumExt, Ui, UiBuilder};
+use egui::{Color32, FontId, NumExt, Ui, UiBuilder, scroll_area::ScrollAreaOutput};
 use rizlium_chart::prelude::*;
 
 use super::timeline::timeline_vertical;
@@ -98,14 +98,19 @@ impl ScrollAreaExt for egui::ScrollArea {
 
             let rect = egui::Rect::from_x_y_ranges(x_min..=x_max, ui.max_rect().y_range());
 
-            ui.allocate_new_ui(UiBuilder::new().max_rect(rect), |viewport_ui| {
-                viewport_ui
-                    .horizontal_top(|viewport_ui| {
-                        viewport_ui.skip_ahead_auto_ids(min_col); // Make sure we get consistent IDs.
-                        add_contents(viewport_ui, min_col..max_col, viewport)
-                    })
-                    .inner
-            })
+            {
+                ui.scope_dyn(
+                    UiBuilder::new().max_rect(rect),
+                    Box::new(|viewport_ui| {
+                        viewport_ui
+                            .horizontal_top(|viewport_ui| {
+                                viewport_ui.skip_ahead_auto_ids(min_col); // Make sure we get consistent IDs.
+                                add_contents(viewport_ui, min_col..max_col, viewport)
+                            })
+                            .inner
+                    }),
+                )
+            }
             .inner
         })
     }

@@ -17,7 +17,7 @@ pub fn widget<M: 'static, S: IntoSystem<In<&'static mut Ui>, (), M> + 'static>(
     }
     world.resource_scope(
         |world: &mut World, mut cache: Mut<'_, CachedWidgetState<M, S>>| {
-            cache.0.run(unsafe { &mut *(ui as *mut Ui) }, world);
+            cache.0.run(unsafe { &mut *(ui as *mut Ui) }, world).expect("failed to run the widget");
             cache.0.apply_deferred(world);
         },
     );

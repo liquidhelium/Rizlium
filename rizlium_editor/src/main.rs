@@ -1,5 +1,4 @@
 
-use bevy::mesh::primitives;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_persistent::prelude::*;
@@ -59,7 +58,7 @@ fn main() {
         .run();
 }
 
-fn setup_persistent(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
+fn setup_persistent(mut commands: Commands, _meshes: ResMut<Assets<Mesh>>) {
     let config_dir = dirs::config_dir()
         .expect("Config dir is None")
         .join("rizlium-editor");

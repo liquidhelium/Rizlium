@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use bevy::{ecs::schedule::BoxedCondition, platform::collections::HashMap, prelude::*};
-use egui::Ui;
+use egui::{RichText, Ui};
 use egui_dock::{DockState, TabViewer};
 use crate::t;
 use serde::{Deserialize, Serialize};
@@ -101,14 +101,14 @@ pub struct TabRegistry(HashMap<TabId, TabStorage>);
 
 impl TabRegistry {
     pub fn tab_ui(&mut self, ui: &mut Ui, world: &mut World, tab: &TabId) {
-        use egui::{Color32, RichText};
+        use egui::Color32;
 
         if let Some(tab) = self.0.get_mut(tab) {
             let Ok(()) = tab.run_with(world, ui) else {
-                // ui.colored_label(
-                //     Color32::GRAY,
-                //     RichText::new(t!("tab-not-avalible")).italics(),
-                // );
+                ui.colored_label(
+                    Color32::GRAY,
+                    RichText::new(t!("tab-not-avalible")).italics(),
+                );
                 return;
             };
         } else {

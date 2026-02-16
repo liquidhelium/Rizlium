@@ -164,7 +164,7 @@ fn update_note_kind<P: ChartProvider>(
                         return;
                     }
                     if let Some(children) = children {
-                        commands.entity(entity).remove_children(children);
+                        commands.entity(entity).detach_children(children);
                     }
                     use note_tags::*;
                     match note.kind {

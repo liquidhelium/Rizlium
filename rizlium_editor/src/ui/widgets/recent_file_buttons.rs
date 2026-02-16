@@ -11,7 +11,7 @@ pub fn recent_file_buttons(
     for entry in recent.get().iter().rev() {
         if ui.button(entry).clicked() {
             editor_commands.load_chart(entry.clone());
-            ui.close_menu();
+            ui.close();
         }
     }
 }
