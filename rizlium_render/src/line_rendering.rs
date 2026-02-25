@@ -297,7 +297,7 @@ fn update_stroke<P: ChartProvider>(
                 return;
             };
             if !is_shape_changed(keypoint1, keypoint2)
-                && (synced.shape.get() >= provider.last_changed().get())
+                && (synced.color.get() >= provider.last_changed().get())
             {
                 return;
             }
