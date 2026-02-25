@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::Anchor};
 use rizlium_chart::chart::NoteKind;
 
 use crate::{
@@ -92,13 +92,13 @@ fn update_note<P: ChartProvider>(
     game_time: Res<GameTime>,
     mut notes: Query<(&mut Transform, &ChartNoteId, &Children, &mut Visibility)>,
     mut note_bg: Query<&mut Sprite, With<note_tags::NoteBg>>,
+    mut hold_body: Query<&mut Sprite, (With<note_tags::HoldBody>, Without<note_tags::NoteBg>)>,
 ) {
     let chart = chart.chart();
     notes
         .iter_mut()
         .for_each(|(mut transform, note_id, child, mut vis)| {
-            let time;
-            {
+            let (mut time, hold_end) = {
                 let Some(line) = chart.lines.get(note_id.line_idx) else {
                     *vis = Visibility::Hidden;
                     return;
@@ -107,18 +107,52 @@ fn update_note<P: ChartProvider>(
                     *vis = Visibility::Hidden;
                     return;
                 };
-                time = note.time;
-            }
+                (
+                    note.time,
+                    match note.kind {
+                        NoteKind::Hold { end } => if end >= **game_time {
+                            Some(end)
+                        } else {
+                            *vis = Visibility::Hidden;
+                            return;
+                        },
+                        _ => None,
+                    },
+                )
+            };
             *vis = Visibility::Visible;
             let chart_with_cache = chart.with_cache(&cache);
+
             let pos: Vec2 = chart_with_cache
-                .line_pos_at_clamped(note_id.line_idx, time, **game_time)
+                .line_pos_at_clamped(
+                    note_id.line_idx,
+                    if hold_end.is_some() {
+                        time.max(**game_time)
+                    } else {
+                        time
+                    },
+                    **game_time,
+                )
                 .unwrap()
                 .into();
             *transform = transform.with_translation(pos.extend(NOTE_Z));
             for child in child.iter() {
                 if let Ok(mut sprite) = note_bg.get_mut(child) {
-                    sprite.color = colorrgba_to_color(chart.theme_at(time).unwrap().this.color.note);
+                    sprite.color =
+                        colorrgba_to_color(chart.theme_at(time).unwrap().this.color.note);
+                }
+                if let Ok(mut sprite) = hold_body.get_mut(child) {
+                    let Some(end) = hold_end else {
+                        return;
+                    };
+                    sprite.custom_size = sprite.custom_size.map(|mut s| {
+                        let end_pos: Vec2 = chart_with_cache
+                            .line_pos_at_clamped(note_id.line_idx, end, **game_time)
+                            .unwrap()
+                            .into();
+                        s.y = end_pos.y - pos.y;
+                        s
+                    });
                 }
             }
         });
@@ -206,7 +240,7 @@ fn update_note_kind<P: ChartProvider>(
                                     custom_size: Some(Vec2::new(50., 150.)),
                                     ..default()
                                 },
-                                bevy::sprite::Anchor(Vec2::new(0.0, 0.0)),
+                                Anchor::BOTTOM_CENTER,
                                 Transform::from_translation(Vec2::ZERO.extend(0.)),
                                 HoldBody,
                                 ChildOf(entity),
