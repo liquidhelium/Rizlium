@@ -98,7 +98,7 @@ fn update_note<P: ChartProvider>(
     notes
         .iter_mut()
         .for_each(|(mut transform, note_id, child, mut vis)| {
-            let (mut time, hold_end) = {
+            let (time, hold_end) = {
                 let Some(line) = chart.lines.get(note_id.line_idx) else {
                     *vis = Visibility::Hidden;
                     return;
@@ -153,6 +153,7 @@ fn update_note<P: ChartProvider>(
                         s.y = end_pos.y - pos.y;
                         s
                     });
+                    sprite.color = colorrgba_to_color(chart.theme_at(time).unwrap().this.color.note);
                 }
             }
         });
@@ -206,7 +207,7 @@ fn update_note_kind<P: ChartProvider>(
                             commands.spawn((
                                 Sprite {
                                     image: texture.note_frame.clone(),
-                                    custom_size: Some(Vec2::splat(78.)),
+                                    custom_size: Some(Vec2::splat(73.)),
                                     ..default()
                                 },
                                 NoteFrame,
@@ -215,7 +216,7 @@ fn update_note_kind<P: ChartProvider>(
                             commands.spawn((
                                 Sprite {
                                     image: texture.note_bg.clone(),
-                                    custom_size: Some(Vec2::splat(64.)),
+                                    custom_size: Some(Vec2::splat(70.)),
                                     ..default()
                                 },
                                 Transform::from_translation(Vec2::ZERO.extend(-1.)),
@@ -227,7 +228,7 @@ fn update_note_kind<P: ChartProvider>(
                             commands.spawn((
                                 Sprite {
                                     image: texture.hold_cap.clone(),
-                                    custom_size: Some(Vec2::splat(64.)),
+                                    custom_size: Some(Vec2::splat(50.)),
                                     ..default()
                                 },
                                 Transform::from_translation(Vec2::ZERO.extend(1.)),
@@ -237,7 +238,7 @@ fn update_note_kind<P: ChartProvider>(
                             commands.spawn((
                                 Sprite {
                                     image: texture.hold_body.clone(),
-                                    custom_size: Some(Vec2::new(50., 150.)),
+                                    custom_size: Some(Vec2::new(53., 150.)),
                                     ..default()
                                 },
                                 Anchor::BOTTOM_CENTER,
@@ -245,12 +246,23 @@ fn update_note_kind<P: ChartProvider>(
                                 HoldBody,
                                 ChildOf(entity),
                             ));
+                            commands.spawn((
+                                Sprite {
+                                    image: texture.note_bg.clone(),
+                                    custom_size: Some(Vec2::splat(73.)),
+                                    color: Color::BLACK,
+                                    ..default()
+                                },
+                                Transform::from_translation(Vec2::ZERO.extend(-1.)),
+                                HoldCap,
+                                ChildOf(entity),
+                            ));
                         }
                         NoteKind::Drag => {
                             commands.spawn((
                                 Sprite {
                                     image: texture.drag.clone(),
-                                    custom_size: Some(Vec2::splat(64.)),
+                                    custom_size: Some(Vec2::splat(50.)),
                                     ..default()
                                 },
                                 Transform::from_translation(Vec2::ZERO.extend(0.)),

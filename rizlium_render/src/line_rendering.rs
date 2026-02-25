@@ -2,12 +2,11 @@ use std::marker::PhantomData;
 
 use bevy::ecs::change_detection::Tick;
 use bevy_prototype_lyon::prelude::tess::geom::euclid::approxeq::ApproxEq;
-use bevy_prototype_lyon::shapes::Circle;
 use rizlium_chart::chart::{EasingId, KeyPoint, LinePointData, Tween};
 
 use bevy_prototype_lyon::prelude::*;
 
-use bevy::{prelude::*, camera::visibility::RenderLayers};
+use bevy::{camera::visibility::RenderLayers, prelude::*};
 
 use bevy::camera::primitives::Aabb;
 
@@ -70,7 +69,7 @@ impl Default for ChartLineBundle {
             shape: default(),
             stoke: Stroke {
                 options: StrokeOptions::default()
-                    .with_line_width(5.)
+                    .with_line_width(7.)
                     .with_line_cap(LineCap::Round),
                 brush: Brush::Color(Color::NONE),
             },
@@ -82,7 +81,6 @@ impl Default for ChartLineBundle {
 pub struct ChartLinePlugin<P: ChartProvider>(PhantomData<P>);
 use super::default_ph;
 default_ph!(ChartLinePlugin<P>);
-use super::chart_update;
 
 impl<P: ChartProvider> Plugin for ChartLinePlugin<P> {
     fn build(&self, app: &mut App) {
@@ -168,7 +166,6 @@ fn associate_segment<P: ChartProvider>(
     lines: Query<Entity, With<ChartLine>>,
 ) {
     debug!("running system assocate_segment");
-    // return_nothing_change!(chart);
     for (entity, (line_idx, keypoint_idx)) in lines.iter().zip(chart.iter_segment()) {
         commands.entity(entity).insert(ChartLineId {
             line_idx,
@@ -176,17 +173,6 @@ fn associate_segment<P: ChartProvider>(
         });
     }
 }
-
-// fn update_visual(
-//     chart: Res<GameChart>,
-//     cache: Res<GameChartCache>,
-//     time: Res<GameTime>,
-//     mut lines: Query<(&mut Stroke, &mut Path, &ViewVisibility, &ChartLineId)>,
-// ) {
-//     update_shape(&chart, &cache, &time, &mut lines);
-//     update_color(chart, cache, time, lines);
-// }
-
 fn update_shape<P: ChartProvider>(
     provider: Res<P>,
     cache: Res<GameChartCache>,
@@ -243,9 +229,10 @@ fn update_shape<P: ChartProvider>(
                 // circle optimization
                 *path = bevy_prototype_lyon::path::ShapePath::new()
                     .add(&bevy_prototype_lyon::shapes::Circle {
-                        radius:2.5,
-                        center: Vec2 { x: 0.0, y: 0.0 }
-                    }).build();
+                        radius: 2.5,
+                        center: Vec2 { x: 0.0, y: 0.0 },
+                    })
+                    .build();
                 synced.shape = provider.last_changed();
             } else {
                 let mut builder = PathBuilder::new();
@@ -274,24 +261,11 @@ fn update_shape<P: ChartProvider>(
                         });
                 }
                 builder.line_to(relative_pos.into());
-                // connect next segment(不再需要,因为round头能很好连接)
-                // if line.points.len() - 1 > keypoint_idx {
-                //     if let Some(pos) =
-                //         chart
-                //             .with_cache(&cache)
-                //             .line_pos_at(line_idx, keypoint2.time + 0.01, **time)
-                //     {
-                //         builder.line_to(Vec2::from_array(pos) - Vec2::from_array(pos1));
-                //     }
-                // }
                 *path = builder.build();
                 synced.shape = provider.last_changed();
             }
         });
 }
-
-const DEBUG_INVISIBLE: Color = Color::LinearRgba(LinearRgba::new(1., 0., 1., 0.2));
-
 fn update_stroke<P: ChartProvider>(
     provider: Res<P>,
     cache: Res<GameChartCache>,
@@ -322,11 +296,11 @@ fn update_stroke<P: ChartProvider>(
             ) else {
                 return;
             };
-            // if !is_shape_changed(keypoint1, keypoint2)
-            //     && (synced.color.get() >= chart.last_changed().get())
-            // {
-            //     return;
-            // }
+            if !is_shape_changed(keypoint1, keypoint2)
+                && (synced.shape.get() >= provider.last_changed().get())
+            {
+                return;
+            }
             let (Some(pos1), Some(pos2)) = (
                 chart
                     .with_cache(&cache)

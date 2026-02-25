@@ -41,8 +41,6 @@ pub mod notes;
 
 pub use chart::*;
 pub use time_and_audio::*;
-
-use crate::hit_parcticles::HitParticlePlugin;
 #[derive(Resource)]
 pub struct GameView(pub Handle<Image>);
 
