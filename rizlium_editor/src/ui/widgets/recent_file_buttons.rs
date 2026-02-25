@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_persistent::Persistent;
 
-use crate::{editor_actions::EditorCommands, RecentFiles};
+use crate::{editor_actions::EditorCommands, extensions::recent::RecentFiles};
 
 pub fn recent_file_buttons(
     In(ui): In<&mut egui::Ui>,
@@ -9,7 +9,7 @@ pub fn recent_file_buttons(
     mut editor_commands: EditorCommands,
 ) {
     for entry in recent.get().iter().rev() {
-        if ui.button(entry).clicked() {
+        if ui.button(entry.text()).clicked() {
             editor_commands.load_chart(entry.clone());
             ui.close();
         }

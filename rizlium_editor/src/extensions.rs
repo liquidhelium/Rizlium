@@ -7,13 +7,13 @@ mod explorer;
 mod game;
 pub mod i18n;
 mod inspector;
-/// 半废弃
 mod project_guide;
+pub mod recent;
 use self::{
     command_panel::CommandPanel, docking::Docking, editing::Editing, game::Game, i18n::I18nPlugin,
     inspector::Inspector, project_guide::ProjectGuideExtension,
 };
-use crate::extensions::{debug_flycam::DebugCamExtension, hierarchy_inspector::HierarchyInspector};
+use crate::extensions::{debug_flycam::DebugCamExtension, hierarchy_inspector::HierarchyInspector, recent::RecentPlugin};
 use bevy::prelude::{App, Plugin};
 pub struct ExtensionsPlugin;
 impl Plugin for ExtensionsPlugin {
@@ -28,6 +28,7 @@ impl Plugin for ExtensionsPlugin {
             DebugCamExtension,
             HierarchyInspector,
             ProjectGuideExtension,
+            RecentPlugin
         ));
     }
 }

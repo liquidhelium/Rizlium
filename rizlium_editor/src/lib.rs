@@ -1,6 +1,5 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::type_complexity)]
-#![allow(unused)]
 use bevy::{
     camera::{CameraOutputMode, visibility::RenderLayers},
     diagnostic::FrameCount,
@@ -38,8 +37,8 @@ pub mod settings_module;
 pub mod time_and_audio;
 pub mod utils;
 use crate::{
-    extensions::command_panel::command_panel,
-    project::{LoadChartEvent, ProjectState, RecentFiles},
+    extensions::{command_panel::command_panel, recent::RecentFiles},
+    project::{LoadChartEvent, ProjectState},
     ui::{
         theme::{menu_bar_theme, tab_theme},
         widgets::shortcut_display,

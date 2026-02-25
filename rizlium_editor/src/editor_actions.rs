@@ -1,4 +1,5 @@
-use crate::project::{LoadChartEvent, ProjectState, RecentFiles};
+use crate::extensions::recent::RecentFiles;
+use crate::project::{LoadChartEvent, ProjectState};
 use crate::time_and_audio::TimeControlEvent;
 use bevy::ecs::system::{SystemBuffer, SystemMeta, SystemParam};
 use bevy::ecs::world::CommandQueue;
@@ -27,10 +28,10 @@ impl ManualEditorCommands {
             world.write_message(event);
         });
     }
-    pub fn load_chart(&mut self, path: String) {
+    pub fn load_chart(&mut self, path: LoadChartEvent) {
         let dup = path.clone();
         self.commands.push(|world: &mut World| {
-            world.write_message(LoadChartEvent::Bundle(dup));
+            world.write_message(dup);
         });
         self.update_recent(path);
     }
@@ -42,7 +43,7 @@ impl ManualEditorCommands {
             });
         });
     }
-    pub fn update_recent(&mut self, path: String) {
+    pub fn update_recent(&mut self, path: LoadChartEvent) {
         self.commands.push(move |world: &mut World| {
             let mut recent = world.resource_mut::<Persistent<RecentFiles>>();
             recent.push(path);

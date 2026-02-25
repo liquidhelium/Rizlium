@@ -1,16 +1,13 @@
-use crate::t;
 use crate::time_and_audio::GameAudioSource;
+use crate::{extensions::recent::RecentFiles, t};
 use bevy::{
     prelude::*,
     tasks::{IoTaskPool, Task},
 };
 use bevy_kira_audio::{AudioSource, prelude::StaticSoundData};
+use bevy_persistent::Persistent;
 use futures_lite::io::AsyncWriteExt;
-use helium_framework::{
-    prelude::{Actions, ActionsExt, ToastsStorage},
-    utils::identifier::Identifier,
-};
-use indexmap::IndexSet;
+use helium_framework::prelude::{ActionsExt, ToastsStorage};
 use rizlium_chart::parse::rizline::{RizlineChart, RizlineChartMeta};
 use rizlium_chart::prelude::*;
 use rizlium_render::ChartProvider;
@@ -124,14 +121,24 @@ pub enum LoadedProject {
     Folder(PathBuf, Chart, ChartInfo),
     Bundle(PathBuf, Chart, ChartInfo),
 }
-#[derive(Message, Debug)]
+#[derive(Message, Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum LoadChartEvent {
     Bundle(String),
     Path(String),
 }
+
+impl LoadChartEvent {
+    pub fn text(&self) -> &str {
+        use LoadChartEvent::*;
+        match self {
+            Bundle(s) | Path(s) => s
+        }
+    }
+}
+
 #[derive(Message)]
 pub enum ChartLoadingEvent {
-    Success(String),
+    Success(LoadChartEvent),
     Error(ChartLoadingError),
 }
 #[derive(Message)]
@@ -144,15 +151,27 @@ pub enum ChartLoadingError {
     UnzipFileFailed { source: zip::result::ZipError },
     #[snafu(display("Failed to read file, source: {source:#?}"), context(false))]
     ReadingFileFailed { source: std::io::Error },
-    #[snafu(display("Chart format is invalid, source: {source:#?}"), context(false))]
+    #[snafu(
+        display("Chart format is invalid, source: {source:#?}"),
+        context(false)
+    )]
     ChartFormatInvalid { source: serde_json::Error },
-    #[snafu(display("Chart info format is invalid, source: {source:#?}"), context(false))]
+    #[snafu(
+        display("Chart info format is invalid, source: {source:#?}"),
+        context(false)
+    )]
     InfoFormatInvalid { source: serde_yaml::Error },
-    #[snafu(display("Failed to convert chart, source: {source:#?}"), context(false))]
+    #[snafu(
+        display("Failed to convert chart, source: {source:#?}"),
+        context(false)
+    )]
     ChartConvertingFailed {
         source: rizlium_chart::parse::ConvertError,
     },
-    #[snafu(display("Failed to convert music, source: {source:#?}"), context(false))]
+    #[snafu(
+        display("Failed to convert music, source: {source:#?}"),
+        context(false)
+    )]
     MusicConvertingFailed {
         source: bevy_kira_audio::prelude::FromFileError,
     },
@@ -169,26 +188,6 @@ pub enum ChartFormat {
     Rizline,
     Rizlium,
     RizliumData,
-}
-#[derive(Resource, Serialize, Deserialize, Debug, Deref, DerefMut)]
-pub struct RecentFiles(#[deref] IndexSet<String>, usize);
-
-impl Default for RecentFiles {
-    fn default() -> Self {
-        Self(IndexSet::new(), 4)
-    }
-}
-
-impl RecentFiles {
-    pub fn push(&mut self, name: String) {
-        if let (idx, false) = self.0.insert_full(name.clone()) {
-            let value = self.0.shift_remove_index(idx).unwrap();
-            self.0.insert(value);
-        }
-        if self.0.len() > self.1 {
-            self.0.shift_remove_index(0);
-        }
-    }
 }
 impl ChartProvider for ProjectState {
     fn chart(&self) -> &Chart {
@@ -376,7 +375,11 @@ fn handle_async_tasks(
                         }
                         let handle = asset_server.add(loaded.audio_source);
                         command.insert_resource(GameAudioSource(handle));
-                        loading_events.write(ChartLoadingEvent::Success(loaded.path));
+                        let event = match loaded.source {
+                            SourceKind::Bundle => LoadChartEvent::Bundle,
+                            SourceKind::Folder => LoadChartEvent::Path,
+                        };
+                        loading_events.write(ChartLoadingEvent::Success(event(loaded.path)));
                     }
                     Err(err) => {
                         *state = ProjectState::Idle;
@@ -428,30 +431,20 @@ fn handle_save_chart_events(
 }
 fn process_loading_results(
     mut events: MessageReader<ChartLoadingEvent>,
-    mut recent: ResMut<RecentFiles>,
+    mut recent: ResMut<Persistent<RecentFiles>>,
     mut toast: ResMut<ToastsStorage>,
-    mut actions: Actions,
 ) {
-    let mut empty_folder = None;
     for event in events.read() {
         match event {
             ChartLoadingEvent::Success(path) => {
                 recent.push(path.clone());
             }
             ChartLoadingEvent::Error(e) => {
-                if let ChartLoadingError::NoInfo { path } = e {
-                    empty_folder = Some(path.clone());
-                    break;
-                }
                 error!("Failed to load chart: {e}");
                 toast.error(t!("path-load-fail", "err" => e.to_string()));
             }
         }
     }
-    let Some(path) = empty_folder else {
-        return;
-    };
-    actions.queue_action(&"docking.open_tab".into(), In(Identifier::from("guide")));
 }
 async fn load_chart_from_bundle(path: &str) -> Result<LoadedChart, ChartLoadingError> {
     let file = async_fs::read(path).await?;
@@ -504,7 +497,7 @@ async fn load_chart_from_path(path: &str) -> Result<LoadedChart, ChartLoadingErr
         });
     let info: ChartInfo = match info_file {
         Ok(info_file) => serde_yaml::from_reader(Cursor::new(info_file))?,
-        Err(e) => match async_fs::read(path_buf.join("metadata.json"))
+        Err(_) => match async_fs::read(path_buf.join("metadata.json"))
             .await
             .map_err(|e| {
                 if e.kind() == std::io::ErrorKind::NotFound {
@@ -521,7 +514,7 @@ async fn load_chart_from_path(path: &str) -> Result<LoadedChart, ChartLoadingErr
                     name: meta.title,
                     format: ChartFormat::Rizline,
                     chart_path: "chart.json".into(),
-                    music_path: "song.mp3".into()
+                    music_path: "song.mp3".into(),
                 }
             }
             Err(e) => return Err(e),

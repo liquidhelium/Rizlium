@@ -68,13 +68,6 @@ fn toggle_grab_cursor(cursor_options: &mut CursorOptions) {
         }
     }
 }
-fn initial_grab_cursor(mut primary_window: Query<&mut CursorOptions, With<PrimaryWindow>>) {
-    if let Ok(mut cursor_options) = primary_window.single_mut() {
-        toggle_grab_cursor(&mut cursor_options);
-    } else {
-        warn!("Primary window not found for `initial_grab_cursor`!");
-    }
-}
 #[derive(Resource)]
 pub struct DebugCam(Handle<Image>);
 fn setup_player(

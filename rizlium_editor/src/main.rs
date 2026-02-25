@@ -3,11 +3,12 @@ use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_persistent::prelude::*;
 use rizlium_editor::extensions::ExtensionsPlugin;
+use rizlium_editor::extensions::recent::RecentFiles;
 use rizlium_editor::project::{ProjectPlugin, ProjectState};
 use rizlium_editor::rune_extensions::HeliumRuneSupportPlugin;
 use rizlium_editor::settings_module::SettingsPlugin;
 use rizlium_editor::time_and_audio::EditorAudioPlugin;
-use rizlium_editor::{project::RecentFiles, CountFpsPlugin, EditorState, RizTabPresets};
+use rizlium_editor::{CountFpsPlugin, EditorState, RizTabPresets};
 use rizlium_editor::{
     sync_dock_state, MainUIPlugin, RizliumDockState, RizliumDockStateMirror,
     WindowUpdateControlPlugin,
@@ -92,11 +93,13 @@ fn setup_persistent(mut commands: Commands, _meshes: ResMut<Assets<Mesh>>) {
 }
 fn persist_dock_state(
     events: MessageReader<bevy::app::AppExit>,
-    state: ResMut<Persistent<RizliumDockState>>,
+    dock_state: ResMut<Persistent<RizliumDockState>>,
+    recent_state: ResMut<Persistent<RecentFiles>>
 ) -> Result<()> {
     if !events.is_empty() {
-        info!("AppExit event received, persisting dock state.");
-        state.persist()?;
+        info!("AppExit event received, persisting state.");
+        dock_state.persist()?;
+        recent_state.persist()?;
     }
     Ok(())
 }
