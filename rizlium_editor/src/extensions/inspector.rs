@@ -1,5 +1,4 @@
 use crate::extensions::editing::spline::{SplineEditorAdapter, SplineListEditor};
-use crate::t;
 use bevy::{prelude::*, camera::visibility::VisibleEntities};
 use egui::{ScrollArea, Ui};
 use rizlium_chart::{
@@ -16,8 +15,9 @@ use rizlium_chart::{
         },
         ChartCommands, EditHistory, NotePath,
     },
-    prelude::Tween,
 };
+#[allow(unused_imports)]
+use crate::t;
 use rizlium_render::{ChartProvider, GameCamera};
 use std::borrow::Cow;
 
@@ -621,7 +621,7 @@ fn debug_window(
     InMut(ui): InMut<Ui>,
     history: Res<ChartEditHistory>,
     // mut event: MessageReader<WorldMouseEvent>,
-    mirror: Res<RizliumDockStateMirror>,
+    _mirror: Res<RizliumDockStateMirror>,
     camera: Query<&VisibleEntities, With<GameCamera>>,
     inputs: Res<ButtonInput<KeyCode>>,
 ) {

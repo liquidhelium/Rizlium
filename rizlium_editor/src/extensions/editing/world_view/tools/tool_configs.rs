@@ -1,9 +1,8 @@
 use bevy::prelude::*;
 use rizlium_chart::chart::EasingId;
-use rizlium_render::ChartProvider;
 use std::marker::PhantomData;
 
-use egui::{Slider, Ui, UiBuilder};
+use egui::{Ui, UiBuilder};
 
 use crate::{project::ProjectState, widgets::enum_selector};
 
@@ -74,7 +73,7 @@ impl PencilToolConfig {
         In(mut ui): In<Ui>,
         mut this: ResMut<Self>,
         mut snapping: ResMut<SnappingConfig>,
-        chart: Res<ProjectState>,
+        _chart: Res<ProjectState>,
     ) {
         ui.columns(2, |uis| {
             let [uil, uir] = uis else {

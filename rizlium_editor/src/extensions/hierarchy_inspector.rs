@@ -5,13 +5,12 @@ use rizlium_chart::{
     editing::{
         chart_path::CanvasPath,
         commands::{
-            InsertCanvas, InsertLine, RemoveCanvas, RemoveLine, RenameCanvas, RenameLine,
+            InsertCanvas, RemoveCanvas, RemoveLine, RenameCanvas, RenameLine,
         },
         ChartCommands,
     },
 };
 use rizlium_render::ChartProvider as _;
-use crate::t;
 
 use crate::extensions::inspector::{ChartItem, SelectedItem};
 
@@ -35,7 +34,7 @@ struct HierarchyState {
 }
 
 fn hierarchy_ui(
-    InMut(mut ui): InMut<egui::Ui>,
+    InMut(ui): InMut<egui::Ui>,
     chart: Res<crate::project::ProjectState>,
     mut select: ResMut<SelectedItem>,
     mut actions: Actions,

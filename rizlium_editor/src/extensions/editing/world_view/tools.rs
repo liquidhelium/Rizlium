@@ -1,4 +1,3 @@
-use crate::t;
 use strum::EnumIter;
 
 use bevy::{input::mouse::MouseWheel, prelude::*};
@@ -6,7 +5,7 @@ use egui::Ui;
 use rizlium_chart::editing::chart_path::{LinePath, LinePointPath};
 use rizlium_render::ChartLineId;
 
-use self::tool_configs::{PencilToolConfig, ToolConfigExt};
+use self::tool_configs::ToolConfigExt;
 use crate::{
     extensions::inspector::{ChartItem, SelectedItem},
     utils::WorldToGame,

@@ -18,6 +18,7 @@ use bevy_prototype_lyon::{
 };
 use egui::{PointerButton, Response, Sense, Ui};
 use rizlium_render::{ChartProvider, GameChartCache, GameTime};
+#[allow(unused_imports)]
 use crate::t;
 use tools::Tool;
 

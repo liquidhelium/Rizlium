@@ -5,7 +5,7 @@ use helium_framework::prelude::TabRegistrationExt;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use crate::project::{AsyncTaskRunner, ChartInfo, LoadedProject, ProjectState};
+use crate::project::{AsyncTaskRunner, LoadedProject, ProjectState};
 
 pub struct ExplorerPlugin;
 
@@ -52,8 +52,8 @@ pub struct FileEntry {
 fn explorer_tab(
     InMut(mut ui): InMut<Ui>,
     mut state: ResMut<ExplorerState>,
-    mut project: ResMut<ProjectState>,
-    mut runner: ResMut<AsyncTaskRunner>,
+    project: ResMut<ProjectState>,
+    runner: ResMut<AsyncTaskRunner>,
     mut commands: Commands,
 ) {
     let ui = &mut ui;
@@ -232,7 +232,7 @@ fn folder_view(
                         }
 
                         // 右键菜单
-                        let context_menu_response = response.context_menu(|ui| {
+                        let _context_menu_response = response.context_menu(|ui| {
                             if ui.button("重命名").clicked() {
                                 state.renaming = Some(RenameState {
                                     path: file.path.clone(),

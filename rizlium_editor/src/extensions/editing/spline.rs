@@ -1,9 +1,9 @@
 rizlium_l10n::tl_file!("spline");
 
 use crate::extensions::inspector::edit_scope;
-use crate::settings_module::{SettingsModule, SettingsModuleStruct, SettingsRegistrationExt};
+use crate::settings_module::{SettingsModuleStruct, SettingsRegistrationExt};
 use bevy::prelude::{
-    App, In, InMut, IntoSystem, Mut, Plugin, ReadOnlySystem, Res, ResMut, Resource, System, World,
+    App, In, Mut, Plugin, Res, ResMut, Resource,
 };
 use egui::StrokeKind;
 use egui::{
@@ -15,7 +15,6 @@ use rizlium_chart::{
     editing::{ChartCommands, EditHistory, chart_path::ChartPath},
     prelude::{Spline, Tween},
 };
-use std::borrow::Cow;
 
 pub trait TransformHelper {
     fn map_x(&self, x: f32) -> f32;

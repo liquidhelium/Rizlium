@@ -10,7 +10,7 @@ use super::types::{DelegateUi, RuneRegistrar};
 /// 将收集的注册信息转换为实际的Bevy系统并注册到helium框架
 pub fn process_rune_registrations(
     registrar: RuneRegistrar,
-    context: Arc<RuntimeContext>,
+    _context: Arc<RuntimeContext>,
     world: &mut World,
 ) -> anyhow::Result<()> {
     // 处理tab注册
@@ -54,8 +54,8 @@ pub fn process_rune_registrations(
         // 注册到helium action系统
         world.commands().queue(move |world: &mut World| {
             world.resource_scope(
-                |world, registry: Mut<'_, helium_framework::reflect_system::RSystemRegistry>| {
-                    let meta = helium_framework::reflect_system::ReflectSystemMeta {
+                |_world, _registry: Mut<'_, helium_framework::reflect_system::RSystemRegistry>| {
+                    let _meta = helium_framework::reflect_system::ReflectSystemMeta {
                         id: hotkey.id.clone().as_str().into(),
                         description: hotkey.description.clone(),
                         system_id:

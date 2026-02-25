@@ -5,10 +5,9 @@ use egui::{emath::RectTransform, vec2, Color32, Sense, Stroke, Ui, UiBuilder};
 use helium_framework::prelude::*;
 use rizlium_chart::{
     chart::Spline,
-    editing::{ChartCommand, ChartCommands, EditHistory},
+    editing::{ChartCommands, EditHistory},
 };
 use rizlium_render::{ChartProvider, GameTime};
-use crate::t;
 use spline::SplineView;
 pub mod note;
 pub mod spline;
@@ -91,7 +90,7 @@ impl Plugin for Editing {
 
 fn history_list(
     InMut(ui): InMut<Ui>,
-    chart: Res<ProjectState>,
+    _chart: Res<ProjectState>,
     chart_edit_history: Res<ChartEditHistory>,
 ) {
     egui::ScrollArea::vertical()

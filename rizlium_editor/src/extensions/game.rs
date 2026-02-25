@@ -12,8 +12,8 @@ use bevy::{
 use bevy_egui::{EguiContexts, EguiUserTextures};
 use egui::Ui;
 use rizlium_render::{notes::NoteTexture, ChartProvider as _, GameTime, GameView};
+#[allow(unused_imports)]
 use crate::t;
-
 use crate::project::ProjectState;
 use helium_framework::{menu_system::MenuRegistration, prelude::*};
 pub struct Game;
@@ -97,9 +97,7 @@ impl Plugin for Game {
                 setup_game_view.after(bevy_egui::EguiStartupSet::InitContexts),
             ),
         )
-        .add_systems(PreStartup, (
-            load_textures
-        ))
+        .add_systems(PreStartup, load_textures )
         .add_systems(Update, scroll_time)
         .init_resource::<ScrollTimeState>();
     }
@@ -175,7 +173,7 @@ pub fn game_view_tab(
     textures: Res<EguiUserTextures>,
     time: Res<AudioTimeManager>,
     game_time: Res<GameTime>,
-    ev: MessageWriter<TimeControlEvent>,
+    _ev: MessageWriter<TimeControlEvent>,
 ) {
     let ui = &mut ui;
     let img = textures

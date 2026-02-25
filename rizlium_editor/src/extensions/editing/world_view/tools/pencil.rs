@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use crate::t;
 use helium_framework::prelude::*;
 use rizlium_chart::{
     chart::{Chart, ColorRGBA, KeyPoint, Line, LinePointData},
@@ -50,10 +49,10 @@ pub(super) fn pencil_tool(
         discard_events.clear();
         return;
     }
-    let Some(mut chart) = chart else {
+    let Some(chart) = chart else {
         return;
     };
-    let mut chart = chart.map_unchanged(|p| p.chart_mut());
+    let chart = chart.map_unchanged(|p| p.chart_mut());
     if !history.has_preedit() {
         *current_edit = None;
     }

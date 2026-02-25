@@ -1,5 +1,7 @@
 use crate::time_and_audio::GameAudioSource;
-use crate::{extensions::recent::RecentFiles, t};
+use crate::extensions::recent::RecentFiles;
+#[allow(unused_imports)]
+use crate::t;
 use bevy::{
     prelude::*,
     tasks::{IoTaskPool, Task},

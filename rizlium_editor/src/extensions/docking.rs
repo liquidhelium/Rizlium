@@ -12,6 +12,7 @@ use helium_framework::{
     utils::identifier::Identifier,
     widgets::widget,
 };
+#[allow(unused_imports)]
 use crate::t;
 pub struct Docking;
 
@@ -158,7 +159,7 @@ fn open_certain_tab(
 fn close_certain_tab(
     In(tab_id): In<Identifier>,
     mut state: ResMut<Persistent<crate::RizliumDockState>>,
-    registry: Res<TabRegistry>,
+    _registry: Res<TabRegistry>,
 ) {
     let state = &mut state.0;
     if let Some(tab) = state.find_tab(&tab_id) {

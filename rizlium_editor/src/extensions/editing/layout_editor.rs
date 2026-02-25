@@ -18,7 +18,6 @@ use rizlium_render::ChartProvider as _;
 
 use crate::extensions::editing::ChartEditHistory;
 use crate::project::ProjectState;
-use crate::t;
 use crate::time_and_audio::TimeControlEvent;
 
 use super::world_view::snapping::{SnappingConfig, SnappingContext};
@@ -118,7 +117,7 @@ fn layout_editor_tab(
     snapping_config: Res<SnappingConfig>,
     mut chart_edit_history: ResMut<ChartEditHistory>,
     mut toast: ResMut<ToastsStorage>,
-    mut actions: Actions,
+    _actions: Actions,
 ) {
     let chart = chart_state.chart();
     let cursor_time = **game_time;
@@ -128,7 +127,7 @@ fn layout_editor_tab(
     let x_range = state.x_range.clone().unwrap_or(X_MIN..=X_MAX);
 
     // 顶部工具栏
-    let toolbar_response = ui.horizontal(|ui| {
+    let _toolbar_response = ui.horizontal(|ui| {
         ui.label(t!("edit-layout-tool"));
         if ui
             .selectable_label(state.tool == LayoutTool::Pencil, t!("edit-layout-pencil"))
@@ -220,7 +219,7 @@ fn layout_editor_tab(
 
     // 绘制网格
     {
-        let snapping_context = SnappingContext::new(&snapping_config, Some(chart));
+        let _snapping_context = SnappingContext::new(&snapping_config, Some(chart));
 
         // 水平网格线（时间）
         let time_step = 1.0 / snapping_config.time_divisor as f32;
@@ -567,7 +566,7 @@ fn layout_editor_tab(
             }
 
             if !commands.is_empty() {
-                use rizlium_chart::editing::commands::{ChartCommands, CommandSequence};
+                use rizlium_chart::editing::commands::CommandSequence;
                 let sequence = CommandSequence {
                     commands: commands.into_iter().map(|c| c.into()).collect(),
                     description: "Move layout notes".into(),

@@ -1,10 +1,10 @@
 use std::ops::RangeInclusive;
 
 use bevy::prelude::*;
-use bevy_prototype_lyon::path;
 use egui::{Align2, Color32, FontId, Id, Sense, Stroke, Ui};
 use helium_framework::prelude::*;
 use rizlium_render::ChartProvider as _;
+#[allow(unused_imports)]
 use crate::t;
 
 use crate::extensions::inspector::{ChartItem, ScrollToPointEvent, SelectedItem};
@@ -104,7 +104,7 @@ fn timeline_tab(
     let track_height = 100.0;
     let content_height = tracks.len() as f32 * track_height;
 
-    let old_range = time_range.clone();
+    let _old_range = time_range.clone();
     let old_follow = state.follow_cursor;
 
     let (interacted, seek_to) = fl_timeline::fl_timeline_ui(
@@ -508,8 +508,8 @@ pub struct TimeLineResponse {
 }
 
 pub mod fl_timeline {
-    use super::*;
-    use egui::{pos2, vec2, Color32, Id, Rect, Sense, Stroke, StrokeKind, Ui};
+
+    use egui::{pos2, vec2, Color32, Id, Rect, Sense, StrokeKind, Ui};
     use std::ops::RangeInclusive;
 
     pub(super) fn rgb(str: &str) -> Color32 {

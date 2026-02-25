@@ -1,4 +1,4 @@
-use egui::{vec2, Color32, Pos2, Rect, Ui};
+use egui::{Pos2, Rect, Ui};
 use strum::IntoEnumIterator;
 
 use super::world_view::tools::Tool;

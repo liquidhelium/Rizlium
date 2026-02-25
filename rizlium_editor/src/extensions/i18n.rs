@@ -1,4 +1,4 @@
-use std::borrow::{Borrow, Cow};
+use std::borrow::Cow;
 
 use bevy::{
     app::{Plugin, Update},
@@ -10,7 +10,6 @@ use bevy::{
 use bevy_persistent::{Persistent, StorageFormat};
 use egui::Ui;
 use helium_framework::prelude::ToastsStorage;
-use crate::t;
 use serde::{Deserialize, Serialize};
 
 use crate::settings_module::{SettingsModuleStruct, SettingsRegistrationExt};

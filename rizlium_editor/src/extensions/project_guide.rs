@@ -1,4 +1,4 @@
-use std::{future::Future, io::Write, pin::pin};
+use std::io::Write;
 
 use bevy::{
     ecs::system::{InMut, Local},
@@ -6,7 +6,7 @@ use bevy::{
     tasks::Task,
 };
 use egui::{Ui, Widget};
-use futures_lite::future::{block_on, poll_once};
+use futures_lite::future::poll_once;
 use helium_framework::{prelude::*, utils::identifier::Identifier};
 use rfd::{AsyncFileDialog, FileHandle};
 use rizlium_chart::chart::Chart;

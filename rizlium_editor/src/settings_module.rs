@@ -14,6 +14,7 @@ use egui::{
 };
 use helium_framework::{prelude::*, utils::identifier::Identifier};
 use indexmap::IndexMap;
+#[allow(unused_imports)]
 use crate::t;
 use std::{borrow::Cow, marker::PhantomData};
 pub trait SettingsRegistrationExt {
@@ -197,10 +198,10 @@ where
         &self,
         world: &mut World,
     ) -> std::boxed::Box<
-        (dyn bevy::prelude::ReadOnlySystem<
+        dyn bevy::prelude::ReadOnlySystem<
             In = In<(egui::Ui, std::option::Option<Storage>)>,
             Out = std::option::Option<Storage>,
-        > + 'static),
+        > + 'static ,
     > {
         let mut system = IntoSystem::into_system(self.ui_system.clone());
         system.initialize(world);
