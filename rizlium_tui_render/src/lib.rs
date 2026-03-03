@@ -173,6 +173,16 @@ impl Widget for RizlineRender<'_> {
             visible_world_y_max,
         };
 
+        if render_ctx.config.show_rings {
+            let start_rings = Instant::now();
+            render_rings(buf, &mut render_ctx);
+            if let Some(stats) = render_ctx.config.stats.as_ref() {
+                if let Ok(mut stats) = stats.lock() {
+                    stats.rings_ms = start_rings.elapsed().as_secs_f32() * 1000.0;
+                }
+            }
+        }
+
         let start_lines = Instant::now();
         render_lines(buf, &mut render_ctx);
         if let Some(stats) = render_ctx.config.stats.as_ref() {
@@ -186,16 +196,6 @@ impl Widget for RizlineRender<'_> {
         if let Some(stats) = render_ctx.config.stats.as_ref() {
             if let Ok(mut stats) = stats.lock() {
                 stats.notes_ms = start_notes.elapsed().as_secs_f32() * 1000.0;
-            }
-        }
-
-        if render_ctx.config.show_rings {
-            let start_rings = Instant::now();
-            render_rings(buf, &mut render_ctx);
-            if let Some(stats) = render_ctx.config.stats.as_ref() {
-                if let Ok(mut stats) = stats.lock() {
-                    stats.rings_ms = start_rings.elapsed().as_secs_f32() * 1000.0;
-                }
             }
         }
     }
@@ -578,6 +578,32 @@ fn set_braille_dot(
     }
 }
 
+fn set_braille_dot_masked(
+    buf: &mut Buffer,
+    ctx: &mut RenderContext<'_>,
+    x_dot: i32,
+    y_dot: i32,
+    color: Rgba,
+) {
+    let char_y_in_buf = ctx.playfield.rect.y as i32 + y_dot.div_euclid(4);
+    let mask_overlay = get_mask_overlay_cached(ctx, char_y_in_buf);
+
+    let mut final_color = color;
+    final_color.a *= 1.0 - mask_overlay;
+    if final_color.a <= EPS {
+        return;
+    }
+
+    set_braille_dot(
+        buf,
+        x_dot,
+        y_dot,
+        final_color,
+        ctx.playfield.rect,
+        ctx.background,
+    );
+}
+
 fn draw_braille_gradient_line(
     buf: &mut Buffer,
     ctx: &mut RenderContext<'_>,
@@ -713,6 +739,9 @@ fn render_rings(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
 
         let ring_color_rgba = line.ring_color.value_padding(ctx.game_time).unwrap_or_default();
         let ring_color = Rgba::from(ring_color_rgba);
+        if ring_color.a <= EPS {
+            continue;
+        }
 
         draw_ring(buf, ctx, pos, ring_color);
     }
@@ -720,16 +749,90 @@ fn render_rings(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
 
 fn draw_ring(buf: &mut Buffer, ctx: &mut RenderContext<'_>, pos: [f32; 2], color: Rgba) {
     let radius = 43.0; // From rizlium_render/src/rings.rs
-    let steps = ctx.config.ring_steps.max(4);
-    for i in 0..steps {
-        let t1 = i as f32 / steps as f32 * 2.0 * std::f32::consts::PI;
-        let t2 = (i + 1) as f32 / steps as f32 * 2.0 * std::f32::consts::PI;
+    let Some((cx, cy)) = ctx.playfield.world_to_dot(pos[0], pos[1]) else {
+        return;
+    };
 
-        let p1 = [pos[0] + radius * t1.cos(), pos[1] + radius * t1.sin()];
-        let p2 = [pos[0] + radius * t2.cos(), pos[1] + radius * t2.sin()];
+    let dot_width = (ctx.playfield.width * 2.0).max(1.0);
+    let dot_height = (ctx.playfield.height * 4.0).max(1.0);
+    let rx = ((radius / VIEW_WIDTH) * (dot_width - 1.0)).round() as i32;
+    let ry = ((radius / VIEW_HEIGHT) * (dot_height - 1.0)).round() as i32;
+    let r = rx.min(ry).max(1);
 
-        draw_braille_gradient_line(buf, ctx, p1, p2, color, color, 0.0, 1.0);
+    draw_ellipse_dots(buf, ctx, cx, cy, r, r, color);
+}
+
+fn draw_ellipse_dots(
+    buf: &mut Buffer,
+    ctx: &mut RenderContext<'_>,
+    cx: i32,
+    cy: i32,
+    rx: i32,
+    ry: i32,
+    color: Rgba,
+) {
+    let rx = rx as i64;
+    let ry = ry as i64;
+    let mut x: i64 = 0;
+    let mut y: i64 = ry;
+
+    let rx2 = rx * rx;
+    let ry2 = ry * ry;
+
+    let mut dx = 2 * ry2 * x;
+    let mut dy = 2 * rx2 * y;
+
+    let mut p1: i64 = ry2 - rx2 * ry + rx2 / 4;
+
+    while dx < dy {
+        plot_ellipse_points(buf, ctx, cx, cy, x as i32, y as i32, color);
+
+        x += 1;
+        dx += 2 * ry2;
+
+        if p1 < 0 {
+            p1 += ry2 + dx;
+        } else {
+            y -= 1;
+            dy -= 2 * rx2;
+            p1 += ry2 + dx - dy;
+        }
     }
+
+    let mut p2: f64 = (ry2 as f64) * ((x as f64 + 0.5).powi(2))
+        + (rx2 as f64) * ((y as f64 - 1.0).powi(2))
+        - (rx2 as f64) * (ry2 as f64);
+
+    while y >= 0 {
+        plot_ellipse_points(buf, ctx, cx, cy, x as i32, y as i32, color);
+
+        if p2 > 0.0 {
+            y -= 1;
+            dy -= 2 * rx2;
+            p2 += (rx2 as f64) - (dy as f64);
+        } else {
+            x += 1;
+            dx += 2 * ry2;
+            y -= 1;
+            dy -= 2 * rx2;
+            p2 += (rx2 as f64) - (dy as f64) + (dx as f64);
+        }
+    }
+}
+
+fn plot_ellipse_points(
+    buf: &mut Buffer,
+    ctx: &mut RenderContext<'_>,
+    cx: i32,
+    cy: i32,
+    x: i32,
+    y: i32,
+    color: Rgba,
+) {
+    set_braille_dot(buf, cx + x, cy + y, color, ctx.playfield.rect, ctx.background);
+    set_braille_dot(buf, cx - x, cy + y, color, ctx.playfield.rect, ctx.background);
+    set_braille_dot(buf, cx + x, cy - y, color, ctx.playfield.rect, ctx.background);
+    set_braille_dot(buf, cx - x, cy - y, color, ctx.playfield.rect, ctx.background);
 }
 
 fn draw_note_glyph(
