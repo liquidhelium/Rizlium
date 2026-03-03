@@ -48,18 +48,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = setup_terminal()?;
     let mut last_tick = Instant::now();
     let mut real_time = 0.0_f32;
+    let mut paused = false;
 
     let mut stats_last = Instant::now();
     let mut stats_frames: u32 = 0;
     let mut acc_draw = Duration::ZERO;
     let mut acc_frame = Duration::ZERO;
     let mut stats_text =
-        String::from("Mode: Full | Quality: HQ | FPS: -- | draw: -- ms | frame: -- ms");
+        String::from("Mode: Full | FPS: -- | draw: -- ms | frame: -- ms");
     let mut render_mode = RenderMode::Full;
     let mut render_config = RizlineRenderConfig::default();
     let stats_sink = Arc::new(Mutex::new(RenderStats::default()));
     render_config.stats = Some(stats_sink.clone());
-    let mut quality_label = String::from("HQ");
 
     loop {
         let frame_start = Instant::now();
@@ -108,31 +108,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                     KeyCode::Char('1') => render_mode = RenderMode::Full,
                     KeyCode::Char('2') => render_mode = RenderMode::ChartOnly,
                     KeyCode::Char('3') => render_mode = RenderMode::StatsOnly,
-                    KeyCode::Char('4') => {
-                        render_config.braille_step = 4;
-                        render_config.max_braille_steps = 600;
-                        render_config.ring_steps = 6;
-                        render_config.clear_background = false;
-                        render_config.background_fill_step = 2;
-                        render_config.note_time_window = Some((2.0, 5.0));
-                        quality_label = String::from("LQ");
-                    }
-                    KeyCode::Char('5') => {
-                        render_config = RizlineRenderConfig::default();
-                        render_config.stats = Some(stats_sink.clone());
-                        quality_label = String::from("HQ");
-                    }
-                    KeyCode::Char('6') => {
-                        render_config.braille_step = 8;
-                        render_config.max_braille_steps = 300;
-                        render_config.ring_steps = 4;
-                        render_config.clear_background = false;
-                        render_config.background_fill_step = 4;
-                        render_config.note_time_window = Some((1.0, 3.0));
-                        quality_label = String::from("ULQ");
-                    }
                     KeyCode::Char('a') => {
                         render_config.ascii_mode = !render_config.ascii_mode;
+                    }
+                    KeyCode::Left => {
+                        real_time = (real_time - 1.0).max(0.0);
+                    }
+                    KeyCode::Right => {
+                        real_time += 1.0;
+                    }
+                    KeyCode::Char(' ') => {
+                        paused = !paused;
                     }
                     _ => {}
                 }
@@ -142,7 +128,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         let now = Instant::now();
         let dt = now.duration_since(last_tick);
         last_tick = now;
-        real_time += dt.as_secs_f32();
+        if !paused {
+            real_time += dt.as_secs_f32();
+        }
 
         let frame_dt = frame_start.elapsed();
         acc_frame += frame_dt;
@@ -163,9 +151,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .map(|s| (s.fill_ms, s.lines_ms, s.notes_ms, s.rings_ms))
                 .unwrap_or((0.0, 0.0, 0.0, 0.0));
             stats_text = format!(
-                "Mode: {} | Quality: {} | FPS: {:.1} | draw: {:.2}ms | frame: {:.2}ms | fill: {:.2} | lines: {:.2} | notes: {:.2} | rings: {:.2}",
+                "Mode: {} | FPS: {:.1} | draw: {:.2}ms | frame: {:.2}ms | fill: {:.2} | lines: {:.2} | notes: {:.2} | rings: {:.2}",
                 mode_label,
-                quality_label,
                 fps,
                 avg_draw_ms,
                 avg_frame_ms,
