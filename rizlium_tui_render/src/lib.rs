@@ -1,19 +1,18 @@
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    style::Color,
-    widgets::Widget,
-};
+use ratatui::{buffer::Buffer, layout::Rect, style::Color, widgets::Widget};
 use rizlium_chart::{
+    VIEW_RECT,
     chart::{
         Chart, ChartCache, ColorRGBA, EasingId, KeyPoint, Line, LinePointData, NoteKind,
         ThemeColor, ThemeData, ThemeTransition, Tween,
     },
-    VIEW_RECT,
 };
+
+use crate::ascii_map::ASCII_MAP;
+
+mod ascii_map;
 
 const VIEW_WIDTH: f32 = VIEW_RECT[1][0] - VIEW_RECT[0][0];
 const VIEW_HEIGHT: f32 = VIEW_RECT[1][1] - VIEW_RECT[0][1];
@@ -52,6 +51,8 @@ pub struct RizlineRenderConfig {
     pub top_mask_height_ratio: f32,
     pub show_line: Option<usize>,
     pub show_rings: bool,
+    /// Render braille as ASCII characters.
+    pub ascii_mode: bool,
     /// Sampling stride for braille dot drawing. Higher values reduce output volume.
     pub braille_step: usize,
     /// Cap for per-segment braille sampling steps.
@@ -80,6 +81,7 @@ impl Default for RizlineRenderConfig {
             top_mask_height_ratio: TOP_MASK_HEIGHT,
             show_line: None,
             show_rings: true,
+            ascii_mode: false,
             braille_step: 1,
             max_braille_steps: 5000,
             ring_steps: 16,
@@ -208,6 +210,22 @@ impl Widget for RizlineRender<'_> {
                 stats.notes_ms = start_notes.elapsed().as_secs_f32() * 1000.0;
             }
         }
+
+        if self.config.ascii_mode {
+
+
+            for y in playfield.rect.top()..playfield.rect.bottom() {
+                for x in playfield.rect.left()..playfield.rect.right() {
+                    if let Some(cell) = buf.cell_mut((x, y)) {
+                        let current_char = cell.symbol().chars().next().unwrap_or(' ');
+                        if (0x2800..=0x28FF).contains(&(current_char as u32)) {
+                            let bits = (current_char as u32 - 0x2800) as usize;
+                            cell.set_char(ASCII_MAP[bits]);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -263,7 +281,12 @@ impl Playfield {
         let y = area.y + (area.height.saturating_sub(h)) / 2;
 
         Self {
-            rect: Rect { x, y, width: w, height: h },
+            rect: Rect {
+                x,
+                y,
+                width: w,
+                height: h,
+            },
             width: w as f32,
             height: h as f32,
         }
@@ -382,7 +405,11 @@ fn fill_rect(buf: &mut Buffer, rect: Rect, color: Color, step: u16) {
 
 fn current_theme(chart: &Chart, time: f32) -> ThemeData {
     match chart.theme_at(time) {
-        Ok(ThemeTransition { this, next, progress }) => {
+        Ok(ThemeTransition {
+            this,
+            next,
+            progress,
+        }) => {
             let progress = if progress.is_finite() {
                 progress.clamp(0.0, 1.0)
             } else {
@@ -426,10 +453,9 @@ fn render_lines(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
         for keypoint_idx in 0..line.points.points().len().saturating_sub(1) {
             let p1 = &line.points.points()[keypoint_idx];
 
-            let pos1 = chart_with_cache
-                .pos_for_linepoint_at(line_idx, keypoint_idx, ctx.game_time);
-            let pos2 = chart_with_cache
-                .pos_for_linepoint_at(line_idx, keypoint_idx + 1, ctx.game_time);
+            let pos1 = chart_with_cache.pos_for_linepoint_at(line_idx, keypoint_idx, ctx.game_time);
+            let pos2 =
+                chart_with_cache.pos_for_linepoint_at(line_idx, keypoint_idx + 1, ctx.game_time);
 
             let (Some(mut pos1), Some(mut pos2)) = (pos1, pos2) else {
                 continue;
@@ -554,11 +580,7 @@ fn color_to_rgba(color: Color, fallback: Rgba) -> Rgba {
     }
 }
 
-fn blend_cell_colors(
-    cell: &mut ratatui::buffer::Cell,
-    color: Rgba,
-    background: Rgba,
-) {
+fn blend_cell_colors(cell: &mut ratatui::buffer::Cell, color: Rgba, background: Rgba) {
     let base_bg = color_to_rgba(cell.bg, background);
     let a = color.a.clamp(0.0, 1.0);
     let inv_a = 1.0 - a;
@@ -653,8 +675,10 @@ fn draw_braille_gradient_line(
     let step = ctx.config.braille_step.max(1) as i32;
 
     let (visible_dot_min, visible_dot_max) = match (
-        ctx.playfield.world_to_dot(VIEW_RECT[0][0], ctx.visible_world_y_min),
-        ctx.playfield.world_to_dot(VIEW_RECT[0][0], ctx.visible_world_y_max),
+        ctx.playfield
+            .world_to_dot(VIEW_RECT[0][0], ctx.visible_world_y_min),
+        ctx.playfield
+            .world_to_dot(VIEW_RECT[0][0], ctx.visible_world_y_max),
     ) {
         (Some((_, y0)), Some((_, y1))) => (y0.min(y1), y0.max(y1)),
         _ => (i32::MIN, i32::MAX),
@@ -762,15 +786,15 @@ fn render_notes(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
                     (note.time.max(ctx.game_time), Some(end))
                 }
                 _ => {
-                    if note.time < ctx.game_time - 0.1 { // Small window to keep hit notes visible briefly
+                    if note.time < ctx.game_time - 0.1 {
+                        // Small window to keep hit notes visible briefly
                         continue;
                     }
                     (note.time, None)
                 }
             };
 
-            let pos = chart_with_cache
-                .line_pos_at_clamped(line_idx, note_time, ctx.game_time);
+            let pos = chart_with_cache.line_pos_at_clamped(line_idx, note_time, ctx.game_time);
             let Some(mut pos) = pos else { continue };
             pos[0] = (pos[0] - ctx.cam_move) * ctx.cam_scale;
             pos[1] *= ctx.cam_scale;
@@ -790,8 +814,7 @@ fn render_notes(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
             };
 
             if let Some(end) = hold_end {
-                let end_pos = chart_with_cache
-                    .line_pos_at_clamped(line_idx, end, ctx.game_time);
+                let end_pos = chart_with_cache.line_pos_at_clamped(line_idx, end, ctx.game_time);
                 let Some(mut end_pos) = end_pos else { continue };
                 end_pos[0] = (end_pos[0] - ctx.cam_move) * ctx.cam_scale;
                 end_pos[1] *= ctx.cam_scale;
@@ -822,14 +845,18 @@ fn render_rings(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
     let chart_with_cache = chart.with_cache(ctx.cache);
 
     for (line_idx, line) in chart.lines.iter().enumerate() {
-        let Some(mut pos) = chart_with_cache.line_pos_at(line_idx, ctx.game_time, ctx.game_time) else {
+        let Some(mut pos) = chart_with_cache.line_pos_at(line_idx, ctx.game_time, ctx.game_time)
+        else {
             continue;
         };
 
         pos[0] = (pos[0] - ctx.cam_move) * ctx.cam_scale;
         pos[1] *= ctx.cam_scale;
 
-        let ring_color_rgba = line.ring_color.value_padding(ctx.game_time).unwrap_or_default();
+        let ring_color_rgba = line
+            .ring_color
+            .value_padding(ctx.game_time)
+            .unwrap_or_default();
         let ring_color = Rgba::from(ring_color_rgba);
         if ring_color.a <= EPS {
             continue;
@@ -1109,7 +1136,12 @@ fn should_write_cell(ctx: &mut RenderContext<'_>, x: i32, y: i32, new_alpha: f32
     true
 }
 
-fn get_cell_mut(buf: &mut Buffer, x: i32, y: i32, rect: Rect) -> Option<&mut ratatui::buffer::Cell> {
+fn get_cell_mut(
+    buf: &mut Buffer,
+    x: i32,
+    y: i32,
+    rect: Rect,
+) -> Option<&mut ratatui::buffer::Cell> {
     if x < rect.x as i32
         || y < rect.y as i32
         || x >= (rect.x + rect.width) as i32

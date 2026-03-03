@@ -11,17 +11,17 @@ use anyhow::Context;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{
+    Terminal,
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
     widgets::Paragraph,
-    Terminal,
 };
 
 use rizlium_chart::{chart::Chart, prelude::RizlineChart};
-use rizlium_tui_render::{chart_cache, RenderStats, RizlineRender, RizlineRenderConfig};
+use rizlium_tui_render::{RenderStats, RizlineRender, RizlineRenderConfig, chart_cache};
 
 /// Load a Rizline chart from a packed zip bundle (e.g. `RIP.eicateve.0.zip`).
 pub fn load_rizline_chart_from_bundle() -> anyhow::Result<Chart> {
@@ -30,8 +30,7 @@ pub fn load_rizline_chart_from_bundle() -> anyhow::Result<Chart> {
     chart_file
         .read_to_string(&mut chart_text)
         .context("read chart json")?;
-    let rizline_chart: Chart =
-        serde_json::from_str(&chart_text).context("parse chart json")?;
+    let rizline_chart: Chart = serde_json::from_str(&chart_text).context("parse chart json")?;
     let chart: Chart = rizline_chart.try_into().context("convert chart")?;
     Ok(chart)
 }
@@ -78,14 +77,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                     frame.render_widget(stats, chunks[0]);
 
                     let game_time = cache.map_time(real_time);
-                    let widget = RizlineRender::new(&chart, &cache, game_time)
-                        .config(render_config.clone());
+                    let widget =
+                        RizlineRender::new(&chart, &cache, game_time).config(render_config.clone());
                     frame.render_widget(widget, chunks[1]);
                 }
                 RenderMode::ChartOnly => {
                     let game_time = cache.map_time(real_time);
-                    let widget = RizlineRender::new(&chart, &cache, game_time)
-                        .config(render_config.clone());
+                    let widget =
+                        RizlineRender::new(&chart, &cache, game_time).config(render_config.clone());
                     frame.render_widget(widget, area);
                 }
                 RenderMode::StatsOnly => {
@@ -132,6 +131,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                         render_config.note_time_window = Some((1.0, 3.0));
                         quality_label = String::from("ULQ");
                     }
+                    KeyCode::Char('a') => {
+                        render_config.ascii_mode = !render_config.ascii_mode;
+                    }
                     _ => {}
                 }
             }
@@ -162,7 +164,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .unwrap_or((0.0, 0.0, 0.0, 0.0));
             stats_text = format!(
                 "Mode: {} | Quality: {} | FPS: {:.1} | draw: {:.2}ms | frame: {:.2}ms | fill: {:.2} | lines: {:.2} | notes: {:.2} | rings: {:.2}",
-                mode_label, quality_label, fps, avg_draw_ms, avg_frame_ms, fill_ms, lines_ms, notes_ms, rings_ms
+                mode_label,
+                quality_label,
+                fps,
+                avg_draw_ms,
+                avg_frame_ms,
+                fill_ms,
+                lines_ms,
+                notes_ms,
+                rings_ms
             );
             stats_last = Instant::now();
             stats_frames = 0;
