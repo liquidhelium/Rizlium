@@ -25,10 +25,11 @@ const GRADIENT_NORMALIZED_HEIGHT: f32 = 0.05;
 const TOP_MASK_HEIGHT: f32 = 0.2;
 const RING_OFFSET: f32 = 0.2;
 const RING_RADIUS: f32 = 43.0;
-const NOTE_RADIUS: f32 = 30.0;
+const NOTE_RADIUS: f32 = 35.0;
 const HOLD_BODY_HALF_WIDTH: f32 = 20.0;
 const HOLD_BODY_STEP: f32 = 4.0;
 const HOLD_BODY_BORDER: f32 = 1.0;
+const SCREEN_SAMPLE_DOT_STEP: f32 = 1.0;
 
 const EPS: f32 = 1.0e-6;
 
@@ -448,13 +449,14 @@ fn render_lines(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
             let color1 = line_color_at(line, keypoint_idx, ctx.game_time);
             let color2 = line_color_at(line, keypoint_idx + 1, ctx.game_time);
 
-            let samples = sample_line_points(p1, pos1, pos2);
+            let samples = sample_line_points(ctx, p1, pos1, pos2);
             draw_polyline(buf, ctx, &samples, color1, color2);
         }
     }
 }
 
 fn sample_line_points(
+    ctx: &RenderContext<'_>,
     p1: &KeyPoint<f32, LinePointData>,
     pos1: [f32; 2],
     pos2: [f32; 2],
@@ -467,7 +469,18 @@ fn sample_line_points(
         return vec![pos1, pos2];
     }
 
-    let mut count = (dy / 5.0).floor().max(2.0) as usize;
+    let mut count = if let (Some((x0, y0)), Some((x1, y1))) = (
+        ctx.playfield.world_to_dot(pos1[0], pos1[1]),
+        ctx.playfield.world_to_dot(pos2[0], pos2[1]),
+    ) {
+        let ddx = (x1 - x0) as f32;
+        let ddy = (y1 - y0) as f32;
+        let dot_len = (ddx * ddx + ddy * ddy).sqrt();
+        (dot_len / SCREEN_SAMPLE_DOT_STEP).ceil().max(2.0) as usize
+    } else {
+        (dy / 5.0).floor().max(2.0) as usize
+    };
+
     if count > 5000 {
         count = 5000;
     }
@@ -589,7 +602,7 @@ fn set_braille_dot(
     let x = x as u16;
     let y = y as u16;
 
-    if let Some(cell) = buf.cell_mut((x, y)) && (should_update_color || color.a > 0.5){
+    if let Some(cell) = buf.cell_mut((x, y)) {
         let mut bits = 0u8;
         let current_char = cell.symbol().chars().next().unwrap_or(' ');
         if (0x2800..=0x28FF).contains(&(current_char as u32)) {
@@ -639,30 +652,80 @@ fn draw_braille_gradient_line(
     let steps = dx.max(dy).max(1).min(max_steps);
     let step = ctx.config.braille_step.max(1) as i32;
 
+    let (visible_dot_min, visible_dot_max) = match (
+        ctx.playfield.world_to_dot(VIEW_RECT[0][0], ctx.visible_world_y_min),
+        ctx.playfield.world_to_dot(VIEW_RECT[0][0], ctx.visible_world_y_max),
+    ) {
+        (Some((_, y0)), Some((_, y1))) => (y0.min(y1), y0.max(y1)),
+        _ => (i32::MIN, i32::MAX),
+    };
+
+    let segment_fully_visible = y0 >= visible_dot_min
+        && y0 <= visible_dot_max
+        && y1 >= visible_dot_min
+        && y1 <= visible_dot_max;
+
     let mut i = 0;
+    let mut prev_point: Option<(i32, i32, f32)> = None;
+
     while i <= steps {
         let t = i as f32 / steps as f32;
         let x = x0 + ((x1 - x0) as f32 * t).round() as i32;
         let y = y0 + ((y1 - y0) as f32 * t).round() as i32;
-
-        let char_y_in_buf = ctx.playfield.rect.y as i32 + y.div_euclid(4);
-        let mask_overlay = get_mask_overlay_cached(ctx, char_y_in_buf);
-
         let line_t = (start_t + length_t * t).clamp(0.0, 1.0);
-        let mut line_color = c1.blend(c2, line_t);
-        line_color = line_color.scale_alpha(1.0 - mask_overlay);
-        if line_color.a <= EPS {
-            i += step;
-            continue;
+
+        if let Some((px, py, pt)) = prev_point {
+            let ddx = x - px;
+            let ddy = y - py;
+            let seg_steps = ddx.abs().max(ddy.abs()).max(1) as i32;
+
+            if segment_fully_visible && seg_steps <= 1 {
+                let char_y_in_buf = ctx.playfield.rect.y as i32 + y.div_euclid(4);
+                let mask_overlay = get_mask_overlay_cached(ctx, char_y_in_buf);
+
+                let mut line_color = c1.blend(c2, line_t);
+                line_color = line_color.scale_alpha(1.0 - mask_overlay);
+                if line_color.a > EPS {
+                    set_braille_dot(buf, ctx, x, y, line_color);
+                }
+            } else if !((py < visible_dot_min && y < visible_dot_min)
+                || (py > visible_dot_max && y > visible_dot_max))
+            {
+                let mut s = 0;
+                while s <= seg_steps {
+                    let seg_t = s as f32 / seg_steps as f32;
+                    let ix = px + ((ddx as f32) * seg_t).round() as i32;
+                    let iy = py + ((ddy as f32) * seg_t).round() as i32;
+
+                    if iy < visible_dot_min || iy > visible_dot_max {
+                        s += 1;
+                        continue;
+                    }
+
+                    let char_y_in_buf = ctx.playfield.rect.y as i32 + iy.div_euclid(4);
+                    let mask_overlay = get_mask_overlay_cached(ctx, char_y_in_buf);
+
+                    let interp_t = (pt + (line_t - pt) * seg_t).clamp(0.0, 1.0);
+                    let mut line_color = c1.blend(c2, interp_t);
+                    line_color = line_color.scale_alpha(1.0 - mask_overlay);
+                    if line_color.a > EPS {
+                        set_braille_dot(buf, ctx, ix, iy, line_color);
+                    }
+                    s += 1;
+                }
+            }
+        } else {
+            let char_y_in_buf = ctx.playfield.rect.y as i32 + y.div_euclid(4);
+            let mask_overlay = get_mask_overlay_cached(ctx, char_y_in_buf);
+
+            let mut line_color = c1.blend(c2, line_t);
+            line_color = line_color.scale_alpha(1.0 - mask_overlay);
+            if line_color.a > EPS {
+                set_braille_dot(buf, ctx, x, y, line_color);
+            }
         }
 
-        set_braille_dot(
-            buf,
-            ctx,
-            x,
-            y,
-            line_color,
-        );
+        prev_point = Some((x, y, line_t));
         i += step;
     }
 }
@@ -712,6 +775,12 @@ fn render_notes(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
             pos[0] = (pos[0] - ctx.cam_move) * ctx.cam_scale;
             pos[1] *= ctx.cam_scale;
 
+            let head_visible = pos[1] + NOTE_RADIUS >= ctx.visible_world_y_min
+                && pos[1] - NOTE_RADIUS <= ctx.visible_world_y_max;
+            if hold_end.is_none() && !head_visible {
+                continue;
+            }
+
             let note_theme = current_theme(chart, note.time);
             let note_color = Rgba::from(note_theme.color.note);
             let head_glyph = if hold_end.is_some() {
@@ -727,17 +796,23 @@ fn render_notes(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
                 end_pos[0] = (end_pos[0] - ctx.cam_move) * ctx.cam_scale;
                 end_pos[1] *= ctx.cam_scale;
 
-                let base_x = chart_with_cache
-                    .line_pos_at_clamped(line_idx, ctx.game_time, ctx.game_time)
-                    .map(|mut p| {
-                        p[0] = (p[0] - ctx.cam_move) * ctx.cam_scale;
-                        p[0]
-                    })
-                    .unwrap_or(pos[0]);
+                let base_x = if note.time > ctx.game_time {
+                    pos[0]
+                } else {
+                    chart_with_cache
+                        .line_pos_at_clamped(line_idx, ctx.game_time, ctx.game_time)
+                        .map(|mut p| {
+                            p[0] = (p[0] - ctx.cam_move) * ctx.cam_scale;
+                            p[0]
+                        })
+                        .unwrap_or(pos[0])
+                };
 
                 draw_hold_body(buf, ctx, pos, end_pos, base_x, note_color);
             }
-            draw_note_glyph(buf, ctx, pos, note_color, head_glyph);
+            if head_visible {
+                draw_note_glyph(buf, ctx, pos, note_color, head_glyph);
+            }
         }
     }
 }
@@ -920,6 +995,15 @@ fn draw_hold_body(
 ) {
     let start_y = a[1].min(b[1]);
     let end_y = a[1].max(b[1]);
+
+    let visible_min = ctx.visible_world_y_min;
+    let visible_max = ctx.visible_world_y_max;
+    if end_y < visible_min || start_y > visible_max {
+        return;
+    }
+
+    let start_y = start_y.max(visible_min);
+    let end_y = end_y.min(visible_max);
     if (end_y - start_y).abs() <= EPS {
         return;
     }
