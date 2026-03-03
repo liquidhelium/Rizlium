@@ -25,12 +25,12 @@ use rizlium_tui_render::{chart_cache, RenderStats, RizlineRender, RizlineRenderC
 
 /// Load a Rizline chart from a packed zip bundle (e.g. `RIP.eicateve.0.zip`).
 pub fn load_rizline_chart_from_bundle() -> anyhow::Result<Chart> {
-    let mut chart_file = File::open("assets/crystalized/Camellia0IN.json").context("read chart")?;
+    let mut chart_file = File::open("assets/RIP.eicateve.0/Chart_IN.json").context("read chart")?;
     let mut chart_text = String::new();
     chart_file
         .read_to_string(&mut chart_text)
         .context("read chart json")?;
-    let rizline_chart: RizlineChart =
+    let rizline_chart: Chart =
         serde_json::from_str(&chart_text).context("parse chart json")?;
     let chart: Chart = rizline_chart.try_into().context("convert chart")?;
     Ok(chart)

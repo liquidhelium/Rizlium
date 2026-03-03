@@ -25,6 +25,10 @@ const GRADIENT_NORMALIZED_HEIGHT: f32 = 0.05;
 const TOP_MASK_HEIGHT: f32 = 0.2;
 const RING_OFFSET: f32 = 0.2;
 const RING_RADIUS: f32 = 43.0;
+const NOTE_RADIUS: f32 = 30.0;
+const HOLD_BODY_HALF_WIDTH: f32 = 20.0;
+const HOLD_BODY_STEP: f32 = 4.0;
+const HOLD_BODY_BORDER: f32 = 1.0;
 
 const EPS: f32 = 1.0e-6;
 
@@ -585,7 +589,7 @@ fn set_braille_dot(
     let x = x as u16;
     let y = y as u16;
 
-    if let Some(cell) = buf.cell_mut((x, y)) {
+    if let Some(cell) = buf.cell_mut((x, y)) && (should_update_color || color.a > 0.5){
         let mut bits = 0u8;
         let current_char = cell.symbol().chars().next().unwrap_or(' ');
         if (0x2800..=0x28FF).contains(&(current_char as u32)) {
@@ -716,8 +720,6 @@ fn render_notes(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
                 ctx.config.note_glyph
             };
 
-            draw_note_glyph(buf, ctx, pos, note_color, head_glyph);
-
             if let Some(end) = hold_end {
                 let end_pos = chart_with_cache
                     .line_pos_at_clamped(line_idx, end, ctx.game_time);
@@ -725,9 +727,17 @@ fn render_notes(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
                 end_pos[0] = (end_pos[0] - ctx.cam_move) * ctx.cam_scale;
                 end_pos[1] *= ctx.cam_scale;
 
-                draw_note_glyph(buf, ctx, end_pos, note_color, ctx.config.hold_tail_glyph);
-                draw_hold_body(buf, ctx, pos, end_pos, note_color);
+                let base_x = chart_with_cache
+                    .line_pos_at_clamped(line_idx, ctx.game_time, ctx.game_time)
+                    .map(|mut p| {
+                        p[0] = (p[0] - ctx.cam_move) * ctx.cam_scale;
+                        p[0]
+                    })
+                    .unwrap_or(pos[0]);
+
+                draw_hold_body(buf, ctx, pos, end_pos, base_x, note_color);
             }
+            draw_note_glyph(buf, ctx, pos, note_color, head_glyph);
         }
     }
 }
@@ -842,6 +852,25 @@ fn plot_ellipse_points(
     set_braille_dot(buf, ctx, cx - x, cy - y, color);
 }
 
+fn draw_filled_circle_dots(
+    buf: &mut Buffer,
+    ctx: &mut RenderContext<'_>,
+    cx: i32,
+    cy: i32,
+    r: i32,
+    color: Rgba,
+) {
+    let r = r.max(1);
+    let r2 = r * r;
+    for dy in -r..=r {
+        let y = cy + dy;
+        let dx = ((r2 - dy * dy) as f32).sqrt().floor() as i32;
+        for x in -dx..=dx {
+            set_braille_dot(buf, ctx, cx + x, y, color);
+        }
+    }
+}
+
 fn draw_note_glyph(
     buf: &mut Buffer,
     ctx: &mut RenderContext<'_>,
@@ -859,6 +888,18 @@ fn draw_note_glyph(
         return;
     }
 
+    if glyph != ctx.config.hold_tail_glyph {
+        if let Some((cx, cy)) = ctx.playfield.world_to_dot(pos[0], pos[1]) {
+            let dot_width = (ctx.playfield.width * 2.0).max(1.0);
+            let dot_height = (ctx.playfield.height * 4.0).max(1.0);
+            let rx = ((NOTE_RADIUS / VIEW_WIDTH) * (dot_width - 1.0)).round() as i32;
+            let ry = ((NOTE_RADIUS / VIEW_HEIGHT) * (dot_height - 1.0)).round() as i32;
+            let r = rx.min(ry).max(1);
+            draw_filled_circle_dots(buf, ctx, cx, cy, r, final_color);
+            return;
+        }
+    }
+
     if !should_write_cell(ctx, x, y, final_color.a) {
         return;
     }
@@ -869,18 +910,46 @@ fn draw_note_glyph(
     }
 }
 
-fn draw_hold_body(buf: &mut Buffer, ctx: &mut RenderContext<'_>, a: [f32; 2], b: [f32; 2], color: Rgba) {
-    // Hold body should also respect mask
-    draw_braille_gradient_line(
-        buf,
-        ctx,
-        a,
-        b,
-        color,
-        color,
-        0.0,
-        1.0,
-    );
+fn draw_hold_body(
+    buf: &mut Buffer,
+    ctx: &mut RenderContext<'_>,
+    a: [f32; 2],
+    b: [f32; 2],
+    base_x: f32,
+    color: Rgba,
+) {
+    let start_y = a[1].min(b[1]);
+    let end_y = a[1].max(b[1]);
+    if (end_y - start_y).abs() <= EPS {
+        return;
+    }
+
+    let end_color = color.scale_alpha(0.0);
+    let mut offset = -HOLD_BODY_HALF_WIDTH;
+    while offset <= HOLD_BODY_HALF_WIDTH + EPS {
+        let oa = [base_x + offset, start_y];
+        let ob = [base_x + offset, end_y];
+        draw_braille_gradient_line(buf, ctx, oa, ob, color, end_color, 0.0, 1.0);
+        offset += HOLD_BODY_STEP;
+    }
+
+    let border_color = Rgba {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 1.0,
+    };
+    let border_end = border_color.scale_alpha(0.0);
+    for border_offset in [
+        HOLD_BODY_HALF_WIDTH,
+        HOLD_BODY_HALF_WIDTH + HOLD_BODY_BORDER,
+        -HOLD_BODY_HALF_WIDTH,
+        -(HOLD_BODY_HALF_WIDTH + HOLD_BODY_BORDER),
+    ] {
+        let oa = [base_x + border_offset, start_y];
+        let ob = [base_x + border_offset, end_y];
+        draw_braille_gradient_line(buf, ctx, oa, ob, border_color, border_end, 0.0, 1.0);
+    }
 }
 
 fn get_mask_overlay_cached(ctx: &mut RenderContext<'_>, cell_y: i32) -> f32 {
