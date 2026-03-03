@@ -24,6 +24,7 @@ const ASPECT_H: f32 = 16.0;
 const GRADIENT_NORMALIZED_HEIGHT: f32 = 0.05;
 const TOP_MASK_HEIGHT: f32 = 0.2;
 const RING_OFFSET: f32 = 0.2;
+const RING_RADIUS: f32 = 43.0;
 
 const EPS: f32 = 1.0e-6;
 
@@ -169,6 +170,10 @@ impl Widget for RizlineRender<'_> {
             background,
             config: self.config.clone(),
             mask_row_cache: vec![None; playfield.rect.height as usize],
+            cell_alpha: vec![
+                0.0;
+                (playfield.rect.width as usize) * (playfield.rect.height as usize)
+            ],
             visible_world_y_min,
             visible_world_y_max,
         };
@@ -215,6 +220,7 @@ struct RenderContext<'a> {
     background: Rgba,
     config: RizlineRenderConfig,
     mask_row_cache: Vec<Option<f32>>,
+    cell_alpha: Vec<f32>,
     visible_world_y_min: f32,
     visible_world_y_max: f32,
 }
@@ -311,29 +317,44 @@ struct Rgba {
 
 impl Rgba {
     fn blend(self, top: Rgba, alpha: f32) -> Rgba {
-        let alpha = (alpha * top.a).clamp(0.0, 1.0);
-        let r = self.r + (top.r - self.r) * alpha;
-        let g = self.g + (top.g - self.g) * alpha;
-        let b = self.b + (top.b - self.b) * alpha;
-        let a = self.a + (1.0 - self.a) * alpha;
+        let t = alpha.clamp(0.0, 1.0);
+        let r = self.r + (top.r - self.r) * t;
+        let g = self.g + (top.g - self.g) * t;
+        let b = self.b + (top.b - self.b) * t;
+        let a = self.a + (top.a - self.a) * t;
         Rgba { r, g, b, a }
     }
 
+    fn scale_alpha(self, scale: f32) -> Rgba {
+        let s = scale.clamp(0.0, 1.0);
+        Rgba {
+            r: self.r * s,
+            g: self.g * s,
+            b: self.b * s,
+            a: self.a * s,
+        }
+    }
+
     fn to_tui(self) -> Color {
-        let r = (self.r.clamp(0.0, 1.0) * 255.0) as u8;
-        let g = (self.g.clamp(0.0, 1.0) * 255.0) as u8;
-        let b = (self.b.clamp(0.0, 1.0) * 255.0) as u8;
+        if self.a <= EPS {
+            return Color::Rgb(0, 0, 0);
+        }
+        let inv_a = 1.0 / self.a;
+        let r = ((self.r * inv_a).clamp(0.0, 1.0) * 255.0) as u8;
+        let g = ((self.g * inv_a).clamp(0.0, 1.0) * 255.0) as u8;
+        let b = ((self.b * inv_a).clamp(0.0, 1.0) * 255.0) as u8;
         Color::Rgb(r, g, b)
     }
 }
 
 impl From<ColorRGBA> for Rgba {
     fn from(value: ColorRGBA) -> Self {
+        let a = value.a;
         Self {
-            r: value.r,
-            g: value.g,
-            b: value.b,
-            a: value.a,
+            r: value.r * a,
+            g: value.g * a,
+            b: value.b * a,
+            a,
         }
     }
 }
@@ -521,24 +542,33 @@ fn blend_cell_colors(
     color: Rgba,
     background: Rgba,
 ) {
-    let base_fg = color_to_rgba(cell.fg, color_to_rgba(cell.bg, background));
-    let blended_fg = base_fg.blend(color, 1.0);
+    let base_bg = color_to_rgba(cell.bg, background);
+    let a = color.a.clamp(0.0, 1.0);
+    let inv_a = 1.0 - a;
+
+    let blended_fg = Rgba {
+        r: color.r + base_bg.r * inv_a,
+        g: color.g + base_bg.g * inv_a,
+        b: color.b + base_bg.b * inv_a,
+        a: 1.0,
+    };
+
     cell.set_fg(blended_fg.to_tui());
 }
 
 fn set_braille_dot(
     buf: &mut Buffer,
+    ctx: &mut RenderContext<'_>,
     x_dot: i32,
     y_dot: i32,
     color: Rgba,
-    rect: Rect,
-    background: Rgba,
 ) {
     let char_x = x_dot.div_euclid(2);
     let char_y = y_dot.div_euclid(4);
     let dot_x = x_dot.rem_euclid(2) as u16;
     let dot_y = y_dot.rem_euclid(4) as u16;
 
+    let rect = ctx.playfield.rect;
     let x = rect.x as i32 + char_x;
     let y = rect.y as i32 + char_y;
 
@@ -549,6 +579,8 @@ fn set_braille_dot(
     {
         return;
     }
+
+    let should_update_color = should_write_cell(ctx, x, y, color.a);
 
     let x = x as u16;
     let y = y as u16;
@@ -574,34 +606,10 @@ fn set_braille_dot(
 
         bits |= 1 << bit;
         cell.set_char(char::from_u32(0x2800 + bits as u32).unwrap());
-        blend_cell_colors(cell, color, background);
+        if should_update_color {
+            blend_cell_colors(cell, color, ctx.background);
+        }
     }
-}
-
-fn set_braille_dot_masked(
-    buf: &mut Buffer,
-    ctx: &mut RenderContext<'_>,
-    x_dot: i32,
-    y_dot: i32,
-    color: Rgba,
-) {
-    let char_y_in_buf = ctx.playfield.rect.y as i32 + y_dot.div_euclid(4);
-    let mask_overlay = get_mask_overlay_cached(ctx, char_y_in_buf);
-
-    let mut final_color = color;
-    final_color.a *= 1.0 - mask_overlay;
-    if final_color.a <= EPS {
-        return;
-    }
-
-    set_braille_dot(
-        buf,
-        x_dot,
-        y_dot,
-        final_color,
-        ctx.playfield.rect,
-        ctx.background,
-    );
 }
 
 fn draw_braille_gradient_line(
@@ -632,13 +640,13 @@ fn draw_braille_gradient_line(
         let t = i as f32 / steps as f32;
         let x = x0 + ((x1 - x0) as f32 * t).round() as i32;
         let y = y0 + ((y1 - y0) as f32 * t).round() as i32;
-        
+
         let char_y_in_buf = ctx.playfield.rect.y as i32 + y.div_euclid(4);
         let mask_overlay = get_mask_overlay_cached(ctx, char_y_in_buf);
 
         let line_t = (start_t + length_t * t).clamp(0.0, 1.0);
         let mut line_color = c1.blend(c2, line_t);
-        line_color.a *= 1.0 - mask_overlay;
+        line_color = line_color.scale_alpha(1.0 - mask_overlay);
         if line_color.a <= EPS {
             i += step;
             continue;
@@ -646,11 +654,10 @@ fn draw_braille_gradient_line(
 
         set_braille_dot(
             buf,
+            ctx,
             x,
             y,
             line_color,
-            ctx.playfield.rect,
-            ctx.background,
         );
         i += step;
     }
@@ -748,7 +755,7 @@ fn render_rings(buf: &mut Buffer, ctx: &mut RenderContext<'_>) {
 }
 
 fn draw_ring(buf: &mut Buffer, ctx: &mut RenderContext<'_>, pos: [f32; 2], color: Rgba) {
-    let radius = 43.0; // From rizlium_render/src/rings.rs
+    let radius = RING_RADIUS; // From rizlium_render/src/rings.rs
     let Some((cx, cy)) = ctx.playfield.world_to_dot(pos[0], pos[1]) else {
         return;
     };
@@ -829,10 +836,10 @@ fn plot_ellipse_points(
     y: i32,
     color: Rgba,
 ) {
-    set_braille_dot(buf, cx + x, cy + y, color, ctx.playfield.rect, ctx.background);
-    set_braille_dot(buf, cx - x, cy + y, color, ctx.playfield.rect, ctx.background);
-    set_braille_dot(buf, cx + x, cy - y, color, ctx.playfield.rect, ctx.background);
-    set_braille_dot(buf, cx - x, cy - y, color, ctx.playfield.rect, ctx.background);
+    set_braille_dot(buf, ctx, cx + x, cy + y, color);
+    set_braille_dot(buf, ctx, cx - x, cy + y, color);
+    set_braille_dot(buf, ctx, cx + x, cy - y, color);
+    set_braille_dot(buf, ctx, cx - x, cy - y, color);
 }
 
 fn draw_note_glyph(
@@ -847,8 +854,12 @@ fn draw_note_glyph(
     };
     let mask_overlay = get_mask_overlay_cached(ctx, y);
     let mut final_color = color;
-    final_color.a *= 1.0 - mask_overlay;
+    final_color = final_color.scale_alpha(1.0 - mask_overlay);
     if final_color.a <= EPS {
+        return;
+    }
+
+    if !should_write_cell(ctx, x, y, final_color.a) {
         return;
     }
 
@@ -893,26 +904,56 @@ fn get_mask_overlay_cached(ctx: &mut RenderContext<'_>, cell_y: i32) -> f32 {
 fn get_mask_overlay(ctx: &RenderContext<'_>, world_y: f32) -> f32 {
     let h = VIEW_HEIGHT;
     let gradient_h = h * ctx.config.mask_gradient_height_ratio.max(EPS);
+    let top_gradient_h = gradient_h * 2.0;
     let top_mask_h = h * ctx.config.top_mask_height_ratio.max(0.0);
     let viewport_top = (1.0 - RING_OFFSET) * h;
+    let ring_clear_y = viewport_top;
+    let top_mask_start = (viewport_top - top_mask_h).max(ring_clear_y);
 
     if world_y < 0.0 {
         // Below 0: it's either solid background or gradient
         if world_y < -gradient_h {
             1.0
         } else {
-            (world_y.abs() / gradient_h).clamp(0.0, 1.0)
+            let t = (world_y.abs() / gradient_h).clamp(0.0, 1.0);
+            t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
         }
-    } else if world_y > viewport_top - top_mask_h {
+    } else if world_y > top_mask_start {
         // Above top threshold
-        if world_y > viewport_top - top_mask_h + gradient_h {
+        if world_y > top_mask_start + top_gradient_h {
             1.0
         } else {
-            ((world_y - (viewport_top - top_mask_h)) / gradient_h).clamp(0.0, 1.0)
+            ((world_y - top_mask_start) / top_gradient_h).clamp(0.0, 1.0)
         }
     } else {
         0.0
     }
+}
+
+fn cell_alpha_index(rect: Rect, x: i32, y: i32) -> Option<usize> {
+    if x < rect.x as i32
+        || y < rect.y as i32
+        || x >= (rect.x + rect.width) as i32
+        || y >= (rect.y + rect.height) as i32
+    {
+        return None;
+    }
+    let local_x = (x - rect.x as i32) as usize;
+    let local_y = (y - rect.y as i32) as usize;
+    let width = rect.width as usize;
+    Some(local_y * width + local_x)
+}
+
+fn should_write_cell(ctx: &mut RenderContext<'_>, x: i32, y: i32, new_alpha: f32) -> bool {
+    let Some(idx) = cell_alpha_index(ctx.playfield.rect, x, y) else {
+        return false;
+    };
+    let current = ctx.cell_alpha[idx];
+    if new_alpha + EPS < current {
+        return false;
+    }
+    ctx.cell_alpha[idx] = new_alpha;
+    true
 }
 
 fn get_cell_mut(buf: &mut Buffer, x: i32, y: i32, rect: Rect) -> Option<&mut ratatui::buffer::Cell> {
