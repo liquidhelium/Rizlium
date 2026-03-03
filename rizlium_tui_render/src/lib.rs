@@ -1029,18 +1029,27 @@ fn draw_hold_body(
         return;
     }
 
-    let start_y = start_y.max(visible_min);
-    let end_y = end_y.min(visible_max);
-    if (end_y - start_y).abs() <= EPS {
+    let original_len = end_y - start_y;
+    let clipped_start_y = start_y.max(visible_min);
+    let clipped_end_y = end_y.min(visible_max);
+    if (clipped_end_y - clipped_start_y).abs() <= EPS {
         return;
     }
+
+    let (start_t, length_t) = if original_len > EPS {
+        let t1 = (clipped_start_y - start_y) / original_len;
+        let t2 = (clipped_end_y - start_y) / original_len;
+        (t1, t2 - t1)
+    } else {
+        (0.0, 1.0)
+    };
 
     let end_color = color.scale_alpha(0.0);
     let mut offset = -HOLD_BODY_HALF_WIDTH;
     while offset <= HOLD_BODY_HALF_WIDTH + EPS {
-        let oa = [base_x + offset, start_y];
-        let ob = [base_x + offset, end_y];
-        draw_braille_gradient_line(buf, ctx, oa, ob, color, end_color, 0.0, 1.0);
+        let oa = [base_x + offset, clipped_start_y];
+        let ob = [base_x + offset, clipped_end_y];
+        draw_braille_gradient_line(buf, ctx, oa, ob, color, end_color, start_t, length_t);
         offset += HOLD_BODY_STEP;
     }
 
@@ -1057,9 +1066,9 @@ fn draw_hold_body(
         -HOLD_BODY_HALF_WIDTH,
         -(HOLD_BODY_HALF_WIDTH + HOLD_BODY_BORDER),
     ] {
-        let oa = [base_x + border_offset, start_y];
-        let ob = [base_x + border_offset, end_y];
-        draw_braille_gradient_line(buf, ctx, oa, ob, border_color, border_end, 0.0, 1.0);
+        let oa = [base_x + border_offset, clipped_start_y];
+        let ob = [base_x + border_offset, clipped_end_y];
+        draw_braille_gradient_line(buf, ctx, oa, ob, border_color, border_end, start_t, length_t);
     }
 }
 
