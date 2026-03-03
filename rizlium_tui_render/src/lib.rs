@@ -56,8 +56,7 @@ pub struct RizlineRenderConfig {
     pub clear_background: bool,
     /// Stride for background fill to reduce output (1 = full fill).
     pub background_fill_step: u16,
-    /// Whether to set note background color.
-    pub note_set_bg: bool,
+
     /// Optional note render time window: (backward, forward) in seconds.
     pub note_time_window: Option<(f32, f32)>,
     /// Optional render timing stats sink.
@@ -80,7 +79,6 @@ impl Default for RizlineRenderConfig {
             ring_steps: 16,
             clear_background: true,
             background_fill_step: 1,
-            note_set_bg: true,
             note_time_window: None,
             stats: None,
         }
@@ -522,16 +520,10 @@ fn blend_cell_colors(
     cell: &mut ratatui::buffer::Cell,
     color: Rgba,
     background: Rgba,
-    update_bg: bool,
 ) {
     let base_fg = color_to_rgba(cell.fg, color_to_rgba(cell.bg, background));
     let blended_fg = base_fg.blend(color, 1.0);
     cell.set_fg(blended_fg.to_tui());
-    if update_bg {
-        let base_bg = color_to_rgba(cell.bg, background);
-        let blended_bg = base_bg.blend(color, 1.0);
-        cell.set_bg(blended_bg.to_tui());
-    }
 }
 
 fn set_braille_dot(
@@ -582,7 +574,7 @@ fn set_braille_dot(
 
         bits |= 1 << bit;
         cell.set_char(char::from_u32(0x2800 + bits as u32).unwrap());
-        blend_cell_colors(cell, color, background, false);
+        blend_cell_colors(cell, color, background);
     }
 }
 
@@ -759,7 +751,7 @@ fn draw_note_glyph(
 
     if let Some(cell) = get_cell_mut(buf, x, y, ctx.playfield.rect) {
         cell.set_char(glyph);
-        blend_cell_colors(cell, final_color, ctx.background, ctx.config.note_set_bg);
+        blend_cell_colors(cell, final_color, ctx.background);
     }
 }
 

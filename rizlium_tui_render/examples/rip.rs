@@ -115,7 +115,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                         render_config.ring_steps = 6;
                         render_config.clear_background = false;
                         render_config.background_fill_step = 2;
-                        render_config.note_set_bg = false;
                         render_config.note_time_window = Some((2.0, 5.0));
                         quality_label = String::from("LQ");
                     }
@@ -130,7 +129,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                         render_config.ring_steps = 4;
                         render_config.clear_background = false;
                         render_config.background_fill_step = 4;
-                        render_config.note_set_bg = false;
                         render_config.note_time_window = Some((1.0, 3.0));
                         quality_label = String::from("ULQ");
                     }
