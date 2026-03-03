@@ -505,7 +505,43 @@ fn polyline_length(points: &[[f32; 2]]) -> f32 {
         .sum()
 }
 
-fn set_braille_dot(buf: &mut Buffer, x_dot: i32, y_dot: i32, color: Color, rect: Rect) {
+fn color_to_rgba(color: Color, fallback: Rgba) -> Rgba {
+    match color {
+        Color::Rgb(r, g, b) => Rgba {
+            r: r as f32 / 255.0,
+            g: g as f32 / 255.0,
+            b: b as f32 / 255.0,
+            a: 1.0,
+        },
+        Color::Reset => fallback,
+        _ => fallback,
+    }
+}
+
+fn blend_cell_colors(
+    cell: &mut ratatui::buffer::Cell,
+    color: Rgba,
+    background: Rgba,
+    update_bg: bool,
+) {
+    let base_fg = color_to_rgba(cell.fg, color_to_rgba(cell.bg, background));
+    let blended_fg = base_fg.blend(color, 1.0);
+    cell.set_fg(blended_fg.to_tui());
+    if update_bg {
+        let base_bg = color_to_rgba(cell.bg, background);
+        let blended_bg = base_bg.blend(color, 1.0);
+        cell.set_bg(blended_bg.to_tui());
+    }
+}
+
+fn set_braille_dot(
+    buf: &mut Buffer,
+    x_dot: i32,
+    y_dot: i32,
+    color: Rgba,
+    rect: Rect,
+    background: Rgba,
+) {
     let char_x = x_dot.div_euclid(2);
     let char_y = y_dot.div_euclid(4);
     let dot_x = x_dot.rem_euclid(2) as u16;
@@ -546,7 +582,7 @@ fn set_braille_dot(buf: &mut Buffer, x_dot: i32, y_dot: i32, color: Color, rect:
 
         bits |= 1 << bit;
         cell.set_char(char::from_u32(0x2800 + bits as u32).unwrap());
-        cell.set_fg(color);
+        blend_cell_colors(cell, color, background, false);
     }
 }
 
@@ -583,13 +619,21 @@ fn draw_braille_gradient_line(
         let mask_overlay = get_mask_overlay_cached(ctx, char_y_in_buf);
 
         let line_t = (start_t + length_t * t).clamp(0.0, 1.0);
-        let line_color = c1.blend(c2, line_t);
+        let mut line_color = c1.blend(c2, line_t);
+        line_color.a *= 1.0 - mask_overlay;
+        if line_color.a <= EPS {
+            i += step;
+            continue;
+        }
 
-        // Character color: element on background, then background as overlay from mask.
-        let color_on_bg = ctx.background.blend(line_color, 1.0);
-        let final_color = color_on_bg.blend(ctx.background, mask_overlay);
-
-        set_braille_dot(buf, x, y, final_color.to_tui(), ctx.playfield.rect);
+        set_braille_dot(
+            buf,
+            x,
+            y,
+            line_color,
+            ctx.playfield.rect,
+            ctx.background,
+        );
         i += step;
     }
 }
@@ -707,15 +751,15 @@ fn draw_note_glyph(
         return;
     };
     let mask_overlay = get_mask_overlay_cached(ctx, y);
-    let color_on_bg = ctx.background.blend(color, 1.0);
-    let final_color = color_on_bg.blend(ctx.background, mask_overlay);
+    let mut final_color = color;
+    final_color.a *= 1.0 - mask_overlay;
+    if final_color.a <= EPS {
+        return;
+    }
 
     if let Some(cell) = get_cell_mut(buf, x, y, ctx.playfield.rect) {
         cell.set_char(glyph);
-        cell.set_fg(final_color.to_tui());
-        if ctx.config.note_set_bg {
-            cell.set_bg(ctx.background.to_tui());
-        }
+        blend_cell_colors(cell, final_color, ctx.background, ctx.config.note_set_bg);
     }
 }
 
